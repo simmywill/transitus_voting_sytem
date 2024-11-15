@@ -3,6 +3,7 @@ blinker==1.8.0
 cachelib==0.13.0
 click==8.1.7
 colorama==0.4.6
+dj-database-url==2.3.0
 Django==5.1.2
 Flask==3.0.3
 Flask-Session==0.8.0
@@ -20,4 +21,5 @@ SQLAlchemy==2.0.29
 sqlparse==0.5.1
 typing_extensions==4.11.0
 tzdata==2024.2
+waitress==3.0.1
 Werkzeug==3.0.2
