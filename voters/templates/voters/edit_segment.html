@@ -1,0 +1,193 @@
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Segment</title>
+    <!-- Link to the external CSS file -->
+    {% load static %}
+    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css">
+</head>
+
+<div class="edit_segment_container" data-id="{{ segment.id }}">
+    <h3 class="edit_segment_header">{{ segment.name }}</h3>
+    
+    <form method="post" action="{% url 'edit_segment' segment.id %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="segment_name" class="edit_segment_label">Segment Header:</label>
+        <input type="text" name="segment_name" class="edit_segment_input" value="{{ segment.name }}" required>
+
+        <div class="edit_segment_candidates" id="candidates-{{ segment.id }}">
+            <h4 class="edit_segment_candidates_title">Candidate Information</h4>
+            <button class="addCandidate" type="button" onclick="addCandidate('{{ segment.id }}')">
+                <i class="bi bi-person-add"></i>
+                <span>Add New Candidate</span>
+            </button>
+            {% for candidate in segment.candidates.all %}
+                <div class="edit_segment_candidate" data-id="{{ candidate.id }}">
+                    <label class="edit_segment_label">Candidate Name:</label>
+                    <div class="input_name_container">
+                        <input type="text" name="candidates[{{ forloop.counter0 }}][name]" 
+                               value="{{ candidate.name }}" required class="edit_segment_input_name">
+                    </div>
+                    <div class="edit_segment_candidate_photo">
+                        <label class="edit_segment_label_photo">Candidate Photo:</label>
+                        <input type="file" name="candidates[{{ forloop.counter0 }}][photo]" accept="image/*"  class="edit_segment_input_image" onchange="previewImage(this)">
+                        <img src="{{ candidate.photo.url }}" alt="Image Preview" class="edit_segment_image_preview">
+                    </div>
+                    <i onclick="deleteCandidate(this)" class="bi bi-trash3"></i>
+                </div>
+            {% endfor %}
+        </div>
+
+     
+
+        <div class="edit_segment_buttons_container">
+            <button type="submit" class="edit_segment_save_button">Save Changes</button>
+        </div>
+    </form>
+</div>
+
+<script>
+   function previewImage(input) {
+        const file = input.files[0];  // Get the selected file
+        const previewImg = input.nextElementSibling;  // Get the image element next to the input
+
+        if (file) {
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;  // Set the image source to the preview
+            }
+
+            reader.readAsDataURL(file);  // Read the file as a data URL to preview
+        }
+    }
+
+
+    
+
+    // Array of colors (same as in voting_session.html)
+    const colors = [
+        { base: '#ff4d4d', light: '#ff9999' },  // Glossy Red
+        { base: '#ff7f50', light: '#ffcc99' },  // Glossy Orange
+        { base: '#4da6ff', light: '#80b3ff' },  // Glossy Blue
+        { base: '#66cc66', light: '#99ff99' },  // Glossy Green
+        { base: '#ffcc00', light: '#ffeb99' }   // Glossy Yellow
+    ];
+    
+    // Get the segment ID from the URL or from the context (if passed as a data attribute)
+    const segmentId = "{{ segment.id }}";
+    
+    // Get the color based on the segment ID
+    const color = colors[segmentId % colors.length];
+    
+    // Apply the color to the header
+    const header = document.querySelector('.edit_segment_header');
+    header.style.background = `linear-gradient(45deg, ${color.base}, ${color.light})`;
+
+    // Function to update image preview
+    document.querySelectorAll('.edit_segment_candidate input[type="file"]').forEach(input => {
+        input.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const previewImage = e.target.closest('.edit_segment_candidate').querySelector('.edit_segment_image_preview');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    previewImage.src = event.target.result;  // Update image preview
+                }
+                reader.readAsDataURL(file);  // Read the file as data URL
+            }
+        });
+    });
+
+    // New array to hold dynamically added candidates
+const newCandidatesList = [];
+
+// Modified function to add a candidate to the new list
+function addCandidate(segmentId) {
+    const container = document.getElementById(`candidates-${segmentId}`);
+    
+    // Create new candidate entry
+    const newCandidateDiv = document.createElement('div');
+    newCandidateDiv.classList.add('edit_segment_candidate');
+    newCandidateDiv.innerHTML = `
+        <label class="edit_segment_label">Candidate Name:</label>
+        <div class="input_name_container">
+            <input type="text" name="newCandidate_name[]" required class="edit_segment_input_name">
+        </div>
+        <div class="edit_segment_candidate_photo">
+            <label class="edit_segment_label_photo">Candidate Photo:</label>
+            <input type="file" name="newCandidate_photo[]" accept="image/*" class="edit_segment_input_image" onchange="previewImage(this)">
+            <img src="" alt="Image Preview" class="edit_segment_image_preview">
+        </div>
+        <i onclick="deleteCandidate(this)" class="bi bi-trash3"></i> `
+    ;
+
+    container.appendChild(newCandidateDiv);
+}
+
+// Function to gather form data and post it using AJAX
+function submitForm() {
+    const formData = new FormData(document.querySelector('form')); // Assuming the form selector is appropriate
+    const candidateNames = [];
+    const candidatePhotos = [];
+
+    // Gather all candidate names and photos
+    document.querySelectorAll('input[name="newCandidate_name[]"]').forEach(input => candidateNames.push(input.value));
+    document.querySelectorAll('input[name="newCandidate_photo[]"]').forEach(input => candidatePhotos.push(input.files[0]));
+
+    // Append to formData for AJAX
+    candidateNames.forEach((name, index) => formData.append(`newCandidate_name[${index}]`, name));
+    candidatePhotos.forEach((file, index) => formData.append(`newCandidate_photo[${index}]`, file));
+
+    // Send formData via AJAX to backend
+    fetch('/your-post-url/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}', // Django CSRF token
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log("Form submitted successfully", data);
+    })
+    .catch(error => {
+        console.error("Error submitting form:", error);
+    });
+}
+
+
+function deleteCandidate(button) {
+    const candidateDiv = button.closest('.edit_segment_candidate');
+    const candidateId = candidateDiv.getAttribute('data-id');
+
+    if (candidateId) {
+        // AJAX call to delete candidate
+        fetch(`/delete_candidate/${candidateId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',  // CSRF token for security
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                // Remove the candidate from the DOM if deletion was successful
+                candidateDiv.remove();
+            } else {
+                console.error('Failed to delete candidate');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    } else {
+        // For dynamically added candidates (not in database yet), just remove from DOM
+        candidateDiv.remove();
+    }
+}
+
+
+    </script>

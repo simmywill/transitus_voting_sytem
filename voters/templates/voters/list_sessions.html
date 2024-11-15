@@ -1,0 +1,64 @@
+<!-- templates/voting/list_voting_sessions.html -->
+<head>
+    <meta charset="UTF-8">
+    <title>Voting Sessions</title>
+    {% load static %}
+    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
+</head>
+
+<nav class="admin-navbar">
+    <div class="navbar-content">
+        <h2 class="admin-title">Voting Sessions</h2>
+        <div class="profile">
+            <ul>
+                <h2 class="page-title"></h2>
+                <li class="home_link"><a  href="{% url 'admin_main_page' %}">Home</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash message section -->
+{% if messages %}
+    <div class="flash-alert" id="flash-alert">
+        {% for message in messages %}
+            <p class="flash-message {{ message.tags }}">{{ message }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<div class="sessions-container">
+    <a href="{% url 'create_voting_session' %}" class="create-session-btn">Create New Session</a>
+    
+    <div class="session-list">
+        {% for session in sessions %}
+            <div class="session-card">
+                <div class="session-info">
+                    <a href="{% url 'manage_session' session.session_id %}" class="session-title">{{ session.title }}</a>
+                    <div class="session-links">
+                        {% if session.qr_code %}
+                            <a href="{{ session.qr_code.url }}" class="qr-link">QR Code</a>
+                        {% else %}
+                            <span class="no-qr">No QR Code generated</span>
+                        {% endif %}
+                        <a href="{% url 'delete_voting_session' session.session_id %}" class="delete-link">Delete</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const flashAlert = document.getElementById('flash-alert');
+        if (flashAlert) {
+            setTimeout(() => {
+                flashAlert.style.opacity = '0';
+                setTimeout(() => {
+                    flashAlert.style.display = 'none';
+                }, 600); // Wait for the fade-out effect
+            }, 5000); // Message will disappear after 5000 milliseconds (5 seconds)
+        }
+    });
+</script>

@@ -1,0 +1,7 @@
+<!-- templates/voting/create_session.html -->
+<h2>Create Voting Session</h2>
+<form method="POST" action="{% url 'create_voting_session' %}">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+</form>

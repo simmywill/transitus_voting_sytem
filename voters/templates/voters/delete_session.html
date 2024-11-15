@@ -1,0 +1,30 @@
+<!-- templates/voting/delete_session.html -->
+
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Voting Session</title>
+    <!-- Link to the external CSS file -->
+    {% load static %}
+    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
+</head>
+
+<!-- Confirmation Flash Card (modal-like) -->
+<div class="flash-card">
+    <h3>Are you sure you want to delete the session: "{{ session.title }}"?</h3>
+    <div class="flash-card-actions">
+        <form method="post" class="confirmation-form">
+            {% csrf_token %}
+            <button type="submit" name="confirm" class="confirm-btn">Confirm Deletion</button>
+            <a href="{% url 'list_voting_sessions' %}" class="cancel-btn">Cancel</a>
+        </form>
+    </div>
+</div>
+
+<!-- Flash message -->
+{% if messages %}
+    <div class="flash-alert">
+        {% for message in messages %}
+            <p class="flash-message {{ message.tags }}">{{ message }}</p>
+        {% endfor %}
+    </div>
+{% endif %}

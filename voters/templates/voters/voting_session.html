@@ -1,0 +1,209 @@
+<head>
+    <meta charset="UTF-8">
+    <title>Voting Session</title>
+    <!-- Link to the external CSS file -->
+    {% load static %}
+    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+
+</head>
+
+<body>
+    <nav class="voting_session-navbar">
+        <div class="voting_session-navbar-content">
+            <h1 class="voting_session-navbar-title">{{session.title}}</h1>
+            
+            <!-- Hamburger menu icon for mobile view -->
+            <div class="voting_session-navbar-toggle" onclick="toggleNavbar()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+    
+            <div class="voting_session-navbar-links">
+                <ul>
+                    <li><a href="{% url 'admin_main_page' %}">Admin Main Page</a></li>
+                    <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
+                    <li><a href="{% url 'voter_list' session.session_id %}">Voters List</a></li>
+                    <li><a href="{% url 'add_voters' session.session_id %}">Add Voters</a></li>
+                    <li><a href="{% url 'manage_session' session.session_id %}">Manage Session {{ session.session_id }}</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    <form method="post" action="{% url 'activate_session' session.session_id %}">
+        {% csrf_token %}
+        <div id="sortable-segments">
+            {% for segment in segments %}
+                <div class="voting_session_segment" data-id="{{ segment.id }}">
+                    <div class="options-menu">
+                        <span class="options-label">Actions</span> <!-- "Actions" text to the left -->
+                        <span class="options-icon" onclick="toggleOptionsMenu(event)">⋮</span> <!-- Three-dot icon -->
+                        <div class="dropdown-menu">
+                            <a href="{% url 'edit_segment' segment.id %}" class="dropdown-item">Edit</a>
+                            <a class="dropdown-item" onclick="deleteSegment('{{ segment.id }}')">Delete</a>
+                        </div>
+                    </div>
+                    <h3>{{ segment.name }}</h3>
+                    <div class="voting_session_candidates">
+                        {% for candidate in segment.candidates.all %}
+                            <div class="voting_session_candidate">
+                                <p>{{ candidate.name }}</p>
+                                <img src="{{ candidate.photo.url }}" alt="Candidate Photo">
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <button style="align-items: center;" type="submit">Activate Session</button>
+    </form>
+    
+    
+        
+          
+          <script>
+
+            // Toggle the dropdown menu visibility
+function toggleOptionsMenu(event) {
+    const dropdownMenu = event.target.nextElementSibling;
+    dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+    document.addEventListener('click', closeAllDropdowns);
+}
+
+
+// Close dropdowns when clicking outside
+function closeAllDropdowns(event) {
+    document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        if (!menu.contains(event.target) && !menu.previousElementSibling.contains(event.target)) {
+            menu.style.display = 'none';
+        }
+    });
+    document.removeEventListener('click', closeAllDropdowns); // Remove listener after executing
+}
+
+
+// Delete segment function
+function deleteSegment(segmentId) {
+    if (confirm('Are you sure you want to delete this segment?')) {
+        fetch(`/delete-segment/${segmentId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+        })
+        .then(response => {
+            if (response.ok) {
+                // Remove the segment from the DOM
+                document.querySelector(`.voting_session_segment[data-id="${segmentId}"]`).remove();
+            } else {
+                alert('Failed to delete segment.');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+
+            function toggleNavbar() {
+                    const navbar = document.querySelector('.voting_session-navbar-links');
+                    navbar.classList.toggle('active');
+                }
+
+            var el = document.getElementById('sortable-segments');
+            var sortable = new Sortable(el, {
+                animation: 150, // Smooth animation when moving segments
+                onEnd(evt) {
+                    // Optionally, you can save the new order using AJAX or a form submission
+                     // Get the new order of segment IDs
+                            const orderedSegmentIds = Array.from(el.children).map(child => child.getAttribute('data-id'));
+
+                    // Send the updated order to the backend
+                    fetch('/update-segment-order/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: JSON.stringify({ order: orderedSegmentIds })
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Order updated successfully');
+                        } else {
+                            console.error('Failed to update order');
+                        }
+                    });
+                    console.log('Moved segment:', evt);
+                }
+            });
+            function toggleEditMode(button) {
+            const segmentDiv = button.closest('.voting_session_segment');
+            const name = segmentDiv.querySelector('h3');
+            const candidates = segmentDiv.querySelectorAll('.voting_session_candidate');
+            
+            if (button.innerText === 'Edit Segment') {
+            button.innerText = 'Save Changes';
+            name.setAttribute('contenteditable', 'true');
+            candidates.forEach(candidate => {
+                const nameField = candidate.querySelector('p');
+                nameField.setAttribute('contenteditable', 'true');
+            });
+            } else {
+            button.innerText = 'Edit Segment';
+            name.removeAttribute('contenteditable');
+            candidates.forEach(candidate => {
+                const nameField = candidate.querySelector('p');
+                nameField.removeAttribute('contenteditable');
+            });
+            
+            // Send the updated values to the backend via AJAX
+            const updatedName = name.innerText;
+            fetch('/update-segment/', {
+                method: 'POST',
+                headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                segment_id: segmentDiv.getAttribute('data-id'),
+                new_name: updatedName
+                })
+            });
+            }
+        }
+
+        // Array of colors to cycle through
+// Array of color objects to cycle through
+// Define a color array or dynamically generate colors
+const colors = [
+    { base: '#ff4d4d', light: '#ff9999' },  // Glossy Red
+    { base: '#ff7f50', light: '#ffcc99' },  // Glossy Orange
+    { base: '#4da6ff', light: '#80b3ff' },  // Glossy Blue
+    { base: '#66cc66', light: '#99ff99' },  // Glossy Green
+    { base: '#ffcc00', light: '#ffeb99' }   // Glossy Yellow
+];
+
+// Function to get a consistent color index based on the segment ID
+function getColorForSegmentId(segmentId) {
+    // Convert segment ID to an integer, then use modulo to select a color index
+    return colors[segmentId % colors.length];
+}
+
+// Apply colors to segments based on their ID
+const segments = document.querySelectorAll('.voting_session_segment');
+segments.forEach(segment => {
+    const segmentId = parseInt(segment.getAttribute('data-id'), 10);
+    const color = getColorForSegmentId(segmentId);
+
+    // Set the base and light colors for each segment
+    segment.style.setProperty('--segment-color', color.base);
+    segment.style.setProperty('--segment-light-color', color.light);
+});
+
+
+          </script>
+          
+
+</body>

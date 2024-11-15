@@ -1,0 +1,7 @@
+<h2>Edit Voter: {{ voter.name }}</h2>
+<form method="POST">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Update Voter</button>
+</form>
+<a href="{% url 'voter_list' %}">Back to Voter List</a>
