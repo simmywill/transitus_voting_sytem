@@ -1,0 +1,9 @@
+{
+    "static_mounts": [
+      {
+        "url": "/static",
+        "static_dir": "static"
+      }
+    ]
+  }
+  
