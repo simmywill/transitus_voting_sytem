@@ -1,4 +1,11 @@
 <!-- templates/voting/create_session.html -->
+<head>
+    <meta charset="UTF-8">
+    <title>Voting Session</title>
+    <!-- Link to the external CSS file -->
+    {% load static %}
+    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
+</head>
 <h2>Create Voting Session</h2>
 <form method="POST" action="{% url 'create_voting_session' %}">
     {% csrf_token %}
