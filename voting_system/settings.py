@@ -24,13 +24,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-!qaa!8+36s)wx5%axj3f&pv%f+@($i(6i=!t3x8n((=wojz7@g'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = ['.onrender.com']
+#ALLOWED_HOSTS = ['.onrender.com']
 
+import os
 import dj_database_url
+
+# Parse the DATABASE_URL from the environment
 DATABASES = {
-    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL', f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}')
+    )
 }
 
 
