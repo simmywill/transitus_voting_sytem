@@ -142,9 +142,9 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'static'),  # Point to your local static folder
+    os.path.join(BASE_DIR, 'voting_static'),  # Point to your local static folder
 ]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfile')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 
 # BASE_URL for QR code generation (use your own URL or localhost during development)
