@@ -331,7 +331,7 @@ def activate_session(request, session_id):
 
 def voter_verification(request, session_uuid):
     # Retrieve the voting session based on the unique session UUID
-    session = get_object_or_404(VotingSession, unique_url=f'https://votingapp.com/voter_session/{session_uuid}')
+    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
     
     # Ensure the session is active and not closed
     if not session.is_active:
@@ -342,10 +342,8 @@ def voter_verification(request, session_uuid):
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
         
-        # Check if the name is valid (you can add additional checks here, like matching it with registered names)
+        # Check if the name is valid
         if first_name and last_name:
-            # In this example, we assume that voters are validated by their names.
-            # You can customize this to check a database of registered voters if needed.
             return redirect('voter_session', session_uuid=session_uuid)  # Redirect to the voting session page
         
         # If name is not valid, show an error message
