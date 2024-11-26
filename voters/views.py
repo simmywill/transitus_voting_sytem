@@ -65,7 +65,6 @@ def create_voting_session(request):
             voting_session = form.save(commit=False)
             voting_session.admin = request.user
             voting_session.save()
-            voting_session.generate_qr_code()
             # Redirect to manage session page for the specific session_id
             return redirect('list_voting_sessions', session_id=voting_session.session_id)
     else:

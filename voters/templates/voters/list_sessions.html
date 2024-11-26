@@ -36,11 +36,15 @@
                 <div class="session-info">
                     <a href="{% url 'manage_session' session.session_id %}" class="session-title">{{ session.title }}</a>
                     <div class="session-links">
-                        {% if session.qr_code %}
-                            <a href="{{ session.qr_code.url }}" class="qr-link">QR Code</a>
+                        {% if session.is_active %}
+                            <span class="no-qr">Active</span>
+                            {% if session.qr_code %}
+                                <a href="{{ session.qr_code.url }}" class="qr-link">QR Code</a>
+                            {% else %}
+                                <span class="no-qr">No QR Code generated</span>
                         {% else %}
-                            <span class="no-qr">No QR Code generated</span>
-                        {% endif %}
+                            <span class="no-qr">Inactive</span>
+                            {% endif %}
                         <a href="{% url 'delete_voting_session' session.session_id %}" class="delete-link">Delete</a>
                     </div>
                 </div>
