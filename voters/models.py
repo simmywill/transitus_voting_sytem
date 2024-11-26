@@ -24,6 +24,8 @@ import qrcode
 from django.core.files.storage import FileSystemStorage
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils.http import urlencode
+from django.conf import settings
 
 class VotingSession(models.Model):
     session_id = models.AutoField(primary_key=True)
@@ -37,9 +39,15 @@ class VotingSession(models.Model):
     total_voters = models.IntegerField(default=0)
     current_voters = models.IntegerField(default=0)
 
-    def generate_qr_code(self):
-        # Generate the unique URL for the session
-        self.unique_url = f'https://votingapp.com/voter_session/{uuid.uuid4()}'
+ 
+
+    def generate_qr_code(self, request):
+        # Get the host dynamically from the request
+        host = settings.SITE_URL
+        protocol = 'https' if request.is_secure() else 'http'
+
+        # Generate the unique URL
+        self.unique_url = f'{host}/voter_session/{uuid.uuid4()}'
         self.save()
 
         # Generate QR code for the unique URL
@@ -49,10 +57,10 @@ class VotingSession(models.Model):
         qr_image.save(qr_io, format='PNG')
         qr_io.seek(0)
 
-
-        # Create a file object from the byte stream and save it to the ImageField
+        # Save the QR code image
         self.qr_code.save(f'qr_code_{self.session_id}.png', ContentFile(qr_io.read()), save=False)
         self.save()
+
 
     def __str__(self):
         return self.title
