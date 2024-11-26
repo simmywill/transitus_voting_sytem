@@ -50,7 +50,7 @@ class VotingSession(models.Model):
         
 
         # Generate the unique URL
-        self.unique_url = f'{protocol}://{host}/voter_session/{uuid.uuid4()}'
+        self.unique_url = f'{protocol}://{host}/voter_session/verify/{self.session_uuid}'  # Ensure this matches the URL pattern
         print(f"Generated unique URL: {self.unique_url}")
         self.save()
         
