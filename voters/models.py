@@ -26,6 +26,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils.http import urlencode
 from django.conf import settings
+from io import BytesIO 
 
 class VotingSession(models.Model):
     session_id = models.AutoField(primary_key=True)
