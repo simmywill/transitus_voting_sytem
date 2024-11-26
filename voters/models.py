@@ -43,8 +43,8 @@ class VotingSession(models.Model):
 
     def generate_qr_code(self, request):
         # Get the host dynamically from the request
-        host = settings.SITE_URL
-        protocol = 'https' if request.is_secure() else 'http'
+        host = settings.SITE_URL.rstrip('/')
+        
 
         # Generate the unique URL
         self.unique_url = f'{host}/voter_session/{uuid.uuid4()}'
