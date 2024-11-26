@@ -42,9 +42,10 @@
                                 <a href="{{ session.qr_code.url }}" class="qr-link">QR Code</a>
                             {% else %}
                                 <span class="no-qr">No QR Code generated</span>
+                            {% endif %}
                         {% else %}
                             <span class="no-qr">Inactive</span>
-                            {% endif %}
+                        {% endif %}
                         <a href="{% url 'delete_voting_session' session.session_id %}" class="delete-link">Delete</a>
                     </div>
                 </div>
