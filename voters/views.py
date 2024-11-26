@@ -353,6 +353,6 @@ def voter_verification(request, session_uuid):
             })
     
     # Render the verification page with a form
-    return render(request, 'voting/voter_verification.html', {
+    return render(request, 'voters/voter_verification.html', {
         'session': session
     })
