@@ -66,7 +66,7 @@ def create_voting_session(request):
             voting_session.admin = request.user
             voting_session.save()
             # Redirect to manage session page for the specific session_id
-            return redirect('list_voting_sessions', session_id=voting_session.session_id)
+            return redirect('list_voting_sessions')
     else:
         form = VotingSessionForm()
     return render(request, 'voters/create_session.html', {'form': form})
