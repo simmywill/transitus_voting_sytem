@@ -390,29 +390,39 @@ def voter_session(request, session_uuid):
 
 
 
-def submit_vote(request):
+def submit_vote(request, session_uuid):
+    # Retrieve the session based on the unique UUID
+    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    
     voter_id = request.session.get('voter_id')
     if request.method == 'POST':
         candidate_id = request.POST.get('candidate')
         segment_id = request.POST.get('segment')
 
+        # Save the vote in the database
         Vote.objects.create(
             voter_id=voter_id,
             candidate_id=candidate_id,
             segment_id=segment_id
         )
-
-    return redirect('voting_page', session_id=request.session['session_id'])
+    
+    # Redirect to the next voting page using session_uuid
+    current_segment = int(request.GET.get('segment', 0))
+    return redirect('voter_session', session_uuid=session_uuid, segment=current_segment + 1)
 
 
 from django.db.models import Count
 
-def tally_votes(request, session_id):
-    session = VotingSession.objects.get(session_id=session_id)
+def tally_votes(request, session_uuid):
+    # Retrieve the session based on the unique UUID
+    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
     segments = session.votingsegmentheader_set.all()
 
+    # Calculate the vote tallies
     tally = {}
     for segment in segments:
         tally[segment.name] = segment.candidate_set.annotate(vote_count=Count('vote'))
 
-    return render(request, 'tally_votes.html', {'tally': tally})
+    # Render the tally page
+    return render(request, 'tally_votes.html', {'tally': tally, 'session': session})
+
