@@ -12,6 +12,6 @@
     </form>
 </div>
 
-{% if current_segment < total_segments - 1 %}
+{% if current_segment < total_segments  %}
 <a href="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:1 }}" class="next-button">Next</a>
 {% endif %}

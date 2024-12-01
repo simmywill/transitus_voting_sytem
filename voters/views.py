@@ -443,10 +443,10 @@ def voter_session(request, session_uuid):
     # Retrieve the segments in order
     segments = session.segments.order_by('order')
     current_segment = int(request.GET.get('segment', 0))
+    remaining_segments = len(segments) - 1  # Precompute the subtraction
     
     # Display the current segment or redirect if voting is complete
     if current_segment < len(segments):
-        segment = segments[current_segment]
         return render(
             request,
             'voters/voting_page.html',
@@ -454,6 +454,7 @@ def voter_session(request, session_uuid):
                 'segment': segment,
                 'current_segment': current_segment,
                 'total_segments': len(segments),
+                'remaining_segments': remaining_segments,
                 'session_uuid': session_uuid  # Pass session_uuid for navigation
             }
         )
