@@ -409,6 +409,7 @@ def voter_verification(request, session_uuid):
         else:
             return render(request, 'voters/voter_verification.html', {
                 'session': session,
+                'session_uuid': session_uuid,
                 'error_message': 'Please enter a valid name.'
             })
     

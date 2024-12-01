@@ -20,6 +20,7 @@
     <form method="POST"  action="{% url 'voter_verification' session.session_uuid %}">
         {% csrf_token %}
         <div class="form-group">
+            <p>{{ session.session_uuid }}</p>
             <label for="first_name">First Name:</label>
             <input type="text" name="first_name" id="first_name" required>
         </div>
