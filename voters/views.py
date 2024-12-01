@@ -441,7 +441,7 @@ def voter_session(request, session_uuid):
         return redirect('voter_verification', session_uuid=session_uuid)
     
     # Retrieve the segments in order
-    segments = session.votingsegmentheader_set.order_by('order')
+    segments = session.segments.order_by('order')
     current_segment = int(request.GET.get('segment', 0))
     
     # Display the current segment or redirect if voting is complete
