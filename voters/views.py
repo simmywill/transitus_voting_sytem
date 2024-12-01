@@ -452,7 +452,7 @@ def voter_session(request, session_uuid):
             request,
             'voters/voting_page.html',
             {
-                'segment': segments,
+                'segment': segment,
                 'current_segment': current_segment,
                 'total_segments': len(segments),
                 'remaining_segments': remaining_segments,
