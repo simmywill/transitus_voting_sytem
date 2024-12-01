@@ -230,7 +230,12 @@ def voter_list(request, session_id=None, session_uuid=None):
 
 
 @login_required
-def delete_voter(request, voter_id, session_uuid=None, session_id=None):
+def delete_voter(request, voter_id):
+
+    session_uuid = request.GET.get('session_uuid')
+    session_id = request.GET.get('session_id')
+
+    
     if session_uuid:
         voter = get_object_or_404(Voter, voter_id=voter_id, session__unique_url__contains=f'{session_uuid}')
     elif session_id:
@@ -247,7 +252,11 @@ def delete_voter(request, voter_id, session_uuid=None, session_id=None):
     return render(request, 'voters/delete_voter.html', {'voter': voter})
 
 @login_required
-def edit_voter(request, voter_id, session_uuid=None, session_id=None):
+def edit_voter(request, voter_id):
+
+    session_uuid = request.GET.get('session_uuid')
+    session_id = request.GET.get('session_id')
+
     if session_uuid:
         voter = get_object_or_404(Voter, voter_id=voter_id, session__unique_url__contains=f'{session_uuid}')
     elif session_id:
