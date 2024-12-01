@@ -10,7 +10,7 @@ from django.core.files.base import ContentFile
 
 class Voter(models.Model):
     voter_id = models.AutoField(primary_key=True)
-    session = models.ForeignKey('VotingSession', on_delete=models.CASCADE)  # Use a string reference
+    session = models.ForeignKey('VotingSession', on_delete=models.CASCADE , related_name='voters')  # Use a string reference
     Fname = models.CharField(max_length=100)
     Lname = models.CharField(max_length=100)
 
