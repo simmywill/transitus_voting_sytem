@@ -408,7 +408,7 @@ def voter_verification(request, session_uuid):
         # Check if the name is valid
         if voter:
             # Save voter ID in session and redirect
-            request.session['voter_id'] = voter.id
+            request.session['voter_id'] = voter.voter_id
             return redirect('voter_session', session_uuid=session_uuid)
         
         # If name is not valid, show an error message
