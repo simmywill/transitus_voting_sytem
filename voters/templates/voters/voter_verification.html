@@ -17,7 +17,7 @@
         <p class="error-message">{{ error_message }}</p>
     {% endif %}
     
-    <form method="POST"  action="{% url 'voter_verification' session.session_uuid %}">
+    <form method="POST">
         {% csrf_token %}
         <div class="form-group">
             <p>{{ session.session_uuid }}</p>
