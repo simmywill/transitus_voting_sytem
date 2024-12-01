@@ -401,10 +401,15 @@ def voter_verification(request, session_uuid):
         # Verify the name entered by the voter
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
+
+        # Check if the voter exists in the session
+        voter = session.voters.filter(first_name=first_name, last_name=last_name).first()
         
         # Check if the name is valid
-        if first_name and last_name:
-            return redirect('voter_session', session_uuid=session_uuid)  # Redirect to the voting session page
+        if voter:
+            # Save voter ID in session and redirect
+            request.session['voter_id'] = voter.id
+            return redirect('voter_session', session_uuid=session_uuid)
         
         # If name is not valid, show an error message
         else:
@@ -427,6 +432,12 @@ def voter_session(request, session_uuid):
     # Check if the voter is verified
     voter_id = request.session.get('voter_id')
     if not voter_id:
+        return redirect('voter_verification', session_uuid=session_uuid)
+    
+     # Verify the voter exists and belongs to the session
+    voter = session.voters.filter(id=voter_id).first()
+    if not voter:
+        del request.session['voter_id']  # Clear invalid voter_id
         return redirect('voter_verification', session_uuid=session_uuid)
     
     # Retrieve the segments in order
