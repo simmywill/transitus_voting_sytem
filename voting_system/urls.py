@@ -42,7 +42,7 @@ urlpatterns = [
     path('delete-segment/<int:segment_id>/', voters_views.delete_segment, name = 'delete_segment'),
     path('activate_session/<int:session_id>/', voters_views.activate_session, name = 'activate_session'),
     path('voter_session/verify/<uuid:session_uuid>/', voters_views.voter_verification, name = 'voter_verification'),
-    path('voter_session<uuid:session_uuid>/', voters_views.voter_session, name = 'voter_session'),
+    path('voter_session/<uuid:session_uuid>/', voters_views.voter_session, name = 'voter_session'),
     path('submit-vote/<uuid:session_uuid>/', voters_views.submit_vote, name='submit_vote'),
     path('tally-votes/<uuid:session_uuid>/', voters_views.tally_votes, name='tally_votes'),
 
