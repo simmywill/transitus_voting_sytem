@@ -449,7 +449,7 @@ def voter_session(request, session_uuid):
         segment = segments[current_segment]
         return render(
             request,
-            'voting_page.html',
+            'voters/voting_page.html',
             {
                 'segment': segment,
                 'current_segment': current_segment,
