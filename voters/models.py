@@ -91,3 +91,9 @@ class Candidate(models.Model):
     
     def __str__(self):
         return self.name
+
+
+class Vote(models.Model):
+    voter = models.ForeignKey(Voter, on_delete=models.CASCADE)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
+    segment = models.ForeignKey(VotingSegmentHeader, on_delete=models.CASCADE)

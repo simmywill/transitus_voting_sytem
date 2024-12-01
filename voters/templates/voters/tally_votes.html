@@ -1,0 +1,11 @@
+<h1>Vote Tally</h1>
+{% for segment, candidates in tally.items %}
+<div class="segment-tally">
+    <h2>{{ segment }}</h2>
+    <ul>
+        {% for candidate in candidates %}
+        <li>{{ candidate.name }}: {{ candidate.vote_count }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endfor %}

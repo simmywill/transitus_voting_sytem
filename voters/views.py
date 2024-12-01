@@ -356,3 +356,63 @@ def voter_verification(request, session_uuid):
     return render(request, 'voters/voter_verification.html', {
         'session': session
     })
+
+
+def voter_session(request, session_uuid):
+    # Retrieve the voting session based on the unique session UUID
+    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    
+    # Check if the voter is verified
+    voter_id = request.session.get('voter_id')
+    if not voter_id:
+        return redirect('voter_verification', session_uuid=session_uuid)
+    
+    # Retrieve the segments in order
+    segments = session.votingsegmentheader_set.order_by('order')
+    current_segment = int(request.GET.get('segment', 0))
+    
+    # Display the current segment or redirect if voting is complete
+    if current_segment < len(segments):
+        segment = segments[current_segment]
+        return render(
+            request,
+            'voting_page.html',
+            {
+                'segment': segment,
+                'current_segment': current_segment,
+                'total_segments': len(segments),
+                'session_uuid': session_uuid  # Pass session_uuid for navigation
+            }
+        )
+    else:
+        # Voting completed
+        return redirect('thank_you', session_uuid=session_uuid)
+
+
+
+def submit_vote(request):
+    voter_id = request.session.get('voter_id')
+    if request.method == 'POST':
+        candidate_id = request.POST.get('candidate')
+        segment_id = request.POST.get('segment')
+
+        Vote.objects.create(
+            voter_id=voter_id,
+            candidate_id=candidate_id,
+            segment_id=segment_id
+        )
+
+    return redirect('voting_page', session_id=request.session['session_id'])
+
+
+from django.db.models import Count
+
+def tally_votes(request, session_id):
+    session = VotingSession.objects.get(session_id=session_id)
+    segments = session.votingsegmentheader_set.all()
+
+    tally = {}
+    for segment in segments:
+        tally[segment.name] = segment.candidate_set.annotate(vote_count=Count('vote'))
+
+    return render(request, 'tally_votes.html', {'tally': tally})

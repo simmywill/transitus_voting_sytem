@@ -1,0 +1,17 @@
+<div class="voting_segment">
+    <h2>{{ segment.name }}</h2>
+    <form method="post" action="{% url 'submit_vote' %}">
+        {% csrf_token %}
+        {% for candidate in segment.candidates.all %}
+        <div>
+            <input type="radio" name="candidate" value="{{ candidate.id }}" required>
+            <label>{{ candidate.name }}</label>
+        </div>
+        {% endfor %}
+        <button type="submit">Vote</button>
+    </form>
+</div>
+
+{% if current_segment < total_segments - 1 %}
+<a href="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:1 }}" class="next-button">Next</a>
+{% endif %}
