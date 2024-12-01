@@ -403,7 +403,7 @@ def voter_verification(request, session_uuid):
         last_name = request.POST.get('last_name')
 
         # Check if the voter exists in the session
-        voter = session.voters.filter(first_name=first_name, last_name=last_name).first()
+        voter = session.voters.filter(Fname=first_name, Lname=last_name).first()
         
         # Check if the name is valid
         if voter:
