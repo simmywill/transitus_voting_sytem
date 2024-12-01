@@ -235,7 +235,7 @@ def delete_voter(request, voter_id):
     session_uuid = request.GET.get('session_uuid')
     session_id = request.GET.get('session_id')
 
-    
+
     if session_uuid:
         voter = get_object_or_404(Voter, voter_id=voter_id, session__unique_url__contains=f'{session_uuid}')
     elif session_id:
@@ -407,7 +407,7 @@ def voter_verification(request, session_uuid):
         
         # If name is not valid, show an error message
         else:
-            return render(request, 'voting/voter_verification.html', {
+            return render(request, 'voters/voter_verification.html', {
                 'session': session,
                 'error_message': 'Please enter a valid name.'
             })
