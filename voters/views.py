@@ -156,9 +156,14 @@ def delete_voting_session(request, session_id):
     return render(request, 'voters/delete_session.html', {'session': session})
 
 
-def add_voters(request, session_id):
-    # Get the VotingSession instance based on the session_id
-    voting_session = get_object_or_404(VotingSession, session_id=session_id)
+def add_voters(request, session_id=None, session_uuid=None):
+    # Determine which identifier to use
+    if session_uuid:
+        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    elif session_id:
+        voting_session = get_object_or_404(VotingSession, session_id=session_id)
+    else:
+        raise Http404("Session identifier not provided.")
 
     if request.method == "POST":
         form = VoterForm(request.POST)
@@ -167,55 +172,101 @@ def add_voters(request, session_id):
             voter = form.save(commit=False)
             voter.session = voting_session  # Assign the VotingSession instance
             voter.save()
-            return redirect('voter_list', session_id = session_id)  # Redirect after successful save
+            # Redirect based on the identifier
+            if session_uuid:
+                return redirect('voter_list', session_uuid=session_uuid)
+            return redirect('voter_list', session_id=session_id)
     else:
         form = VoterForm()
 
-    return render(request, "voters/create_voter.html", {'form': form, 'session_id': session_id})
+    return render(
+        request,
+        "voters/create_voter.html",
+        {
+            'form': form,
+            'session_id': session_id,
+            'session_uuid': session_uuid,
+            'session': voting_session,
+        },
+    )
+
+
 
 @login_required
-def voter_list(request, session_id):
-    voting_session = get_object_or_404(VotingSession, session_id=session_id)
-    search_query = request.GET.get('search', '')  # Get search query from the GET request
+def voter_list(request, session_id=None, session_uuid=None):
+    # Determine which identifier to use
+    if session_uuid:
+        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    elif session_id:
+        voting_session = get_object_or_404(VotingSession, session_id=session_id)
+    else:
+        raise Http404("Session identifier not provided.")
 
-    # If a search query exists, filter voters by first name, last name, or voter ID
+    search_query = request.GET.get('search', '')
+
+    # Filter voters based on the associated session
     if search_query:
         voters = Voter.objects.filter(
-            session_id=voting_session
+            session=voting_session
         ).filter(
-            Q(Fname__icontains=search_query) |  # Filter by first name
-            Q(Lname__icontains=search_query) |  # Filter by last name
-            Q(voter_id__icontains=search_query)  # Filter by voter ID
+            Q(Fname__icontains=search_query) |
+            Q(Lname__icontains=search_query) |
+            Q(voter_id__icontains=search_query)
         )
     else:
-        # If no search query, fetch all voters for the session
-        voters = Voter.objects.filter(session_id=voting_session)
+        voters = Voter.objects.filter(session=voting_session)
 
-    return render(request, 'voters/voter_list.html', {'voters': voters, 'voting_session': voting_session})
+    return render(
+        request,
+        'voters/voter_list.html',
+        {
+            'voters': voters,
+            'voting_session': voting_session,
+            'session_uuid': session_uuid,
+            'session_id': session_id,
+        },
+    )
+
+
 
 @login_required
-def delete_voter(request, voter_id):
-    voter = get_object_or_404(Voter, voter_id=voter_id)
+def delete_voter(request, voter_id, session_uuid=None, session_id=None):
+    if session_uuid:
+        voter = get_object_or_404(Voter, voter_id=voter_id, session__unique_url__contains=f'{session_uuid}')
+    elif session_id:
+        voter = get_object_or_404(Voter, voter_id=voter_id, session__session_id=session_id)
+    else:
+        raise Http404("Session identifier not provided.")
+
     if request.method == 'POST':
         voter.delete()
-        return redirect('voter_list')
+        if session_uuid:
+            return redirect('voter_list', session_uuid=session_uuid)
+        return redirect('voter_list', session_id=session_id)
 
     return render(request, 'voters/delete_voter.html', {'voter': voter})
 
-from django.shortcuts import get_object_or_404
-
 @login_required
-def edit_voter(request, voter_id):
-    voter = get_object_or_404(Voter, voter_id=voter_id)
+def edit_voter(request, voter_id, session_uuid=None, session_id=None):
+    if session_uuid:
+        voter = get_object_or_404(Voter, voter_id=voter_id, session__unique_url__contains=f'{session_uuid}')
+    elif session_id:
+        voter = get_object_or_404(Voter, voter_id=voter_id, session__session_id=session_id)
+    else:
+        raise Http404("Session identifier not provided.")
+
     if request.method == 'POST':
         form = VoterForm(request.POST, instance=voter)
         if form.is_valid():
             form.save()
-            return redirect('voter_list')
+            if session_uuid:
+                return redirect('voter_list', session_uuid=session_uuid)
+            return redirect('voter_list', session_id=session_id)
     else:
         form = VoterForm(instance=voter)
 
     return render(request, 'voters/edit_voter.html', {'form': form, 'voter': voter})
+
 
 
 
