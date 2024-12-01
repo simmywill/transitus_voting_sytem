@@ -435,7 +435,7 @@ def voter_session(request, session_uuid):
         return redirect('voter_verification', session_uuid=session_uuid)
     
      # Verify the voter exists and belongs to the session
-    voter = session.voters.filter(id=voter_id).first()
+    voter = session.voters.filter(voter_id=voter_id).first()
     if not voter:
         del request.session['voter_id']  # Clear invalid voter_id
         return redirect('voter_verification', session_uuid=session_uuid)
