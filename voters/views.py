@@ -446,7 +446,7 @@ def voter_session(request, session_uuid):
     remaining_segments = len(segments) - 1  # Precompute the subtraction
     
     # Display the current segment or redirect if voting is complete
-    if current_segment < len(segments):
+        segment = segments[current_segment] if current_segment < len(segments) else None
         return render(
             request,
             'voters/voting_page.html',
