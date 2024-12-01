@@ -25,7 +25,7 @@ urlpatterns = [
     #path('admin/', admin.site.urls),
     #path('', voters_views.home_page, name = 'home_page'),
     path('add_voters/<int:session_id>/', voters_views.add_voters, name = 'add_voters'),
-    path('add_voters/<uuid:session_uuiid>/', voter_list, name='add_voters_by_id'),
+    path('add_voters/<uuid:session_uuiid>/', voters_views.voter_list, name='add_voters_by_id'),
     path('list/<int:session_id>/', voters_views.voter_list, name = 'voter_list'),
     path('list-uuid/<uuid:session_uuid>/', voters_views.voter_list, name='voter_list_by_uuid'),
     path('', voters_views.login_view, name='login_view'),
