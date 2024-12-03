@@ -204,7 +204,7 @@ def voter_list(request, session_id=None, session_uuid=None):
 
     search_query = request.GET.get('search', '')
 
-    voters = session.voters.all()
+    voters = voting_session.voters.all()
 
     # Filter voters based on the associated session
     if search_query:
