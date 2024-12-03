@@ -90,7 +90,12 @@
         document.addEventListener('DOMContentLoaded', function() {
         function updateVoterCounts() {
             fetch(`/voter_counts/${session_uuid}/`)
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json(); // Corrected placement of return statement and parentheses
+                })
                 .then(data => {
                     document.querySelector('.navbar p:first-of-type').textContent = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
                     document.querySelector('.navbar p:last-of-type').textContent = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
@@ -101,6 +106,7 @@
         // Update voter counts every 5 seconds
         setInterval(updateVoterCounts, 5000);
 });
+
     </script>
 </body>
 </html>
