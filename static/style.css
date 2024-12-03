@@ -980,3 +980,63 @@ html, body {
             font-weight: bold; /* Bold font */
             transform: scale(1.2); /* Magnify the icon */
         }
+/*segment resutlts styling*/
+       /* #leaderboard {
+            max-width: 500px;
+            margin: auto;
+            text-align: center;
+        }
+        
+        .candidate_vote {
+            margin: 20px 0;
+            font-size: 1.5rem;
+            font-weight: bold;
+            opacity: 0; /* Hidden initially for animation 
+            transform: translateY(50px); /* Slide up effect 
+        }
+        
+        .candidate_vote .votes {
+            color: #007bff; /* Blue for the vote count 
+        }
+        
+        .candidate_vote.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        */
+
+        #slideshow-container {
+            position: relative;
+            width: 100%;
+            margin: auto;
+        }
+        
+        .segment-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: none;
+        }
+        
+        .candidate_vote {
+            font-size: 1.2rem;
+            margin: 10px 0;
+        }
+        
+        .chart-container {
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        #next-button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        

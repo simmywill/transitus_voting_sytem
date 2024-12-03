@@ -204,6 +204,8 @@ def voter_list(request, session_id=None, session_uuid=None):
 
     search_query = request.GET.get('search', '')
 
+    voters = session.voters.all()
+
     # Filter voters based on the associated session
     if search_query:
         voters = Voter.objects.filter(
@@ -215,12 +217,19 @@ def voter_list(request, session_id=None, session_uuid=None):
         )
     else:
         voters = Voter.objects.filter(session=voting_session)
+    
+    verified_voters_count = voters.filter(is_verified=True).count()
+    finished_voters_count = voters.filter(has_finished=True).count()
+    total_voters_count = voters.count()
 
     return render(
         request,
         'voters/voter_list.html',
         {
             'voters': voters,
+            'verified_voters_count': verified_voters_count,
+            'finished_voters_count': finished_voters_count,
+            'total_voters_count': total_voters_count,
             'voting_session': voting_session,
             'session_uuid': session_uuid,
             'session_id': session_id,
@@ -399,8 +408,9 @@ def voter_verification(request, session_uuid):
     
     if request.method == 'POST':
         # Verify the name entered by the voter
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
+        data = json.loads(request.body.decode('utf-8'))
+        first_name = data.get('first_name')
+        last_name = data.get('last_name')
 
         # Check if the voter exists in the session
         voter = session.voters.filter(Fname=first_name, Lname=last_name).first()
@@ -408,21 +418,17 @@ def voter_verification(request, session_uuid):
         # Check if the name is valid
         if voter:
             # Save voter ID in session and redirect
+            voter.is_verified = True
+            voter.save()
             request.session['voter_id'] = voter.voter_id
-            return redirect('voter_session', session_uuid=session_uuid)
+            return JsonResponse({'success': True, 'redirect_url': redirect('voter_session', session_uuid=session_uuid).url})
         
         # If name is not valid, show an error message
-        else:
-            return render(request, 'voters/voter_verification.html', {
-                'session': session,
-                'session_uuid': session_uuid,
-                'error_message': 'Please enter a valid name.'
-            })
+        # If name is not valid, return error JSON response
+        return JsonResponse({'success': False})
     
     # Render the verification page with a form
-    return render(request, 'voters/voter_verification.html', {
-        'session': session
-    })
+    return render(request, 'voters/voter_verification.html', {'session': session})
 
 
 def voter_session(request, session_uuid):
@@ -488,16 +494,70 @@ def submit_vote(request, session_uuid):
 
 from django.db.models import Count
 
+from django.core.serializers import serialize
+
 def tally_votes(request, session_uuid):
-    # Retrieve the session based on the unique UUID
     session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
-    segments = session.votingsegmentheader_set.all()
+    segments = session.segments.all()
 
     # Calculate the vote tallies
-    tally = {}
+    tally = []
     for segment in segments:
-        tally[segment.name] = segment.candidate_set.annotate(vote_count=Count('vote'))
+        candidates = segment.candidates.annotate(vote_count=Count('vote__id'))
+        tally.append({
+            'segment_id': segment.id,
+            'name': segment.name,
+            'candidates': [{'id': c.id, 'name': c.name, 'votes': c.vote_count} for c in candidates]
+        })
 
-    # Render the tally page
-    return render(request, 'tally_votes.html', {'tally': tally, 'session': session})
+    # Render the tally page with serialized tally data
+    return render(request, 'results.html', {
+        'tally': tally,
+        'session': session,
+        'segments_json': json.dumps(tally)  # Pass JSON-encoded data
+    })
+
+
+from django.shortcuts import render, get_object_or_404
+
+def segment_results(request, session_uuid, segment_id):
+    segment = get_object_or_404(VotingSegmentHeader, id=segment_id, voting_session__unique_url__contains=session_uuid)
+    candidates = segment.candidates.all()  # Assuming a ForeignKey to candidates
+    context = {
+        'segment': segment,
+        'candidates': [{'id': candidate.id, 'name': candidate.name, 'votes': candidate.votes} for candidate in candidates]
+    }
+    return render(request, 'voters/segment_results.html', context)
+
+
+
+from django.shortcuts import render, get_object_or_404
+from .models import Voter, Vote, VotingSession, VotingSegmentHeader, Candidate
+
+def review_voter_results(request, voter_id, session_uuid):
+    # Retrieve the voting session using session_uuid
+    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    
+    # Get the voter from the database
+    voter = get_object_or_404(Voter, voter_id=voter_id, session=session)
+    
+    # Retrieve all the segments the voter voted on
+    votes = Vote.objects.filter(voter=voter)
+
+    # Prepare the data to be displayed
+    vote_details = []
+    for vote in votes:
+        segment = vote.segment
+        candidate = vote.candidate
+        vote_details.append({
+            'segment_name': segment.name,
+            'candidate_name': candidate.name,
+            'candidate_photo': candidate.photo.url if candidate.photo else None,  # Assuming 'photo' is a field in the Candidate model
+        })
+
+    return render(request, 'voters/review_voter_results.html', {
+        'voter': voter,
+        'vote_details': vote_details,
+        'session': session,
+    })
 

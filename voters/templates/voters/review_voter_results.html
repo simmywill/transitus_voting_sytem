@@ -1,0 +1,21 @@
+{% extends 'base_generic.html' %}
+
+{% block content %}
+  <h2>Review Results for {{ voter.Fname }} {{ voter.Lname }}</h2>
+
+  <ul>
+    {% for vote in vote_details %}
+      <li>
+        <p><strong>Segment:</strong> {{ vote.segment_name }}</p>
+        <p><strong>Voted for:</strong> {{ vote.candidate_name }}</p>
+        {% if vote.candidate_photo %}
+          <img src="{{ vote.candidate_photo }}" alt="{{ vote.candidate_name }}'s Photo" width="100">
+        {% else %}
+          <p>No photo available</p>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+
+  <a href="{% url 'voter_list' session_uuid=session.uuid %}">Back to Voter List</a>
+{% endblock %}
