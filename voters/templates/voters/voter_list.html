@@ -46,7 +46,7 @@
         </thead>
         <tbody id="voter-list">
             {% for voter in voters %}
-            <tr class="voter-row" data-status="{{ 'verified' if voter.is_verified else 'not_verified' }}">
+            <tr class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
                 <td>{{ voter.Fname }} {{ voter.Lname }}</td>
                 <td>
                     {% if voter.is_verified %}
