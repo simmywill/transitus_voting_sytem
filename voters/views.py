@@ -496,7 +496,7 @@ from django.db.models import Count
 
 from django.core.serializers import serialize
 
-def tally_votes(request, session_uuid):
+def segment_results(request, session_uuid):
     session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
     segments = session.segments.all()
 
@@ -518,16 +518,8 @@ def tally_votes(request, session_uuid):
     })
 
 
-from django.shortcuts import render, get_object_or_404
 
-def segment_results(request, session_uuid, segment_id):
-    segment = get_object_or_404(VotingSegmentHeader, id=segment_id, voting_session__unique_url__contains=session_uuid)
-    candidates = segment.candidates.all()  # Assuming a ForeignKey to candidates
-    context = {
-        'segment': segment,
-        'candidates': [{'id': candidate.id, 'name': candidate.name, 'votes': candidate.votes} for candidate in candidates]
-    }
-    return render(request, 'voters/segment_results.html', context)
+
 
 
 
