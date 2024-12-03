@@ -398,6 +398,11 @@ def activate_session(request, session_id):
     return redirect('list_voting_sessions')
 
 
+from channels.layers import get_channel_layer
+from django.http import JsonResponse
+from asgiref.sync import async_to_sync
+
+
 def voter_verification(request, session_uuid):
     # Retrieve the voting session based on the unique session UUID
     session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
@@ -405,12 +410,14 @@ def voter_verification(request, session_uuid):
     # Ensure the session is active and not closed
     if not session.is_active:
         raise Http404("This session is not active.")
-    
+
+        
+    error_message = None  # Initialize an error message variable
+
     if request.method == 'POST':
         # Verify the name entered by the voter
-        data = json.loads(request.body.decode('utf-8'))
-        first_name = data.get('first_name')
-        last_name = data.get('last_name')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
 
         # Check if the voter exists in the session
         voter = session.voters.filter(Fname=first_name, Lname=last_name).first()
@@ -421,11 +428,10 @@ def voter_verification(request, session_uuid):
             voter.is_verified = True
             voter.save()
             request.session['voter_id'] = voter.voter_id
-            return JsonResponse({'success': True, 'redirect_url': redirect('voter_session', session_uuid=session_uuid).url})
-        
-        # If name is not valid, show an error message
-        # If name is not valid, return error JSON response
-        return JsonResponse({'success': False})
+            return redirect('voter_session', session_uuid=session_uuid)
+        else:
+            # Set an error message if the voter is not found
+            error_message = "The name entered does not match any registered voter. Please try again."
     
     # Render the verification page with a form
     return render(request, 'voters/voter_verification.html', {'session': session})
@@ -553,3 +559,15 @@ def review_voter_results(request, voter_id, session_uuid):
         'session': session,
     })
 
+
+
+def voter_counts(request, session_uuid):
+    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    verified_count = session.voters.filter(is_verified=True).count()
+    finished_count = session.voters.filter(has_finished=True).count()
+    total_count = session.voters.count()
+    return JsonResponse({
+        'verified_voters': verified_count,
+        'finished_voters': finished_count,
+        'total_voters': total_count
+    })

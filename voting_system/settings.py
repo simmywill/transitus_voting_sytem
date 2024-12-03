@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    
 ]
 
 MIDDLEWARE = [
@@ -85,6 +86,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'voting_system.wsgi.application'
+
 
 
 # Database

@@ -4,41 +4,7 @@
     <title>{{ session.title }} - Verification</title>
     {% load static %}
     <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('form');
-            form.addEventListener('submit', function(event) {
-                event.preventDefault(); // Prevent normal form submission
-
-                const firstName = document.getElementById('first_name').value;
-                const lastName = document.getElementById('last_name').value;
-
-                // Send AJAX request to verify the voter
-                fetch(window.location.href, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ first_name: firstName, last_name: lastName })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Call the existing updateVoterCounts function after successful verification
-                        updateVoterCounts(); // This will update counts dynamically
-
-                        // Redirect to the session page
-                        window.location.href = data.redirect_url;
-                    } else {
-                        alert('Please enter a valid name.');
-                    }
-                })
-                .catch(error => console.error('Error during verification:', error));
-            });
-        });
-    </script>
+    
 </head>
 
 <nav class="navbar">
