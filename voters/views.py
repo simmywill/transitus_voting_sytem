@@ -398,9 +398,9 @@ def activate_session(request, session_id):
     return redirect('list_voting_sessions')
 
 
-from channels.layers import get_channel_layer
+
 from django.http import JsonResponse
-from asgiref.sync import async_to_sync
+
 
 
 def voter_verification(request, session_uuid):
@@ -411,7 +411,7 @@ def voter_verification(request, session_uuid):
     if not session.is_active:
         raise Http404("This session is not active.")
 
-        
+
     error_message = None  # Initialize an error message variable
 
     if request.method == 'POST':
