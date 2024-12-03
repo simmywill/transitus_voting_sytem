@@ -21,7 +21,9 @@
             <p>Finished Voters: {{ finished_voters_count }}/{{ total_voters_count }}</p>
         </div>
         <div>
-            <a href="{% url 'segment_results' session.session_uuid %}">Admin Results (Password Protected)</a>
+            {%if session.is_active%}
+                <a href="{% url 'segment_results' session.session_uuid %}">Admin Results (Password Protected)</a>
+            {%endif%}
         </div>
     </div>
 
