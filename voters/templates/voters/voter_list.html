@@ -18,7 +18,7 @@
     <div class="navbar">
         <div>
             <p>Verified Voters: {{ verified_voters_count }}/{{ total_voters_count }}</p>
-            <p>Finished Voters: {{ finished_voters_count }}/{{ total_voters_count - finished_voters_count }}</p>
+            <p>Finished Voters: {{ finished_voters_count }}/{{ total_voters_count }}</p>
         </div>
         <div>
             <a href="{% url 'admin_results_page' session.session_uuid %}">Admin Results (Password Protected)</a>
