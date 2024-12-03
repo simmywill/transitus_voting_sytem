@@ -14,7 +14,7 @@ class Voter(models.Model):
     Fname = models.CharField(max_length=100)
     Lname = models.CharField(max_length=100)
     is_verified = models.BooleanField(default=False)
-    is_finished = models.BooleanField(default=False)
+    has_finished = models.BooleanField(default=False)
 
     
 
