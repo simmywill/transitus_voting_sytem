@@ -13,6 +13,8 @@ class Voter(models.Model):
     session = models.ForeignKey('VotingSession', on_delete=models.CASCADE , related_name='voters')  # Use a string reference
     Fname = models.CharField(max_length=100)
     Lname = models.CharField(max_length=100)
+    is_verified = models.BooleanField(default=False)
+    is_finished = models.BooleanField(default=False)
 
     
 
