@@ -86,7 +86,7 @@
             });
         }
 
-
+        const session_uuid = "{{ session.session_uuid }}";
         document.addEventListener('DOMContentLoaded', function() {
         function updateVoterCounts() {
             fetch(`/voter_counts/${session_uuid}/`)

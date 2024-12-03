@@ -40,12 +40,13 @@ urlpatterns = [
     path('edit_segment/<int:segment_id>/', voters_views.edit_segment, name = 'edit_segment'),
     path('delete_candidate/<int:candidate_id>/', voters_views.delete_candidate, name = 'delete_candidate'),
     path('delete-segment/<int:segment_id>/', voters_views.delete_segment, name = 'delete_segment'),
+    path('update-segment-order/', voters_views.update_segment_order, name='update_segment_order'),
     path('activate_session/<int:session_id>/', voters_views.activate_session, name = 'activate_session'),
     path('voter_session/verify/<uuid:session_uuid>/', voters_views.voter_verification, name = 'voter_verification'),
     path('voter_session/<uuid:session_uuid>/', voters_views.voter_session, name = 'voter_session'),
     path('submit-vote/<uuid:session_uuid>/', voters_views.submit_vote, name='submit_vote'),
     path('segment_results/<uuid:session_uuid>/', voters_views.segment_results, name = 'segment_results'),
-    path('voter_counts/<str:session_uuid>/', voters_views.voter_counts, name='voter_counts'),
+    path('voter_counts/<uuid:session_uuid>/', voters_views.voter_counts, name='voter_counts'),
 
 
 
