@@ -86,7 +86,7 @@
             });
         }
 
-        const session_uuid = "{{ session.session_uuid }}";
+        const session_uuid = "{{ session_uuid }}";
         document.addEventListener('DOMContentLoaded', function() {
         function updateVoterCounts() {
             fetch(`/voter_counts/${session_uuid}/`)
@@ -105,7 +105,7 @@
 
         // Update voter counts every 5 seconds
         setInterval(updateVoterCounts, 5000);
-});
+            });
 
     </script>
 </body>
