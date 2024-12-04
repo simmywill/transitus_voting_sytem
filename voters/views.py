@@ -467,7 +467,7 @@ def voter_session(request, session_uuid):
         'total_segments': segments.count(),
         'selected_candidate_id': selected_vote.candidate_id if selected_vote else None,
     }
-    return render(request, 'voter_session.html', context)
+    return render(request, 'voters/voter_session.html', context)
 
 
 
