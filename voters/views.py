@@ -194,46 +194,46 @@ def add_voters(request, session_id=None, session_uuid=None):
 
 @login_required
 def voter_list(request, session_id=None, session_uuid=None):
-# Determine which identifier to use
-if session_uuid:
-    voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
-elif session_id:
-    voting_session = get_object_or_404(VotingSession, session_id=session_id)
-else:
-    raise Http404("Session identifier not provided.")
+    # Determine which identifier to use
+    if session_uuid:
+        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    elif session_id:
+        voting_session = get_object_or_404(VotingSession, session_id=session_id)
+    else:
+        raise Http404("Session identifier not provided.")
 
-search_query = request.GET.get('search', '')
+    search_query = request.GET.get('search', '')
 
-voters = voting_session.voters.all()
+    voters = voting_session.voters.all()
 
-# Filter voters based on the associated session
-if search_query:
-    voters = Voter.objects.filter(
-        session=voting_session
-    ).filter(
-        Q(Fname__icontains=search_query) |
-        Q(Lname__icontains=search_query) |
-        Q(voter_id__icontains=search_query)
-    )
-else:
-    voters = Voter.objects.filter(session=voting_session)
+    # Filter voters based on the associated session
+    if search_query:
+        voters = Voter.objects.filter(
+            session=voting_session
+        ).filter(
+            Q(Fname__icontains=search_query) |
+            Q(Lname__icontains=search_query) |
+            Q(voter_id__icontains=search_query)
+        )
+    else:
+        voters = Voter.objects.filter(session=voting_session)
 
-verified_voters_count = voters.filter(is_verified=True).count()
-finished_voters_count = voters.filter(has_finished=True).count()
-total_voters_count = voters.count()
+    verified_voters_count = voters.filter(is_verified=True).count()
+    finished_voters_count = voters.filter(has_finished=True).count()
+    total_voters_count = voters.count()
 
-return render(
-    request,
-    'voters/voter_list.html',
-    {
-        'voters': voters,
-        'verified_voters_count': verified_voters_count,
-        'finished_voters_count': finished_voters_count,
-        'total_voters_count': total_voters_count,
-        'voting_session': voting_session,
-        'session_uuid': session_uuid,
-        'session_id': session_id,
-    },
+    return render(
+        request,
+        'voters/voter_list.html',
+        {
+            'voters': voters,
+            'verified_voters_count': verified_voters_count,
+            'finished_voters_count': finished_voters_count,
+            'total_voters_count': total_voters_count,
+            'voting_session': voting_session,
+            'session_uuid': session_uuid,
+            'session_id': session_id,
+        },
 )
 
 
