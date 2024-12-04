@@ -190,8 +190,6 @@ def add_voters(request, session_id=None, session_uuid=None):
         },
     )
 
-
-
 @login_required
 def voter_list(request, session_id=None, session_uuid=None):
     # Determine which identifier to use
@@ -218,6 +216,12 @@ def voter_list(request, session_id=None, session_uuid=None):
     else:
         voters = Voter.objects.filter(session=voting_session)
 
+    # Extract the session_uuid from unique_url
+    if voting_session.unique_url:
+        extracted_uuid = voting_session.unique_url.split('/')[-1]
+    else:
+        extracted_uuid = None
+
     verified_voters_count = voters.filter(is_verified=True).count()
     finished_voters_count = voters.filter(has_finished=True).count()
     total_voters_count = voters.count()
@@ -231,10 +235,10 @@ def voter_list(request, session_id=None, session_uuid=None):
             'finished_voters_count': finished_voters_count,
             'total_voters_count': total_voters_count,
             'voting_session': voting_session,
-            'session_uuid': session_uuid,
+            'session_uuid': extracted_uuid,  # Pass the extracted UUID
             'session_id': session_id,
         },
-)
+    )
 
 
 
