@@ -445,7 +445,7 @@ def voter_session(request, session_uuid):
     # Retrieve session and segment
     session = get_object_or_404(VotingSession, unique_url__contains=session_uuid)
     current_segment = int(request.GET.get('segment', 1))
-    segments = session.votingsegmentheader_set.all().order_by('order')
+    segments = session.segments.all().order_by('order')  # Use the related_name 'segments' here
     segment = segments[current_segment - 1]
 
     # Get the voter's ID from the session
