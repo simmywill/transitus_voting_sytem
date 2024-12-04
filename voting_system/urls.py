@@ -34,7 +34,7 @@ urlpatterns = [
     path('list_sessions/', voters_views.list_voting_sessions, name = 'list_voting_sessions'),
     path('manage_session/<int:session_id>/', voters_views.manage_session, name='manage_session'),
     path('delete_session/<int:session_id>/', voters_views.delete_voting_session, name = 'delete_voting_session'),
-    path('add_segments/<int:session_id>/', add_segments, name='add_segments'),
+    path('add_segments/<int:session_id>/', voters_views.add_segments, name='add_segments'),
     path('voters/', include('voters.urls')),
     path('view_voting_session/<int:session_id>/', voters_views.active_voting_session, name = 'active_voting_session'),
     path('edit_segment/<int:segment_id>/', voters_views.edit_segment, name = 'edit_segment'),
