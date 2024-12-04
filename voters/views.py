@@ -442,64 +442,71 @@ def voter_verification(request, session_uuid):
 
 
 def voter_session(request, session_uuid):
-    # Retrieve the voting session based on the unique session UUID
-    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
-    
-    # Check if the voter is verified
+    # Retrieve session and segment
+    session = get_object_or_404(VotingSession, unique_url__contains=session_uuid)
+    current_segment = int(request.GET.get('segment', 1))
+    segments = session.votingsegmentheader_set.all().order_by('order')
+    segment = segments[current_segment - 1]
+
+    # Get the voter's ID from the session
     voter_id = request.session.get('voter_id')
-    if not voter_id:
-        return redirect('voter_verification', session_uuid=session_uuid)
-    
-     # Verify the voter exists and belongs to the session
-    voter = session.voters.filter(voter_id=voter_id).first()
-    if not voter:
-        del request.session['voter_id']  # Clear invalid voter_id
-        return redirect('voter_verification', session_uuid=session_uuid)
-    
-    # Retrieve the segments in order
-    segments = session.segments.order_by('order')
-    current_segment = int(request.GET.get('segment', 0))
-    remaining_segments = len(segments) - 1  # Precompute the subtraction
-    
-    # Display the current segment or redirect if voting is complete
-    if current_segment < len(segments):
-        segment = segments[current_segment]
-        return render(
-            request,
-            'voters/voting_page.html',
-            {
-                'segment': segment,
-                'current_segment': current_segment,
-                'total_segments': len(segments),
-                'remaining_segments': remaining_segments,
-                'session_uuid': session_uuid  # Pass session_uuid for navigation
-            }
-        )
-    else:
-        # Voting completed
-        return redirect('thank_you', session_uuid=session_uuid)
 
-
-
-def submit_vote(request, session_uuid):
-    # Retrieve the session based on the unique UUID
-    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
-    
-    voter_id = request.session.get('voter_id')
-    if request.method == 'POST':
-        candidate_id = request.POST.get('candidate')
-        segment_id = request.POST.get('segment')
-
-        # Save the vote in the database
-        Vote.objects.create(
+    # Check if the voter has already selected a candidate for this segment
+    selected_vote = None
+    if voter_id:
+        selected_vote = Vote.objects.filter(
             voter_id=voter_id,
-            candidate_id=candidate_id,
-            segment_id=segment_id
-        )
-    
-    # Redirect to the next voting page using session_uuid
-    current_segment = int(request.GET.get('segment', 0))
-    return redirect('voter_session', session_uuid=session_uuid, segment=current_segment + 1)
+            segment_id=segment.id
+        ).first()
+
+    # Pass data to template
+    context = {
+        'session': session,
+        'segment': segment,
+        'current_segment': current_segment,
+        'total_segments': segments.count(),
+        'selected_candidate_id': selected_vote.candidate_id if selected_vote else None,
+    }
+    return render(request, 'voter_session.html', context)
+
+
+
+
+@csrf_exempt
+def submit_vote(request, session_uuid):
+    if request.method == 'POST':
+        session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+        voter_id = request.session.get('voter_id')
+
+        if not voter_id:
+            return JsonResponse({'error': 'Voter not authenticated'}, status=401)
+
+        # Parse the incoming data
+        try:
+            data = json.loads(request.body)
+            votes = data.get('votes', {})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid data'}, status=400)
+
+        # Save votes and update tallies
+        for segment_id, candidate_id in votes.items():
+            # Retrieve the segment and candidate using their IDs
+            segment = get_object_or_404(VotingSegmentHeader, id=segment_id, session=session)
+            candidate = get_object_or_404(Candidate, id=candidate_id, segment=segment)
+
+            # Save individual vote
+            Vote.objects.create(
+                voter_id=voter_id,
+                candidate=candidate,
+                segment=segment,
+            )
+
+            # Update candidate's total tally
+            candidate.total_votes += 1
+            candidate.save()
+
+        return JsonResponse({'success': True})
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
 from django.db.models import Count

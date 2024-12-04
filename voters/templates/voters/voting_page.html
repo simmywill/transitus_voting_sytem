@@ -1,17 +1,75 @@
-<div class="voting_segment">
-    <h2>{{ segment.name }}</h2>
-    <form method="post" action="{% url 'submit_vote' session_uuid=session_uuid %}">
+<div class="voting_page_container">
+    <h2 class="voting_page_header">{{ segment.name }}</h2>
+    <div class="voting_page_candidates">
         {% csrf_token %}
         {% for candidate in segment.candidates.all %}
-        <div>
-            <input type="radio" name="candidate" value="{{ candidate.id }}" required>
-            <label>{{ candidate.name }}</label>
+        <div class="voting_page_candidate {% if candidate.id == selected_candidate_id %}selected{% endif %}" id="candidate-{{ candidate.id }}" onclick="selectCandidate({{ candidate.id }})">
+            <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" />
+            <p>{{ candidate.name }}</p>
+            <input type="radio" name="candidate" value="{{ candidate.id }}" hidden {% if candidate.id == selected_candidate_id %}checked{% endif %} />
+            <div class="voting_page_tick"></div>
         </div>
         {% endfor %}
-        <button type="submit">Vote</button>
-    </form>
+    </div>
+
+    <div class="voting_page_navigation">
+        {% if current_segment > 1 %}
+        <a href="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:-1 }}" class="prev-button">← Back</a>
+        {% endif %}
+        {% if current_segment < total_segments %}
+        <a href="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:1 }}" class="next-button">Next →</a>
+        {% else %}
+        <button type="button" onclick="confirmVote()">Vote</button>
+        {% endif %}
+    </div>
 </div>
 
-{% if current_segment < total_segments  %}
-<a href="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:1 }}" class="next-button">Next</a>
-{% endif %}
+<script>
+    let selectedCandidates = {};
+
+    function selectCandidate(candidateId) {
+        // Highlight the selected candidate
+        document.querySelectorAll('.voting_page_candidate').forEach((el) => el.classList.remove('selected'));
+        const candidate = document.getElementById(`candidate-${candidateId}`);
+        candidate.classList.add('selected');
+
+        // Store selection
+        const segment = "{{ segment.name }}";  // Ensure segment name is a string
+        selectedCandidates[segment] = candidateId;
+    }
+
+    function confirmVote() {
+        // Check if all segments have selections
+        if (Object.keys(selectedCandidates).length < "{{ total_segments }}") {
+            alert("Please make selections for all segments before voting.");
+            return;
+        }
+
+        // Confirm before submitting
+        if (confirm("Are you sure? After this, there is no turning back.")) {
+            // Prepare the data to send
+            const voteData = {
+                csrfmiddlewaretoken: document.querySelector('[name="csrfmiddlewaretoken"]').value,
+                votes: selectedCandidates,
+            };
+
+            // Send the data to the backend
+            fetch("{% url 'submit_vote' session_uuid=session_uuid %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(voteData),
+            })
+            .then((response) => {
+                if (response.ok) {
+                    alert("Your votes have been successfully submitted!");
+                    window.location.href = "{% url 'voter_session' session_uuid=session_uuid %}?review=true";
+                } else {
+                    throw new Error("Failed to submit your votes. Please try again.");
+                }
+            })
+            .catch((error) => {
+                alert(error.message);
+            });
+        }
+    }
+</script>
