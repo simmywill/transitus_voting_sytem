@@ -27,10 +27,10 @@
 
     <div class="voting_page_navigation">
         {% if current_segment > 1 %}
-        <a href="{{ session.unique_url }}?segment={{ current_segment|add:-1 }}" class="prev-button">← Back</a>
+        <a href="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:-1 }}" class="next-button">Next →</a>
         {% endif %}
         {% if current_segment < total_segments %}
-        <a href="{{ session.unique_url }}?segment={{ current_segment|add:1 }}" class="next-button">Next →</a>
+        <a href="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:1 }}" class="next-button">Next →</a>
         {% else %}
         <button type="button" onclick="confirmVote()">Vote</button>
         {% endif %}
