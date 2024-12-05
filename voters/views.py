@@ -448,7 +448,7 @@ from .models import VotingSession, Voter, Vote
 def voter_session(request, session_uuid, voter_id):
     # Fetch the session and the voter using their UUIDs and IDs
     session = get_object_or_404(VotingSession, unique_url__contains=session_uuid)
-    
+    voter = get_object_or_404(Voter, voter_id=voter.voter_id)
     
     # Ensure the voter is associated with the session
     if voter.session != session:
