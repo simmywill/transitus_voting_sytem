@@ -37,13 +37,22 @@
 </div>
 
 <script>
-let selectedCandidates = {};
 
-let selectedVotes = {};  // Store the selected candidates for each segment
+
+let selectedVotes = JSON.parse(localStorage.getItem("selectedVotes")) || {};
 
 function selectCandidate(candidateId, segmentId) {
     selectedVotes[segmentId] = candidateId;  // Update the selected vote for the given segment
     localStorage.setItem("selectedVotes", JSON.stringify(selectedVotes)); // Save to localStorage
+
+    // Highlight the selected candidate
+    document.querySelectorAll('.voting_page_candidate').forEach((el) => el.classList.remove('selected'));
+
+    // Find the selected candidate and add the 'selected' class
+    const candidate = document.getElementById(`candidate-${candidateId}`);
+    if (candidate) {
+        candidate.classList.add('selected');
+    }
 }
 
 window.onload = function() {
