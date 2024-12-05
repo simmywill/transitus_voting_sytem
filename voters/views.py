@@ -456,16 +456,11 @@ def voter_session(request, session_uuid):
     if request.method == "POST":
         candidate_id = request.POST.get('candidate_id')
 
-        if not candidate_id:
-            return HttpResponse("No candidate selected", status=400)
-    
-    
-        if not voter_id:
-            return HttpResponse("No voter ID in session", status=400)
+       
 
         if candidate_id and voter_id:  # Ensure voter_id exists
             Vote.objects.update_or_create(
-                voter_id=voter_id,
+                voter__voter_id=voter_id,
                 segment_id=segment.id,
                 defaults={'candidate_id': candidate_id}
             )
@@ -474,7 +469,7 @@ def voter_session(request, session_uuid):
     selected_vote = None
     if voter_id:
         selected_vote = Vote.objects.filter(
-            voter_id=voter_id,
+            voter__voter_id=voter_id,
             segment_id=segment.id
         ).first()
 
