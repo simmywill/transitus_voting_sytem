@@ -432,7 +432,7 @@ def voter_verification(request, session_uuid):
             voter.is_verified = True
             voter.save()
             request.session['voter_id'] = voter.voter_id
-            return redirect('voter_session', session_uuid=session_uuid)
+            return redirect('voter_session', session_uuid=session_uuid , voter_id=voter.voter_id)
         else:
             # Set an error message if the voter is not found
             error_message = "The name entered does not match any registered voter. Please try again."
