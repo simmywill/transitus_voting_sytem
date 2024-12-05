@@ -1,12 +1,18 @@
+<style>
+    .hidden {
+        display: none;
+    }
+</style>
+
 <div class="voting_page_container">
     <h2 class="voting_page_header">{{ segment.name }}</h2>
     <div class="voting_page_candidates">
         {% csrf_token %}
         {% for candidate in segment.candidates.all %}
-        <div class="voting_page_candidate {% if candidate.id == selected_candidate_id %}selected{% endif %}" id="candidate-{{ candidate.id }}" onclick="selectCandidate({{ candidate.id }})">
+        <div class="voting_page_candidate {% if candidate.id == selected_candidate_id %}selected{% endif %}" id="candidate-{{ candidate.id }}" onclick="selectCandidate('{{ candidate.id }}')">
             <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" />
             <p>{{ candidate.name }}</p>
-            <input type="radio" name="candidate" value="{{ candidate.id }}" hidden {% if candidate.id == selected_candidate_id %}checked{% endif %} />
+            <input type="radio" name="candidate" value="{{ candidate.id }}" class="hidden {% if candidate.id == selected_candidate_id %}checked{% endif %}" />
             <div class="voting_page_tick"></div>
         </div>
         {% endfor %}

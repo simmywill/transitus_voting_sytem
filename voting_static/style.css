@@ -974,106 +974,105 @@ html, body {
         }
 
 /* On hover, apply red background, white icon color, bold font, and magnification */
-        .bi-trash3:hover {
-            background-color: red; /* Red background */
-            color: white; /* White icon */
-            font-weight: bold; /* Bold font */
-            transform: scale(1.2); /* Magnify the icon */
-        }
+.bi-trash3:hover {
+    background-color: red; /* Red background */
+    color: white; /* White icon */
+    font-weight: bold; /* Bold font */
+    transform: scale(1.2); /* Magnify the icon */
+}
 
-        .voting_page_container {
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .voting_page_header {
-            font-size: 24px;
-            color: #fff;
-            background-color: #4CAF50;
-            padding: 10px;
-            border-radius: 10px;
-        }
-        
-        .voting_page_candidates {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-        }
-        
-        .voting_page_candidate {
-            position: relative;
-            border: 2px solid #ccc;
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.3s, border-color 0.3s;
-        }
-        
-        .voting_page_candidate:hover {
-            transform: scale(1.05);
-        }
-        
-        .voting_page_candidate img {
-            width: 100%;
-            border-bottom: 2px solid #ccc;
-        }
-        
-        .voting_page_candidate p {
-            margin: 10px 0;
-            font-size: 16px;
-            color: #333;
-        }
-        
-        .voting_page_candidate input {
-            display: none;
-        }
-        
-        .voting_page_tick {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 20px;
-            height: 20px;
-            background: url('tick-icon.png') no-repeat center/cover;
-            display: none;
-        }
-        
-        .voting_page_candidate.selected {
-            border-color: #4CAF50;
-            background-color: rgba(76, 175, 80, 0.1);
-        }
-        
-        .voting_page_candidate.selected .voting_page_tick {
-            display: block;
-        }
-        
-        .voting_page_navigation {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-        
-        .voting_page_navigation a,
-        .voting_page_navigation button {
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 16px;
-        }
-        
-        .voting_page_navigation a:hover,
-        .voting_page_navigation button:hover {
-            background-color: #45a049;
-        }
-        
-        @media (max-width: 600px) {
-            .voting_page_candidates {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        
+.voting_page_container {
+    text-align: center;
+    padding: 20px;
+}
+
+.voting_page_header {
+    font-size: 24px;
+    color: #fff;
+    background-color: #4CAF50;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.voting_page_candidates {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.voting_page_candidate {
+    position: relative;
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.3s, border-color 0.3s;
+}
+
+.voting_page_candidate:hover {
+    transform: scale(1.05);
+}
+
+.voting_page_candidate img {
+    width: 100%;
+    border-bottom: 2px solid #ccc;
+}
+
+.voting_page_candidate p {
+    margin: 10px 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.voting_page_candidate input {
+    display: none;
+}
+
+.voting_page_tick {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    background: url('tick-icon.png') no-repeat center/cover;
+    display: none;
+}
+
+.voting_page_candidate.selected {
+    border-color: #4CAF50;
+    background-color: rgba(76, 175, 80, 0.1);
+}
+
+.voting_page_candidate.selected .voting_page_tick {
+    display: block;
+}
+
+.voting_page_navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.voting_page_navigation a,
+.voting_page_navigation button {
+    padding: 10px 20px;
+    background-color: #4CAF50;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 16px;
+}
+
+.voting_page_navigation a:hover,
+.voting_page_navigation button:hover {
+    background-color: #45a049;
+}
+
+@media (max-width: 600px) {
+    .voting_page_candidates {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
