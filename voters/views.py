@@ -465,6 +465,7 @@ def voter_session(request, session_uuid):
         'segment': segment,
         'current_segment': current_segment,
         'total_segments': segments.count(),
+        'session_uuid': session.unique_url.split('/')[-1],  # Extract the UUID
         'selected_candidate_id': selected_vote.candidate_id if selected_vote else None,
     }
     return render(request, 'voters/voting_page.html', context)
