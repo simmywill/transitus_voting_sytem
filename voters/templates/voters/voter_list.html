@@ -22,7 +22,7 @@
         </div>
         <div>
             {%if voting_session.is_active%}
-                <a href="{% url 'segment_results' session.session_uuid %}">Admin Results (Password Protected)</a>
+                <a href="{% url 'segment_results' session_uuid %}">Admin Results (Password Protected)</a>
             {%endif%}
         </div>
     </div>
