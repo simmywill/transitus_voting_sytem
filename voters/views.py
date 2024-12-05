@@ -451,6 +451,16 @@ def voter_session(request, session_uuid):
     # Get the voter's ID from the session
     voter_id = request.session.get('voter_id')
 
+    # Handle POST request to save the selected candidate
+    if request.method == "POST":
+        candidate_id = request.POST.get('candidate_id')
+        if candidate_id and voter_id:  # Ensure voter_id exists
+            Vote.objects.update_or_create(
+                voter_id=voter_id,
+                segment_id=segment.id,
+                defaults={'candidate_id': candidate_id}
+            )
+
     # Check if the voter has already selected a candidate for this segment
     selected_vote = None
     if voter_id:
