@@ -42,18 +42,45 @@
 </div>
 
 <script>
-    let selectedCandidates = {};
+let selectedCandidates = {};
 
-    function selectCandidate(candidateId) {
-        // Highlight the selected candidate
-        document.querySelectorAll('.voting_page_candidate').forEach((el) => el.classList.remove('selected'));
-        const candidate = document.getElementById(`candidate-${candidateId}`);
-        candidate.classList.add('selected');
+function selectCandidate(candidateId) {
+    // Highlight the selected candidate
+    document.querySelectorAll('.voting_page_candidate').forEach((el) => el.classList.remove('selected'));
+    const candidate = document.getElementById(`candidate-${candidateId}`);
+    candidate.classList.add('selected');
 
-        // Store selection
-        const segment = "{{ segment.name }}";  // Ensure segment name is a string
-        selectedCandidates[segment] = candidateId;
-    }
+    // Update the hidden input with the selected candidate ID
+    document.querySelector('input[name="candidate_id"]').value = candidateId;
+
+    // Store selection in memory
+    const segment = "{{ segment.name }}";  // Ensure segment name is a string
+    selectedCandidates[segment] = candidateId;
+}
+
+function navigateSegment(direction) {
+    const form = document.querySelector('form');
+    const currentSegmentInput = document.createElement('input');
+    currentSegmentInput.type = 'hidden';
+    currentSegmentInput.name = 'segment';
+    currentSegmentInput.value = direction === 'next' ? "{{ current_segment|add:1 }}" : "{{ current_segment|add:-1 }}";
+
+    form.appendChild(currentSegmentInput);
+
+    // Send the selected vote to the backend
+    fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+    })
+    .then((response) => response.json())  // Process the backend response as needed
+    .then((data) => {
+        // Update UI based on the new segment (e.g., update candidates, current segment info)
+        console.log('Segment changed successfully', data);
+    })
+    .catch((error) => {
+        alert('Error while changing segment: ' + error.message);
+    });
+}
 
     function confirmVote() {
         // Check if all segments have selections

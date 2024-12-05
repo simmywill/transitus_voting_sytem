@@ -442,30 +442,26 @@ def voter_verification(request, session_uuid):
 
 
 def voter_session(request, session_uuid):
-    # Retrieve session and segment
     session = get_object_or_404(VotingSession, unique_url__contains=session_uuid)
     current_segment = int(request.GET.get('segment', 1))
-    segments = session.segments.all().order_by('order')  # Use the related_name 'segments' here
+    segments = session.segments.all().order_by('order')  # Ensure ordering
     segment = segments[current_segment - 1]
 
-    # Get the voter's ID from the session
-    voter_id = request.session.get('voter_id')
-    print(f"Segment ID: {segment.id}")
-
-    # Handle POST request to save the selected candidate
+    # Handle POST request to save selected candidate
     if request.method == "POST":
         candidate_id = request.POST.get('candidate_id')
+        voter_id = request.session.get('voter_id')
 
-       
-
-        if candidate_id and voter_id:  # Ensure voter_id exists
+        if candidate_id and voter_id:  # Ensure both candidate and voter IDs exist
+            # Save the selected vote for this segment
             Vote.objects.update_or_create(
                 voter__voter_id=voter_id,
                 segment_id=segment.id,
                 defaults={'candidate_id': candidate_id}
             )
+            return JsonResponse({'status': 'success'}, status=200)
 
-    # Check if the voter has already selected a candidate for this segment
+    # Handle GET request to show the voting page
     selected_vote = None
     if voter_id:
         selected_vote = Vote.objects.filter(
@@ -473,13 +469,12 @@ def voter_session(request, session_uuid):
             segment_id=segment.id
         ).first()
 
-    # Pass data to template
     context = {
         'session': session,
         'segment': segment,
         'current_segment': current_segment,
         'total_segments': segments.count(),
-        'session_uuid': session.unique_url.split('/')[-1],  # Extract the UUID
+        'session_uuid': session.unique_url.split('/')[-1],
         'selected_candidate_id': selected_vote.candidate_id if selected_vote else None,
     }
     return render(request, 'voters/voting_page.html', context)
