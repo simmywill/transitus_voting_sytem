@@ -13,7 +13,7 @@
     <div class="voting_page_candidates">
         {% csrf_token %}
         {% for candidate in segment.candidates.all %}
-        <div class="voting_page_candidate {% if candidate.id == selected_candidate_id %}selected{% endif %}" id="candidate-{{ candidate.id }}" onclick="selectCandidate('{{ candidate.id }}')">
+        <div class="voting_page_candidate {% if candidate.id == selected_candidate_id %}selected{% endif %}" id="candidate-{{ candidate.id }}" onclick="selectCandidate('{{ candidate.id }}', '{{ segment.id }}')">
             <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" />
             <p>{{ candidate.name }}</p>
             <input type="radio" name="candidate" value="{{ candidate.id }}" class="hidden {% if candidate.id == selected_candidate_id %}checked{% endif %}" />
@@ -44,47 +44,45 @@
 <script>
 let selectedCandidates = {};
 
-function selectCandidate(candidateId) {
-    // Highlight the selected candidate
-    document.querySelectorAll('.voting_page_candidate').forEach((el) => el.classList.remove('selected'));
-    const candidate = document.getElementById(`candidate-${candidateId}`);
-    candidate.classList.add('selected');
+let selectedVotes = {};  // Store the selected candidates for each segment
 
-    // Update the hidden input with the selected candidate ID
-    document.querySelector('input[name="candidate_id"]').value = candidateId;
-
-    // Store selection in memory
-    const segment = "{{ segment.name }}";  // Ensure segment name is a string
-    selectedCandidates[segment] = candidateId;
+function selectCandidate(candidateId, segmentId) {
+    selectedVotes[segmentId] = candidateId;  // Update the selected vote for the given segment
+    localStorage.setItem("selectedVotes", JSON.stringify(selectedVotes)); // Save to localStorage
 }
 
-function navigateSegment(direction) {
-    const form = document.querySelector('form');
-    const currentSegmentInput = document.createElement('input');
-    currentSegmentInput.type = 'hidden';
-    currentSegmentInput.name = 'segment';
-    currentSegmentInput.value = direction === 'next' ? "{{ current_segment|add:1 }}" : "{{ current_segment|add:-1 }}";
+window.onload = function() {
+    const savedVotes = localStorage.getItem("selectedVotes");
+    if (savedVotes) {
+        selectedVotes = JSON.parse(savedVotes);
+        // Use selectedVotes to pre-fill the candidate selection UI
+    }
+};
 
-    form.appendChild(currentSegmentInput);
-
-    // Send the selected vote to the backend
-    fetch(form.action, {
-        method: 'POST',
-        body: new FormData(form),
+function submitVotes() {
+    // Send all the selected votes to the backend when the user submits
+    fetch("{% url 'submit_vote' session_uuid=session_uuid %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
+        },
+        body: JSON.stringify({ selectedVotes: selectedVotes })
     })
-    .then((response) => response.json())  // Process the backend response as needed
-    .then((data) => {
-        // Update UI based on the new segment (e.g., update candidates, current segment info)
-        console.log('Segment changed successfully', data);
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === "success") {
+            alert("Vote successfully submitted!");
+            window.location.href = "{% url 'voting_complete' %}";
+        }
     })
-    .catch((error) => {
-        alert('Error while changing segment: ' + error.message);
-    });
+    .catch(error => alert("Error submitting vote: " + error));
 }
+
 
 function confirmVote() {
     // Check if all segments have selections
-    if (Object.keys(selectedCandidates).length < "{{ total_segments }}") {
+    if (Object.keys(selectedVotes).length < "{{ total_segments }}") {
         alert("Please make selections for all segments before voting.");
         return;
     }
@@ -94,7 +92,7 @@ function confirmVote() {
         // Prepare the data to send
         const voteData = {
             csrfmiddlewaretoken: document.querySelector('[name="csrfmiddlewaretoken"]').value,
-            votes: selectedCandidates,
+            votes: selectedVotes,
         };
 
         // Send the data to the backend
@@ -106,7 +104,7 @@ function confirmVote() {
         .then((response) => {
             if (response.ok) {
                 alert("Your votes have been successfully submitted!");
-                window.location.href = "{% url 'voter_session' session_uuid=session_uuid voter_id=voter_id %}?review=true";
+                window.location.href = "{% url 'voting_complete' %}";
             } else {
                 throw new Error("Failed to submit your votes. Please try again.");
             }
@@ -116,4 +114,5 @@ function confirmVote() {
         });
     }
 }
+
 </script>

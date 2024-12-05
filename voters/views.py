@@ -459,26 +459,35 @@ def voter_session(request, session_uuid, voter_id):
     segments = session.segments.all().order_by('order')  # Ensure ordering
     segment = segments[current_segment - 1]
 
-    # Handle POST request to save the selected candidate
+    # Handle POST request to save the final votes
     if request.method == "POST":
-        candidate_id = request.POST.get('candidate_id')
+        # Fetch all selected votes for the segments
+        selected_votes = request.POST.get('selectedVotes')
 
-        if candidate_id:
-            # Save the selected vote for this segment
-            Vote.objects.update_or_create(
-                voter=voter,
-                segment_id=segment.id,
-                defaults={'candidate_id': candidate_id}
-            )
+        if selected_votes:
+            # selected_votes is expected to be a dictionary of {segment_id: candidate_id}
+            selected_votes = json.loads(selected_votes)  # Parse the JSON data
+
+            # Iterate over all the votes and save them to the database
+            for segment_id, candidate_id in selected_votes.items():
+                # Check if a vote already exists for the voter and segment, then update or create
+                Vote.objects.update_or_create(
+                    voter=voter,
+                    segment_id=segment_id,
+                    defaults={'candidate_id': candidate_id}
+                )
+
             return JsonResponse({'status': 'success'}, status=200)
 
     # Handle GET request to show the voting page
-    selected_vote = None
+    selected_votes = {}
     if voter_id:
-        selected_vote = Vote.objects.filter(
-            voter=voter,
-            segment_id=segment.id
-        ).first()
+        # Retrieve all selected votes for this voter in this session
+        votes = Vote.objects.filter(voter=voter, segment__in=segments)
+
+        # Store the selected candidate for each segment in a dictionary
+        for vote in votes:
+            selected_votes[vote.segment_id] = vote.candidate_id
 
     context = {
         'session': session,
@@ -487,9 +496,10 @@ def voter_session(request, session_uuid, voter_id):
         'total_segments': segments.count(),
         'session_uuid': session.unique_url.split('/')[-1],
         'voter_id': voter.id,  # Pass the voter_id in context
-        'selected_candidate_id': selected_vote.candidate_id if selected_vote else None,
+        'selected_votes': selected_votes,  # Pass the selected votes for each segment
     }
     return render(request, 'voters/voting_page.html', context)
+
 
 
 
