@@ -441,21 +441,32 @@ def voter_verification(request, session_uuid):
     return render(request, 'voters/voter_verification.html', {'session': session})
 
 
-def voter_session(request, session_uuid):
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from .models import VotingSession, Voter, Vote
+
+def voter_session(request, session_uuid, voter_id):
+    # Fetch the session and the voter using their UUIDs and IDs
     session = get_object_or_404(VotingSession, unique_url__contains=session_uuid)
+    voter = get_object_or_404(Voter, id=voter_id)
+
+    # Ensure the voter is associated with the session
+    if voter.session != session:
+        return render(request, 'error.html', {'message': 'Unauthorized access.'})
+
+    # Get the current segment, defaulting to 1 if none is provided
     current_segment = int(request.GET.get('segment', 1))
     segments = session.segments.all().order_by('order')  # Ensure ordering
     segment = segments[current_segment - 1]
 
-    # Handle POST request to save selected candidate
+    # Handle POST request to save the selected candidate
     if request.method == "POST":
         candidate_id = request.POST.get('candidate_id')
-        voter_id = request.session.get('voter_id')
 
-        if candidate_id and voter_id:  # Ensure both candidate and voter IDs exist
+        if candidate_id:
             # Save the selected vote for this segment
             Vote.objects.update_or_create(
-                voter__voter_id=voter_id,
+                voter=voter,
                 segment_id=segment.id,
                 defaults={'candidate_id': candidate_id}
             )
@@ -465,7 +476,7 @@ def voter_session(request, session_uuid):
     selected_vote = None
     if voter_id:
         selected_vote = Vote.objects.filter(
-            voter__voter_id=voter_id,
+            voter=voter,
             segment_id=segment.id
         ).first()
 
@@ -475,9 +486,11 @@ def voter_session(request, session_uuid):
         'current_segment': current_segment,
         'total_segments': segments.count(),
         'session_uuid': session.unique_url.split('/')[-1],
+        'voter_id': voter.id,  # Pass the voter_id in context
         'selected_candidate_id': selected_vote.candidate_id if selected_vote else None,
     }
     return render(request, 'voters/voting_page.html', context)
+
 
 
 
