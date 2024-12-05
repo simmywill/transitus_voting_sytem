@@ -450,10 +450,19 @@ def voter_session(request, session_uuid):
 
     # Get the voter's ID from the session
     voter_id = request.session.get('voter_id')
+    print(f"Segment ID: {segment.id}")
 
     # Handle POST request to save the selected candidate
     if request.method == "POST":
         candidate_id = request.POST.get('candidate_id')
+
+        if not candidate_id:
+            return HttpResponse("No candidate selected", status=400)
+    
+    
+        if not voter_id:
+            return HttpResponse("No voter ID in session", status=400)
+
         if candidate_id and voter_id:  # Ensure voter_id exists
             Vote.objects.update_or_create(
                 voter_id=voter_id,
