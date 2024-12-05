@@ -26,10 +26,10 @@
 
     <div class="voting_page_navigation">            
             {% if current_segment > 1 %}
-            <button class="next-button" onclick="window.location.href='{% url voter_session session_uuid=session_uuid voter_id=voter_id %}?segment={{ current_segment|add:-1 }}'">Previous</button>
+            <button class="next-button" onclick="window.location.href='{% url voter_session session_uuid=session_uuid voter_id=voter.voter_id %}?segment={{ current_segment|add:-1 }}'">Previous</button>
             {% endif %}
             {% if current_segment < total_segments %}
-            <button class="next-button" onclick="window.location.href='{% url voter_session session_uuid=session_uuid voter_id=voter_id %}?segment={{ current_segment|add:1 }}'">Next</button>
+            <button class="next-button" onclick="window.location.href='{% url voter_session session_uuid=session_uuid voter_id=voter.voter_id %}?segment={{ current_segment|add:1 }}'">Next</button>
             {% else %}
             <button class="next-button" onclick="confirmVote()">Vote</button>
             {% endif %}
