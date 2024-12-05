@@ -26,14 +26,18 @@
     </div>
 
     <div class="voting_page_navigation">
-        {% if current_segment > 1 %}
-        <a href="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:-1 }}" class="next-button">Next →</a>
-        {% endif %}
-        {% if current_segment < total_segments %}
-        <a href="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:1 }}" class="next-button">Next →</a>
-        {% else %}
-        <button type="button" onclick="confirmVote()">Vote</button>
-        {% endif %}
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" name="candidate_id" value="{{ selected_candidate_id }}">
+            {% if current_segment > 1 %}
+            <button class="next-button" formaction="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:-1 }}">Previous</button>
+            {% endif %}
+            {% if current_segment < total_segments %}
+            <button class="next-button" formaction="{% url 'voter_session' session_uuid=session_uuid %}?segment={{ current_segment|add:1 }}">Next</button>
+            {% else %}
+            <button formaction="{% url 'submit_vote' session_uuid=session_uuid %}">Vote</button>
+            {% endif %}
+        </form>
     </div>
 </div>
 
