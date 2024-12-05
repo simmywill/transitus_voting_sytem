@@ -495,8 +495,8 @@ def voter_session(request, session_uuid, voter_id):
         'segment': segment,
         'current_segment': current_segment,
         'total_segments': segments.count(),
-        'session_uuid': session.unique_url,
-        'voter_id': voter.voter_id,  # Pass the voter_id in context
+        'session_uuid': session.unique_url.split('/')[-1],
+        'voter_id': voter_id,  # Pass the voter_id in context
         'selected_votes': selected_votes,  # Pass the selected votes for each segment
     }
     return render(request, 'voters/voting_page.html', context)
