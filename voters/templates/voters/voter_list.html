@@ -21,7 +21,7 @@
             <p>Finished Voters: {{ finished_voters_count }}/{{ total_voters_count }}</p>
         </div>
         <div>
-            {%if session.is_active%}
+            {%if voting_session.is_active%}
                 <a href="{% url 'segment_results' session.session_uuid %}">Admin Results (Password Protected)</a>
             {%endif%}
         </div>
@@ -88,24 +88,73 @@
 
         const session_uuid = "{{ session_uuid }}";
         document.addEventListener('DOMContentLoaded', function() {
+        let intervalId; // Store the interval ID so we can stop it
+
         function updateVoterCounts() {
             fetch(`/voter_counts/${session_uuid}/`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error(`HTTP error! Status: ${response.status}`);
                     }
-                    return response.json(); // Corrected placement of return statement and parentheses
+                    return response.json();
                 })
                 .then(data => {
-                    document.querySelector('.navbar p:first-of-type').textContent = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
-                    document.querySelector('.navbar p:last-of-type').textContent = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
+                    const verifiedText = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
+                    const finishedText = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
+                    document.querySelector('.navbar p:first-of-type').textContent = verifiedText;
+                    document.querySelector('.navbar p:last-of-type').textContent = finishedText;
+
+                    // Check if all voters are verified and finished
+                    if (data.verified_voters === data.total_voters && data.finished_voters === data.total_voters) {
+                        clearInterval(intervalId); // Stop the periodic requests
+                        console.log('All voters verified and finished. Stopping updates.');
+                    }
                 })
                 .catch(error => console.error('Error fetching voter counts:', error));
         }
 
-        // Update voter counts every 5 seconds
-        setInterval(updateVoterCounts, 5000);
-            });
+        function updateVoterList() {
+            fetch(`/get_voters/${session_uuid}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const voterList = document.getElementById('voter-list');
+                    voterList.innerHTML = ''; // Clear existing list
+
+                    data.voters.forEach(voter => {
+                        const row = document.createElement('tr');
+                        row.className = 'voter-row';
+                        row.dataset.status = voter.is_verified ? 'verified' : 'not_verified';
+
+                        row.innerHTML = `
+                            <td>${voter.Fname} ${voter.Lname}</td>
+                            <td>
+                                ${voter.is_verified ? 'Verified' : 'Not Verified'}
+                                ${voter.is_verified ? (voter.has_finished ? ' - Finished' : ' - Not Finished') : ''}
+                            </td>
+                            <td>
+                                ${voter.is_verified && voter.has_finished ? `<a href="/review_voter_results/${voter.id}/${session_uuid}/">Review Results</a>` : ''}
+                                <a href="/edit_voter/${voter.id}/">Edit</a>
+                                <a href="/delete_voter/${voter.id}/" onclick="return confirm('Are you sure?')">Delete</a>
+                            </td>
+                        `;
+                        voterList.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('Error fetching voter list:', error));
+        }
+
+        // Initialize interval to update voter counts and list
+        intervalId = setInterval(() => {
+            updateVoterCounts();
+            updateVoterList();
+        }, 5000);
+    });
+    
 
     </script>
 </body>

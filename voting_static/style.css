@@ -1017,6 +1017,7 @@ html, body {
 .voting_page_candidate img {
     width: 100%;
     border-bottom: 2px solid #ccc;
+    object-fit: fill;
 }
 
 .voting_page_candidate p {
@@ -1054,6 +1055,10 @@ html, body {
     margin-top: 20px;
 }
 
+.hidden {
+    display: none;
+}
+
 .voting_page_navigation a,
 .voting_page_navigation button {
     padding: 10px 20px;
@@ -1074,5 +1079,89 @@ html, body {
 @media (max-width: 600px) {
     .voting_page_candidates {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.voter_verification_navbar {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+}
+
+.voter_verification_container {
+    max-width: 600px;
+    margin: 20px auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.voter_verification_heading {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.voter_verification_input_card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f9f9f9;
+    margin: 10px;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.voter_verification_input_card label {
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.voter_verification_input_card input {
+    width: 90%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.voter_verification_button {
+    display: block;
+    margin: 20px auto;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.voter_verification_button:hover {
+    background-color: #45a049;
+}
+
+.voter_verification_error_message {
+    color: red;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 600px) {
+    .voter_verification_container {
+        padding: 15px;
+    }
+
+    .voter_verification_input_card input {
+        width: 100%;
+    }
+
+    .voter_verification_button {
+        width: 100%;
     }
 }

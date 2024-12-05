@@ -583,3 +583,10 @@ def voter_counts(request, session_uuid):
         'finished_voters': finished_count,
         'total_voters': total_count
     })
+
+
+def get_voters(request, session_uuid):
+    voters = Voter.objects.filter(session__session_uuid=session_uuid).values(
+        'id', 'Fname', 'Lname', 'is_verified', 'has_finished'
+    )
+    return JsonResponse({'voters': list(voters)})
