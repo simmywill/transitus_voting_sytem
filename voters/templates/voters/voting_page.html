@@ -61,7 +61,7 @@ window.onload = function() {
 
 function submitVotes() {
     // Send all the selected votes to the backend when the user submits
-    fetch("{% url 'submit_vote' session_uuid=session_uuid %}", {
+    fetch("{% url 'submit_vote' session_uuid=session_uuid % voter_id=voter_id}", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
