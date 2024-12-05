@@ -99,7 +99,7 @@ function confirmVote() {
         .then((response) => {
             if (response.ok) {
                 alert("Your votes have been successfully submitted!");
-                window.location.href = "{% url 'voter_verification session_uuid=session_uuid ' %}";
+                window.location.href = "{% url 'voter_verification' session_uuid=session_uuid  %}";
             } else {
                 throw new Error("Failed to submit your votes. Please try again.");
             }
