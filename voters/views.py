@@ -449,7 +449,7 @@ def voter_session(request, session_uuid, voter_id):
     # Fetch the session and the voter using their UUIDs and IDs
     session = get_object_or_404(VotingSession, unique_url__contains=session_uuid)
     voter = get_object_or_404(Voter, voter_id=voter_id)
-    
+
     # Ensure the voter is associated with the session
     if voter.session != session:
         return render(request, 'error.html', {'message': 'Unauthorized access.'})
@@ -459,7 +459,13 @@ def voter_session(request, session_uuid, voter_id):
     segments = session.segments.all().order_by('order')  # Ensure ordering
     segment = segments[current_segment - 1]
 
-    voter_id = request.session.get('voter_id')
+    # Retrieve all selected votes for this voter in this session
+    selected_votes = Vote.objects.filter(voter=voter, segment__in=segments).values_list('segment_id', 'candidate_id')
+    selected_votes_dict = dict(selected_votes)  # Convert to {segment_id: candidate_id}
+
+    # Determine the selected candidate for the current segment
+    selected_candidate_id = selected_votes_dict.get(segment.id)
+
     # Handle POST request to save the final votes
     if request.method == "POST":
         # Fetch all selected votes for the segments
@@ -480,16 +486,7 @@ def voter_session(request, session_uuid, voter_id):
 
             return JsonResponse({'status': 'success'}, status=200)
 
-    # Handle GET request to show the voting page
-    selected_votes = {}
-    if voter_id:
-        # Retrieve all selected votes for this voter in this session
-        votes = Vote.objects.filter(voter=voter, segment__in=segments)
-
-        # Store the selected candidate for each segment in a dictionary
-        for vote in votes:
-            selected_votes[vote.segment_id] = vote.candidate_id
-
+    # Context for rendering the voting page
     context = {
         'session': session,
         'segment': segment,
@@ -497,9 +494,11 @@ def voter_session(request, session_uuid, voter_id):
         'total_segments': segments.count(),
         'session_uuid': session.unique_url.split('/')[-1],
         'voter_id': voter_id,  # Pass the voter_id in context
-        'selected_votes': selected_votes,  # Pass the selected votes for each segment
+        'selected_votes': selected_votes_dict,  # Pass the selected votes for all segments
+        'selected_candidate_id': selected_candidate_id,  # Pass the selected candidate for the current segment
     }
     return render(request, 'voters/voting_page.html', context)
+
 
 
 

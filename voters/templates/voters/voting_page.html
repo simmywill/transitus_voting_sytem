@@ -13,7 +13,7 @@
     <div class="voting_page_candidates">
         {% csrf_token %}
         {% for candidate in segment.candidates.all %}
-        <div class="voting_page_candidate {% if candidate.id == selected_candidate_id %}selected{% endif %}" id="candidate-{{ candidate.id }}" onclick="selectCandidate('{{ candidate.id }}', '{{ segment.id }}')">
+        <div class="voting_page_candidate {% if candidate.id == selected_votes|get_item:segment.id %}selected{% endif %}" id="candidate-{{ candidate.id }}" onclick="selectCandidate('{{ candidate.id }}', '{{ segment.id }}')">
             <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" />
             <p>{{ candidate.name }}</p>
             <input type="radio" name="candidate" value="{{ candidate.id }}" class="hidden {% if candidate.id == selected_candidate_id %}checked{% endif %}" />
