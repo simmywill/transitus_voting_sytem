@@ -13,19 +13,21 @@
     <div class="voting_page_candidates">
         {% csrf_token %}
         {% for candidate in segment.candidates.all %}
-            <div class="voting_page_candidate {% if segment.id in selectedVotes and selectedVotes[segment.id] == candidate.id %}selected{% endif %}" 
+            <div class="voting_page_candidate" 
                 id="candidate-{{ candidate.id }}" 
+                data-candidate-id="{{ candidate.id }}" 
+                data-segment-id="{{ segment.id }}" 
                 onclick="selectCandidate('{{ candidate.id }}', '{{ segment.id }}')">
                 <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" />
                 <p>{{ candidate.name }}</p>
-                <input type="radio" name="candidate" value="{{ candidate.id }}" 
-                    class="hidden {% if segment.id in selectedVotes and selectedVotes[segment.id] == candidate.id %}checked{% endif %}" />
+                <input type="radio" name="candidate" value="{{ candidate.id }}" class="hidden" />
                 <div class="voting_page_tick">
                     <i class="bi bi-check-circle-fill"></i>
                 </div>
             </div>
         {% endfor %}
     </div>
+    
     
 
     <div class="voting_page_navigation">            
@@ -46,18 +48,21 @@
 let selectedVotes = JSON.parse(localStorage.getItem("selectedVotes")) || {};
 
 function selectCandidate(candidateId, segmentId) {
-    selectedVotes[segmentId] = candidateId;  // Update the selected vote for the given segment
-    localStorage.setItem("selectedVotes", JSON.stringify(selectedVotes)); // Save to localStorage
+    // Update the selected vote for the given segment
+    selectedVotes[segmentId] = candidateId; 
+    localStorage.setItem("selectedVotes", JSON.stringify(selectedVotes)); 
 
-    // Highlight the selected candidate
-    document.querySelectorAll('.voting_page_candidate').forEach((el) => el.classList.remove('selected'));
+    // Remove 'selected' class only for candidates in the same segment
+    document.querySelectorAll(`.voting_page_candidate[data-segment-id="${segmentId}"]`)
+        .forEach((el) => el.classList.remove('selected'));
 
-    // Find the selected candidate and add the 'selected' class
+    // Add the 'selected' class to the selected candidate
     const candidate = document.getElementById(`candidate-${candidateId}`);
     if (candidate) {
         candidate.classList.add('selected');
     }
 }
+
 window.onload = function() {
     const savedVotes = localStorage.getItem("selectedVotes");
     if (savedVotes) {
@@ -71,6 +76,7 @@ window.onload = function() {
         }
     }
 };
+
 
 function submitVotes() {
     // Send all the selected votes to the backend when the user submits
