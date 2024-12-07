@@ -13,16 +13,20 @@
     <div class="voting_page_candidates">
         {% csrf_token %}
         {% for candidate in segment.candidates.all %}
-        <div class="voting_page_candidate {% if candidate.id == selected_votes|get_item:segment.id %}selected{% endif %}" id="candidate-{{ candidate.id }}" onclick="selectCandidate('{{ candidate.id }}', '{{ segment.id }}')">
-            <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" />
-            <p>{{ candidate.name }}</p>
-            <input type="radio" name="candidate" value="{{ candidate.id }}" class="hidden {% if candidate.id == selected_candidate_id %}checked{% endif %}" />
-            <div class="voting_page_tick">
-                <i class="bi bi-check-circle-fill"></i>
+            <div class="voting_page_candidate {% if segment.id in selectedVotes and selectedVotes[segment.id] == candidate.id %}selected{% endif %}" 
+                id="candidate-{{ candidate.id }}" 
+                onclick="selectCandidate('{{ candidate.id }}', '{{ segment.id }}')">
+                <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" />
+                <p>{{ candidate.name }}</p>
+                <input type="radio" name="candidate" value="{{ candidate.id }}" 
+                    class="hidden {% if segment.id in selectedVotes and selectedVotes[segment.id] == candidate.id %}checked{% endif %}" />
+                <div class="voting_page_tick">
+                    <i class="bi bi-check-circle-fill"></i>
+                </div>
             </div>
-        </div>
         {% endfor %}
     </div>
+    
 
     <div class="voting_page_navigation">            
             {% if current_segment > 1 %}
@@ -54,12 +58,17 @@ function selectCandidate(candidateId, segmentId) {
         candidate.classList.add('selected');
     }
 }
-
 window.onload = function() {
     const savedVotes = localStorage.getItem("selectedVotes");
     if (savedVotes) {
         selectedVotes = JSON.parse(savedVotes);
-        // Use selectedVotes to pre-fill the candidate selection UI
+        // Apply the 'selected' class to previously selected candidates
+        for (const [segmentId, candidateId] of Object.entries(selectedVotes)) {
+            const candidateElement = document.getElementById(`candidate-${candidateId}`);
+            if (candidateElement) {
+                candidateElement.classList.add('selected');
+            }
+        }
     }
 };
 

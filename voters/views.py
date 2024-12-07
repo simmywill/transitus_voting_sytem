@@ -446,7 +446,7 @@ from django.http import JsonResponse
 from .models import VotingSession, Voter, Vote
 
 def voter_session(request, session_uuid, voter_id):
-    # Fetch the session and the voter using their UUIDs and IDs
+    # Fetch the session and voter
     session = get_object_or_404(VotingSession, unique_url__contains=session_uuid)
     voter = get_object_or_404(Voter, voter_id=voter_id)
 
@@ -454,39 +454,18 @@ def voter_session(request, session_uuid, voter_id):
     if voter.session != session:
         return render(request, 'error.html', {'message': 'Unauthorized access.'})
 
-    # Get the current segment, defaulting to 1 if none is provided
+    # Get the current segment
     current_segment = int(request.GET.get('segment', 1))
     segments = session.segments.all().order_by('order')  # Ensure ordering
     segment = segments[current_segment - 1]
 
-    # Retrieve all selected votes for this voter in this session
-    selected_votes = Vote.objects.filter(voter=voter, segment__in=segments).values_list('segment_id', 'candidate_id')
-    selected_votes_dict = dict(selected_votes)  # Convert to {segment_id: candidate_id}
+    # Retrieve selected votes for the voter
+    votes = Vote.objects.filter(voter=voter, segment__in=segments)
+    selected_votes = {vote.segment_id: vote.candidate_id for vote in votes}
 
-    # Determine the selected candidate for the current segment
-    selected_candidate_id = selected_votes_dict.get(segment.id)
+    # Get the selected candidate for the current segment
+    selected_candidate_id = selected_votes.get(segment.id)
 
-    # Handle POST request to save the final votes
-    if request.method == "POST":
-        # Fetch all selected votes for the segments
-        selected_votes = request.POST.get('selectedVotes')
-
-        if selected_votes:
-            # selected_votes is expected to be a dictionary of {segment_id: candidate_id}
-            selected_votes = json.loads(selected_votes)  # Parse the JSON data
-
-            # Iterate over all the votes and save them to the database
-            for segment_id, candidate_id in selected_votes.items():
-                # Check if a vote already exists for the voter and segment, then update or create
-                Vote.objects.update_or_create(
-                    voter=voter,
-                    segment_id=segment_id,
-                    defaults={'candidate_id': candidate_id}
-                )
-
-            return JsonResponse({'status': 'success'}, status=200)
-
-    # Context for rendering the voting page
     context = {
         'session': session,
         'segment': segment,
@@ -494,10 +473,10 @@ def voter_session(request, session_uuid, voter_id):
         'total_segments': segments.count(),
         'session_uuid': session.unique_url.split('/')[-1],
         'voter_id': voter_id,  # Pass the voter_id in context
-        'selected_votes': selected_votes_dict,  # Pass the selected votes for all segments
-        'selected_candidate_id': selected_candidate_id,  # Pass the selected candidate for the current segment
+        'selected_candidate_id': selected_candidate_id,  # Pass selected candidate for the current segment
     }
     return render(request, 'voters/voting_page.html', context)
+
 
 
 
