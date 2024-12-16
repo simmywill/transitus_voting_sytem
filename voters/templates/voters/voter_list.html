@@ -57,9 +57,9 @@
         </thead>
         <tbody id="voter-list">
             {% for voter in voters %}
-            <tr class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
+            <tr id="voter-{{ voter.id }}" class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
                 <td>{{ voter.Fname }} {{ voter.Lname }}</td>
-                <td>
+                <td class="voter-status">
                     {% if voter.is_verified %}
                         Verified
                         {% if voter.has_finished %}
@@ -81,6 +81,7 @@
             </tr>
             {% endfor %}
         </tbody>
+        
     </table>
 
     <script>
@@ -125,23 +126,15 @@
 
        
         function updateVoterList() {
-            // Define the endpoint URL for fetching voter statuses
-            const endpoint = '/get_voter_status/'; // Adjust this URL to match your Django view
-
-            // Fetch voter statuses from the server every 5 seconds
+            const endpoint = `/get_voter_status/${session_uuid}/`; // Use session_uuid from the template
             setInterval(() => {
                 fetch(endpoint)
                     .then(response => response.json())
                     .then(data => {
-                        // Iterate over the voter data returned by the server
                         data.voters.forEach(voter => {
-                            // Find the voter row in the DOM
                             const voterRow = document.querySelector(`#voter-${voter.id}`);
                             if (voterRow) {
-                                // Find the status element and update its text and styles
                                 const statusElement = voterRow.querySelector('.voter-status');
-
-                                // Update the status text
                                 let statusText = '';
                                 let statusClass = '';
                                 if (voter.verified && voter.finished) {
@@ -154,20 +147,15 @@
                                     statusText = 'Not Verified - Not Finished';
                                     statusClass = 'status-not-verified';
                                 }
-
-                                // Update the DOM element with the new status
                                 statusElement.textContent = statusText;
-
-                                // Remove old classes and apply the new one
                                 statusElement.className = `voter-status ${statusClass}`;
                             }
                         });
                     })
-                    .catch(error => {
-                        console.error('Error updating voter list:', error);
-                    });
-            }, 5000); // Poll every 5 seconds
+                    .catch(error => console.error('Error updating voter list:', error));
+            }, 5000);
         }
+
     });
     
 

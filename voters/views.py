@@ -654,13 +654,13 @@ def get_voters(request, session_id=None, session_uuid=None):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-def get_voter_status(request):
-    voters = Voter.objects.all()
+def get_voter_status(request, session_uuid):
+    voters = Voter.objects.filter(session__uuid=session_uuid)
     voter_data = [
         {
             'id': voter.id,
-            'verified': voter.verified,  # Boolean field
-            'finished': voter.finished  # Boolean field
+            'verified': voter.verified,
+            'finished': voter.finished
         }
         for voter in voters
     ]
