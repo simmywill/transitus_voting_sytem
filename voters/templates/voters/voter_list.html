@@ -97,40 +97,51 @@
         }
 
         const session_uuid = "{{ session_uuid }}";
-        document.addEventListener('DOMContentLoaded', function() {
-        ldocument.addEventListener('DOMContentLoaded', function() {
-    let voterCountsIntervalId = setInterval(updateVoterCounts, 5000);
-    let voterListIntervalId = setInterval(updateVoterList, 5000);
+        document.addEventListener('DOMContentLoaded', function () {
+    const session_uuid = "{{ session_uuid }}";
 
+    // Function to update voter counts in real-time
     function updateVoterCounts() {
         fetch(`/voter_counts/${session_uuid}/`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                const verifiedText = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
-                const finishedText = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
-                document.querySelector('.navbar p:first-of-type').textContent = verifiedText;
-                document.querySelector('.navbar p:last-of-type').textContent = finishedText;
+                // Update navbar voter counts
+                document.querySelector('.navbar p:first-of-type').textContent = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
+                document.querySelector('.navbar p:last-of-type').textContent = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
 
-                // Stop updating if all voters are verified and finished
+                // Stop updates if all voters are finished
                 if (data.verified_voters === data.total_voters && data.finished_voters === data.total_voters) {
-                    clearInterval(voterCountsIntervalId);
-                    clearInterval(voterListIntervalId);
-                    console.log('All voters verified and finished. Stopping updates.');
+                    console.log("All voters verified and finished. Stopping voter count updates.");
+                    clearInterval(voterCountsInterval);
                 }
             })
-            .catch(error => console.error('Error fetching voter counts:', error));
+            .catch(error => console.error("Error updating voter counts:", error));
     }
 
+    // Function to update the voter list in real-time
     function updateVoterList() {
         fetch(`/get_voter_status/${session_uuid}/`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
+                // Update each voter's row
                 data.voters.forEach(voter => {
                     const voterRow = document.querySelector(`#voter-${voter.id}`);
                     if (voterRow) {
                         const statusElement = voterRow.querySelector('.voter-status');
                         let statusText = '';
                         let statusClass = '';
+
+                        // Update text and CSS class based on voter status
                         if (voter.verified && voter.finished) {
                             statusText = 'Verified - Finished';
                             statusClass = 'status-verified-finished';
@@ -141,17 +152,25 @@
                             statusText = 'Not Verified - Not Finished';
                             statusClass = 'status-not-verified';
                         }
+
                         statusElement.textContent = statusText;
                         statusElement.className = `voter-status ${statusClass}`;
                     }
                 });
             })
-            .catch(error => console.error('Error updating voter list:', error));
+            .catch(error => console.error("Error updating voter list:", error));
     }
+
+    // Set intervals for real-time updates
+    const voterCountsInterval = setInterval(updateVoterCounts, 5000); // Update voter counts every 5 seconds
+    const voterListInterval = setInterval(updateVoterList, 5000); // Update voter list every 5 seconds
+
+    // Execute immediately on page load
+    updateVoterCounts();
+    updateVoterList();
 });
 
-
-    });
+    
     
 
     </script>
