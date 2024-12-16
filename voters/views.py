@@ -655,7 +655,7 @@ def get_voters(request, session_id=None, session_uuid=None):
 
 
 def get_voter_status(request, session_uuid):
-    voters = Voter.objects.filter(session__uuid=session_uuid)
+    voters = Voter.objects.filter(session_uuid=session_uuid)
     voter_data = [
         {
             'id': voter.id,
