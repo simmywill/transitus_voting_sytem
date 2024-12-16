@@ -655,13 +655,15 @@ def get_voters(request, session_id=None, session_uuid=None):
 
 
 def get_voter_status(request, session_uuid):
-    voters = Voter.objects.filter(session_uuid=session_uuid)
+    # Filter voters by the related session's uuid field
+    voters = Voter.objects.filter(session__uuid=session_uuid)  
     voter_data = [
         {
-            'id': voter.id,
-            'verified': voter.verified,
-            'finished': voter.finished
+            'id': voter.voter_id,  # Use the correct primary key field
+            'verified': voter.is_verified,  # Correct field name
+            'finished': voter.has_finished  # Correct field name
         }
         for voter in voters
     ]
     return JsonResponse({'voters': voter_data})
+
