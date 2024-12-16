@@ -657,15 +657,17 @@ def get_voters(request, session_id=None, session_uuid=None):
 def get_voter_status(request, session_uuid):
     try:
         # Fetch the VotingSession object using the session_uuid
-        session = VotingSession.objects.get(unique_url__endswith=session_uuid)
+        session = VotingSession.objects.get(unique_url__contains=session_uuid)
 
         # Retrieve the associated Voters
         voters = Voter.objects.filter(session=session)
         
-        # Prepare the voter data
+        # Prepare the voter data with first_name and last_name
         voter_data = [
             {
-                'id': voter.voter_id,  # Use the correct primary key field
+                'id': voter.voter_id,  # Correct primary key field
+                'first_name': voter.FName,  # First name field
+                'last_name': voter.LName,  # Last name field
                 'verified': voter.is_verified,  # Correct field name
                 'finished': voter.has_finished  # Correct field name
             }
@@ -675,5 +677,6 @@ def get_voter_status(request, session_uuid):
 
     except VotingSession.DoesNotExist:
         return JsonResponse({'error': 'Session not found'}, status=404)
+
 
 

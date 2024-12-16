@@ -190,9 +190,12 @@
                 // Append the voter row to the container
                 voterListContainer.appendChild(voterRow);
             });
+        });
+}
+
         })
         .catch(error => console.error('Error updating voter list:', error));
-}
+
 
     // Set intervals for real-time updates
     const voterCountsInterval = setInterval(updateVoterCounts, 5000); // Update voter counts every 5 seconds
@@ -201,7 +204,7 @@
     // Execute immediately on page load
     updateVoterCounts();
     updateVoterList();
-});
+
 
     
     
