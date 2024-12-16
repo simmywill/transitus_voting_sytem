@@ -666,8 +666,6 @@ def get_voter_status(request, session_uuid):
         voter_data = [
             {
                 'id': voter.voter_id,  # Correct primary key field
-                'first_name': voter.Fname,  # First name field
-                'last_name': voter.Lname,  # Last name field
                 'verified': voter.is_verified,  # Correct field name
                 'finished': voter.has_finished  # Correct field name
             }

@@ -122,76 +122,70 @@
             }
     
             // Function to update the voter list in real-time
-            function updateVoterList() {
-    fetch(`/get_voter_status/${session_uuid}/`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            const voterListContainer = document.getElementById('voter-list');
+            document.addEventListener('DOMContentLoaded', function () {
+    const session_uuid = "{{ session_uuid }}";
 
-            data.voters.forEach(voter => {
-                const voterRow = document.getElementById(`voter-${voter.id}`);
+    // Function to dynamically rebuild the voter list
+    function updateVoterList() {
+        fetch(`/get_voter_status/${session_uuid}/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Select the voter list container
+                const voterListContainer = document.querySelector('.voter-list');
 
-                if (voterRow) {
-                    // Update existing row
-                    const statusCell = voterRow.querySelector('.voter-status');
-                    statusCell.textContent = voter.is_verified ? 
-                        `Verified ${voter.has_finished ? '- Finished' : '- Not Finished'}` :
-                        'Not Verified';
+                // Clear the container to rebuild it
+                voterListContainer.innerHTML = '';
 
-                    voterRow.dataset.status = voter.is_verified ? 'verified' : 'not_verified';
-                } else {
-                    // Create new row
-                    const newVoterRow = document.createElement('tr');
-                    newVoterRow.id = `voter-${voter.id}`;
-                    newVoterRow.className = 'voter-row';
-                    newVoterRow.dataset.status = voter.is_verified ? 'verified' : 'not_verified';
+                // Rebuild the voter list from the fetched data
+                data.voters.forEach(voter => {
+                    const voterRow = document.createElement('div');
+                    voterRow.id = `voter-${voter.id}`;
+                    voterRow.className = 'voter-row';
 
-                    // Name cell
-                    const nameCell = document.createElement('td');
-                    nameCell.textContent = `${voter.first_name} ${voter.last_name}`; 
-                    newVoterRow.appendChild(nameCell);
+                    // Create voter name element
+                    const voterName = document.createElement('p');
+                    voterName.textContent = `${voter.first_name} ${voter.last_name}`;
+                    voterName.className = 'voter-name';
 
-                    // Status cell
-                    const statusCell = document.createElement('td');
-                    statusCell.className = 'voter-status';
-                    statusCell.textContent = voter.is_verified ? 
-                        `Verified ${voter.has_finished ? '- Finished' : '- Not Finished'}` :
-                        'Not Verified';
-                    newVoterRow.appendChild(statusCell);
+                    // Create voter status element
+                    const voterStatus = document.createElement('p');
+                    voterStatus.className = 'voter-status';
 
-                    // Actions cell
-                    const actionsCell = document.createElement('td');
-                    if (voter.is_verified && voter.has_finished) {
-                        const reviewLink = document.createElement('a');
-                        reviewLink.href = `/review_voter_results/${voter.voter_id}/${session_uuid}/`;
-                        reviewLink.textContent = 'Review Results';
-                        actionsCell.appendChild(reviewLink);
+                    // Set status text and CSS class dynamically
+                    if (voter.verified && voter.finished) {
+                        voterStatus.textContent = 'Verified - Finished';
+                        voterStatus.classList.add('status-verified-finished');
+                    } else if (voter.verified) {
+                        voterStatus.textContent = 'Verified - Not Finished';
+                        voterStatus.classList.add('status-verified-not-finished');
+                    } else {
+                        voterStatus.textContent = 'Not Verified - Not Finished';
+                        voterStatus.classList.add('status-not-verified');
                     }
-                    const editLink = document.createElement('a');
-                    editLink.href = `/edit_voter/${voter.voter_id}/`;
-                    editLink.textContent = 'Edit';
-                    actionsCell.appendChild(editLink);
 
-                    const deleteLink = document.createElement('a');
-                    deleteLink.href = `/delete_voter/${voter.voter_id}/`;
-                    deleteLink.textContent = 'Delete';
-                    deleteLink.onclick = () => confirm('Are you sure?');
-                    actionsCell.appendChild(deleteLink);
-
-                    newVoterRow.appendChild(actionsCell);
+                    // Append voter name and status to the voter row
+                    voterRow.appendChild(voterName);
+                    voterRow.appendChild(voterStatus);
 
                     // Append the voter row to the container
-                    voterListContainer.appendChild(newVoterRow);
-                }
-            });
-        })
-        .catch(error => console.error('Error updating voter list:', error));
-}
+                    voterListContainer.appendChild(voterRow);
+                });
+            })
+            .catch(error => console.error("Error updating voter list:", error));
+    }
+
+    // Set an interval to periodically update the voter list
+    setInterval(updateVoterList, 5000); // Update voter list every 5 seconds
+
+    // Execute immediately on page load
+    updateVoterList();
+});
+
 
 
     
