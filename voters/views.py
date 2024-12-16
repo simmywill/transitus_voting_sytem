@@ -11,6 +11,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import render, redirect, get_object_or_404
 import json
 from django.urls import reverse
+from django.http import Http404
+
 
 
 
@@ -155,11 +157,11 @@ def delete_voting_session(request, session_id):
 
     return render(request, 'voters/delete_session.html', {'session': session})
 
-
-def add_voters(request, session_id=None, session_uuid=None):
+"""
+def add_voters(request , session_id=None, session_uuid=None):
     # Determine which identifier to use
     if session_uuid:
-        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'')
     elif session_id:
         voting_session = get_object_or_404(VotingSession, session_id=session_id)
     else:
@@ -173,29 +175,35 @@ def add_voters(request, session_id=None, session_uuid=None):
             voter.session = voting_session  # Assign the VotingSession instance
             voter.save()
             # Redirect based on the identifier
-            if session_uuid:
-                return redirect('voter_list', session_uuid=session_uuid)
-            return redirect('voter_list', session_id=session_id)
+            # Send back a success response for AJAX
+            return JsonResponse({"success": True, "message": "Voter added successfully!"})
+        else:
+            # Send back errors if the form is invalid
+            return JsonResponse({"success": False, "errors": form.errors}, status=400)
     else:
         form = VoterForm()
 
     return render(
         request,
-        "voters/create_voter.html",
+        "voters/voter_list.html",
         {
             'form': form,
             'session_id': session_id,
             'session_uuid': session_uuid,
             'session': voting_session,
         },
-    )
+    )"""
 
 @login_required
 def voter_list(request, session_id=None, session_uuid=None):
+
+    voting_session = None
+
+
     # Determine which identifier to use
     if session_uuid:
         voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
-    elif session_id:
+    elif not session_uuid:
         voting_session = get_object_or_404(VotingSession, session_id=session_id)
     else:
         raise Http404("Session identifier not provided.")
@@ -203,7 +211,6 @@ def voter_list(request, session_id=None, session_uuid=None):
     search_query = request.GET.get('search', '')
 
     voters = voting_session.voters.all()
-
     # Filter voters based on the associated session
     if search_query:
         voters = Voter.objects.filter(
@@ -225,19 +232,39 @@ def voter_list(request, session_id=None, session_uuid=None):
     verified_voters_count = voters.filter(is_verified=True).count()
     finished_voters_count = voters.filter(has_finished=True).count()
     total_voters_count = voters.count()
+    is_active = voting_session.is_active
 
-    return render(
-        request,
-        'voters/voter_list.html',
-        {
-            'voters': voters,
-            'verified_voters_count': verified_voters_count,
-            'finished_voters_count': finished_voters_count,
-            'total_voters_count': total_voters_count,
-            'voting_session': voting_session,
-            'session_uuid': extracted_uuid,  # Pass the extracted UUID
-            'session_id': session_id,
-        },
+  
+
+
+    #add_voter consolidated code
+    if request.method == "POST":
+        form = VoterForm(request.POST)
+        if form.is_valid():
+            # Create a new voter
+            voter = form.save(commit=False)
+            voter.session = voting_session  # Assign the VotingSession instance
+            voter.save()
+            # Redirect based on the identifier
+            if session_uuid:
+                return redirect('voter_list', session_uuid=extracted_uuid)
+            return redirect('voter_list', session_id=session_id)
+    else:
+        form = VoterForm()
+        return render(
+            request,
+            'voters/voter_list.html',
+            {
+                'form': form,
+                'voters': voters,
+                'verified_voters_count': verified_voters_count,
+                'finished_voters_count': finished_voters_count,
+                'total_voters_count': total_voters_count,
+                'voting_session': voting_session,
+                'session_uuid': extracted_uuid,  # Pass the extracted UUID
+                'session_id': session_id,
+                'is_active' : is_active,
+            },
     )
 
 
@@ -596,8 +623,45 @@ def voter_counts(request, session_uuid):
     })
 
 
-def get_voters(request, session_uuid):
-    voters = Voter.objects.filter(session__unique_url=session_uuid).values(
-        'voter_id', 'Fname', 'Lname', 'is_verified', 'has_finished'
-    )
-    return JsonResponse({'voters': list(voters)})
+def get_voters(request, session_id=None, session_uuid=None):
+    # Determine which identifier to use
+    if session_uuid:
+        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    
+    elif session_id:
+        voting_session = get_object_or_404(VotingSession, session_id=session_id)
+        print(session_id)
+    else:
+        raise Http404("Session identifier not provided.")
+    
+    try:
+        # Use the appropriate field based on what is provided
+        if session_uuid:
+            voters = Voter.objects.filter(session__unique_url=session_uuid).values(
+                'voter_id', 'Fname', 'Lname', 'is_verified', 'has_finished'
+            )
+        elif session_id:
+            voters = Voter.objects.filter(session_id=session_id).values(
+                'voter_id', 'Fname', 'Lname', 'is_verified', 'has_finished'
+            )
+        else:
+            raise Http404("No valid session identifier found.")
+        
+        return JsonResponse({'voters': list(voters)})
+    except Voter.DoesNotExist:
+        return JsonResponse({'error': 'No voters found for the specified session'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+def get_voter_status(request):
+    voters = Voter.objects.all()
+    voter_data = [
+        {
+            'id': voter.id,
+            'verified': voter.verified,  # Boolean field
+            'finished': voter.finished  # Boolean field
+        }
+        for voter in voters
+    ]
+    return JsonResponse({'voters': voter_data})

@@ -69,6 +69,9 @@ class VotingSession(models.Model):
         self.qr_code.save(f'qr_code_{self.session_id}.png', ContentFile(qr_io.read()), save=False)
         self.save()
 
+    def get_uuid(self):
+        return self.unique_url.split('/')[-1] if self.unique_url else None
+
 
     def __str__(self):
         return self.title

@@ -1039,4 +1039,35 @@ html, body {
             border-radius: 5px;
             cursor: pointer;
         }
-        
+
+/* Base styles for the status element */
+.voter-status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* Not Verified - Not Finished */
+.status-not-verified {
+    color: #333; /* Dark gray text */
+    background-color: #f5f5f5; /* Light gray background */
+    border: 1px solid #ccc; /* Light gray border */
+}
+
+/* Verified - Not Finished */
+.status-verified-not-finished {
+    color: #ffffff; /* White text */
+    background-color: #007bff; /* Blue background */
+    border: 3px solid white; /* White edge */
+    box-shadow: 0 0 0 3px black; /* Black border around white edge */
+}
+
+/* Verified - Finished */
+.status-verified-finished {
+    color: #ffffff; /* White text */
+    background-color: #28a745; /* Green background */
+    border: 3px solid white; /* White edge */
+    box-shadow: 0 0 0 3px black; /* Black border around white edge */
+}

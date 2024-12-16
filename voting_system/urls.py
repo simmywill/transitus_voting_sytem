@@ -19,15 +19,13 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from voters import views as voters_views
-from voters.views import manage_session, add_segments , add_voters , edit_segment
+from voters.views import manage_session, add_segments  , edit_segment
 
 urlpatterns = [
     #path('admin/', admin.site.urls),
     #path('', voters_views.home_page, name = 'home_page'),
-    path('add_voters/<int:session_id>/', voters_views.add_voters, name = 'add_voters'),
-    #path('add_voters/<uuid:session_uuiid>/', voters_views.voter_list, name='add_voters_by_id'),
     path('list/<int:session_id>/', voters_views.voter_list, name = 'voter_list'),
-    path('list-uuid/<uuid:session_uuid>/', voters_views.voter_list, name='voter_list_by_uuid'),
+    path('list-uuid/<uuid:session_uuid>/', voters_views.voter_list, name='voter_list'),
     path('', voters_views.login_view, name='login_view'),
     path('admin_main_page', voters_views.admin_main_page, name = 'admin_main_page'),
     path('create_session/', voters_views.create_voting_session, name = 'create_voting_session'),
@@ -47,7 +45,8 @@ urlpatterns = [
     path('submit_vote/<uuid:session_uuid>/<int:voter_id>/', voters_views.submit_vote, name='submit_vote'),
     path('segment_results/<uuid:session_uuid>/', voters_views.segment_results, name = 'segment_results'),
     path('voter_counts/<uuid:session_uuid>/', voters_views.voter_counts, name = 'voter_counts'),
-    path('get_voters/<uuid:session_uuid>/', voters_views.get_voters, name='get_voters'),
+    path('get_voters-uuid/<uuid:session_uuid>/', voters_views.get_voters, name = 'get_voters'),
+    path('get_voters/<int:session_id>/', voters_views.get_voters, name='get_voters'),
 
 
 

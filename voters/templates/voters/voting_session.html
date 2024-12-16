@@ -24,8 +24,7 @@
                 <ul>
                     <li><a href="{% url 'admin_main_page' %}">Admin Main Page</a></li>
                     <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
-                    <li><a href="{% url 'voter_list' session.session_id %}">Voters List</a></li>
-                    <li><a href="{% url 'add_voters' session.session_id %}">Add Voters</a></li>
+                    <li><a href="{% url 'voter_list' session.session_id %}">Manage Voters</a></li>
                     <li><a href="{% url 'manage_session' session.session_id %}">Manage Session {{ session.session_id }}</a></li>
                 </ul>
             </div>

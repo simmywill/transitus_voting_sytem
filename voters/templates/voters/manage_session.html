@@ -477,9 +477,15 @@ function addCandidate(segmentIndex) {
                 <li><a href="{% url 'admin_main_page' %}">Admin Main Page</a></li>
                 <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
                 <li><a href="{% url 'create_voting_session' %}">Create Session</a></li>
-                <li><a href="{% url 'add_voters' session.session_id %}">Add Voters</a></li>
                 <li><a href="{% url 'active_voting_session' session.session_id %}">View Voting Session</a></li>
-                <li><a href="{% url 'voter_list' session.session_id %}">Voters List</a></li>
+                <li>
+                    {% if session.unique_url %}
+                        <a href="{% url 'voter_list' session_uuid=session.get_uuid %}">Manage Voters</a>
+                    {% else %}
+                      <a href="{% url 'voter_list' session_id=session.session_id %}">Manage Voters</a>
+                    {% endif %}
+                  </li>
+                  
             </ul>
         </div>
     </div>

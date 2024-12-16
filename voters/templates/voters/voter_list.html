@@ -27,6 +27,15 @@
         </div>
     </div>
 
+
+    <h2>Create Voter</h2>
+    <form id="add-voter-form" method="POST" 
+      action="{% if session_id %}{% url 'voter_list' session_id %}{% elif session_uuid %}{% url 'voter_list' session_uuid=session_uuid %}{% endif %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" id="add-voter-button">Add Voter</button>
+    </form>
+
     <!-- Search Bar -->
     <form method="GET" action="">
         <input type="text" name="search" placeholder="Search by first or last name" value="{{ request.GET.search }}">
@@ -112,47 +121,52 @@
                 })
                 .catch(error => console.error('Error fetching voter counts:', error));
         }
-/*
+
+       
         function updateVoterList() {
-            fetch(`/get_voters/${session_uuid}/`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    const voterList = document.getElementById('voter-list');
-                    voterList.innerHTML = ''; // Clear existing list
+            // Define the endpoint URL for fetching voter statuses
+            const endpoint = '/get_voter_status/'; // Adjust this URL to match your Django view
 
-                    data.voters.forEach(voter => {
-                        const row = document.createElement('tr');
-                        row.className = 'voter-row';
-                        row.dataset.status = voter.is_verified ? 'verified' : 'not_verified';
+            // Fetch voter statuses from the server every 5 seconds
+            setInterval(() => {
+                fetch(endpoint)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Iterate over the voter data returned by the server
+                        data.voters.forEach(voter => {
+                            // Find the voter row in the DOM
+                            const voterRow = document.querySelector(`#voter-${voter.id}`);
+                            if (voterRow) {
+                                // Find the status element and update its text and styles
+                                const statusElement = voterRow.querySelector('.voter-status');
 
-                        row.innerHTML = `
-                            <td>${voter.Fname} ${voter.Lname}</td>
-                            <td>
-                                ${voter.is_verified ? 'Verified' : 'Not Verified'}
-                                ${voter.is_verified ? (voter.has_finished ? ' - Finished' : ' - Not Finished') : ''}
-                            </td>
-                            <td>
-                                ${voter.is_verified && voter.has_finished ? `<a href="/review_voter_results/${voter.id}/${session_uuid}/">Review Results</a>` : ''}
-                                <a href="/edit_voter/${voter.id}/">Edit</a>
-                                <a href="/delete_voter/${voter.id}/" onclick="return confirm('Are you sure?')">Delete</a>
-                            </td>
-                        `;
-                        voterList.appendChild(row);
+                                // Update the status text
+                                let statusText = '';
+                                let statusClass = '';
+                                if (voter.verified && voter.finished) {
+                                    statusText = 'Verified - Finished';
+                                    statusClass = 'status-verified-finished';
+                                } else if (voter.verified) {
+                                    statusText = 'Verified - Not Finished';
+                                    statusClass = 'status-verified-not-finished';
+                                } else {
+                                    statusText = 'Not Verified - Not Finished';
+                                    statusClass = 'status-not-verified';
+                                }
+
+                                // Update the DOM element with the new status
+                                statusElement.textContent = statusText;
+
+                                // Remove old classes and apply the new one
+                                statusElement.className = `voter-status ${statusClass}`;
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error updating voter list:', error);
                     });
-                })
-                .catch(error => console.error('Error fetching voter list:', error));
+            }, 5000); // Poll every 5 seconds
         }
-
-        // Initialize interval to update voter counts and list
-        intervalId = setInterval(() => {
-            updateVoterCounts();
-            updateVoterList();
-        }, 5000);*/
     });
     
 
