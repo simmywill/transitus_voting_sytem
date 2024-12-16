@@ -98,63 +98,58 @@
 
         const session_uuid = "{{ session_uuid }}";
         document.addEventListener('DOMContentLoaded', function() {
-        let intervalId; // Store the interval ID so we can stop it
+        ldocument.addEventListener('DOMContentLoaded', function() {
+    let voterCountsIntervalId = setInterval(updateVoterCounts, 5000);
+    let voterListIntervalId = setInterval(updateVoterList, 5000);
 
-        function updateVoterCounts() {
-            fetch(`/voter_counts/${session_uuid}/`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+    function updateVoterCounts() {
+        fetch(`/voter_counts/${session_uuid}/`)
+            .then(response => response.json())
+            .then(data => {
+                const verifiedText = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
+                const finishedText = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
+                document.querySelector('.navbar p:first-of-type').textContent = verifiedText;
+                document.querySelector('.navbar p:last-of-type').textContent = finishedText;
+
+                // Stop updating if all voters are verified and finished
+                if (data.verified_voters === data.total_voters && data.finished_voters === data.total_voters) {
+                    clearInterval(voterCountsIntervalId);
+                    clearInterval(voterListIntervalId);
+                    console.log('All voters verified and finished. Stopping updates.');
+                }
+            })
+            .catch(error => console.error('Error fetching voter counts:', error));
+    }
+
+    function updateVoterList() {
+        fetch(`/get_voter_status/${session_uuid}/`)
+            .then(response => response.json())
+            .then(data => {
+                data.voters.forEach(voter => {
+                    const voterRow = document.querySelector(`#voter-${voter.id}`);
+                    if (voterRow) {
+                        const statusElement = voterRow.querySelector('.voter-status');
+                        let statusText = '';
+                        let statusClass = '';
+                        if (voter.verified && voter.finished) {
+                            statusText = 'Verified - Finished';
+                            statusClass = 'status-verified-finished';
+                        } else if (voter.verified) {
+                            statusText = 'Verified - Not Finished';
+                            statusClass = 'status-verified-not-finished';
+                        } else {
+                            statusText = 'Not Verified - Not Finished';
+                            statusClass = 'status-not-verified';
+                        }
+                        statusElement.textContent = statusText;
+                        statusElement.className = `voter-status ${statusClass}`;
                     }
-                    return response.json();
-                })
-                .then(data => {
-                    const verifiedText = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
-                    const finishedText = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
-                    document.querySelector('.navbar p:first-of-type').textContent = verifiedText;
-                    document.querySelector('.navbar p:last-of-type').textContent = finishedText;
+                });
+            })
+            .catch(error => console.error('Error updating voter list:', error));
+    }
+});
 
-                    // Check if all voters are verified and finished
-                    if (data.verified_voters === data.total_voters && data.finished_voters === data.total_voters) {
-                        clearInterval(intervalId); // Stop the periodic requests
-                        console.log('All voters verified and finished. Stopping updates.');
-                    }
-                })
-                .catch(error => console.error('Error fetching voter counts:', error));
-        }
-        intervalId = setInterval(updateVoterCounts, 5000);
-
-       
-        function updateVoterList() {
-            const endpoint = `/get_voter_status/${session_uuid}/`; // Use session_uuid from the template
-            setInterval(() => {
-                fetch(endpoint)
-                    .then(response => response.json())
-                    .then(data => {
-                        data.voters.forEach(voter => {
-                            const voterRow = document.querySelector(`#voter-${voter.id}`);
-                            if (voterRow) {
-                                const statusElement = voterRow.querySelector('.voter-status');
-                                let statusText = '';
-                                let statusClass = '';
-                                if (voter.verified && voter.finished) {
-                                    statusText = 'Verified - Finished';
-                                    statusClass = 'status-verified-finished';
-                                } else if (voter.verified) {
-                                    statusText = 'Verified - Not Finished';
-                                    statusClass = 'status-verified-not-finished';
-                                } else {
-                                    statusText = 'Not Verified - Not Finished';
-                                    statusClass = 'status-not-verified';
-                                }
-                                statusElement.textContent = statusText;
-                                statusElement.className = `voter-status ${statusClass}`;
-                            }
-                        });
-                    })
-                    .catch(error => console.error('Error updating voter list:', error));
-            }, 5000);
-        }
 
     });
     
