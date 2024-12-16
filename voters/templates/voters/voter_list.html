@@ -136,8 +136,8 @@
             data.voters.forEach(voter => {
                 const voterRow = document.getElementById(`voter-${voter.id}`);
 
-                // If voter row exists, update it; otherwise, create it
                 if (voterRow) {
+                    // Update existing row
                     const statusCell = voterRow.querySelector('.voter-status');
                     statusCell.textContent = voter.is_verified ? 
                         `Verified ${voter.has_finished ? '- Finished' : '- Not Finished'}` :
@@ -145,7 +145,7 @@
 
                     voterRow.dataset.status = voter.is_verified ? 'verified' : 'not_verified';
                 } else {
-                    // Create new row if it doesn't exist
+                    // Create new row
                     const newVoterRow = document.createElement('tr');
                     newVoterRow.id = `voter-${voter.id}`;
                     newVoterRow.className = 'voter-row';
@@ -192,6 +192,7 @@
         })
         .catch(error => console.error('Error updating voter list:', error));
 }
+
 
     
             // Set intervals for real-time updates
