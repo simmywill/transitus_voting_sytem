@@ -121,6 +121,7 @@
                 })
                 .catch(error => console.error('Error fetching voter counts:', error));
         }
+        intervalId = setInterval(updateVoterCounts, 5000);
 
        
         function updateVoterList() {
