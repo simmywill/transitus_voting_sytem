@@ -12,6 +12,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 import json
 from django.urls import reverse
 from django.http import Http404
+from django.conf import settings
 
 
 
@@ -196,65 +197,60 @@ def add_voters(request , session_id=None, session_uuid=None):
 
 @login_required
 def voter_list(request, session_id=None, session_uuid=None):
-
-    voting_session = None
-
-
-    # Determine which identifier to use
+    # Determine the voting session
     if session_uuid:
         voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
-    elif not session_uuid:
+    elif session_id:
         voting_session = get_object_or_404(VotingSession, session_id=session_id)
     else:
         raise Http404("Session identifier not provided.")
-
-    search_query = request.GET.get('search', '')
-
-    voters = voting_session.voters.all()
-    # Filter voters based on the associated session
-    if search_query:
-        voters = Voter.objects.filter(
-            session=voting_session
-        ).filter(
-            Q(Fname__icontains=search_query) |
-            Q(Lname__icontains=search_query) |
-            Q(voter_id__icontains=search_query)
-        )
     
+    voters = voting_session.voters.all()  # Retrieve all voters for the session
 
-    # Extract the session_uuid from unique_url
-    if voting_session.unique_url:
-        extracted_uuid = voting_session.unique_url.split('/')[-1]
-    else:
-        extracted_uuid = None
-
+    # Counts
     verified_voters_count = voters.filter(is_verified=True).count()
     finished_voters_count = voters.filter(has_finished=True).count()
     total_voters_count = voters.count()
     is_active = voting_session.is_active
 
-  
+    # Extract UUID
+    extracted_uuid = voting_session.unique_url.split('/')[-1] if voting_session.unique_url else None
 
+    # Handle GET request (search functionality)
+    if request.method == "GET":
+        search_query = request.GET.get('search', '').strip()  # Get and strip the search query
+        
+        if search_query:
+            search_query = search_query.strip()
+            
+            # First, check if the entire query matches an exact first name or last name
+            exact_matches = voters.filter(
+                Q(Fname__iexact=search_query) | Q(Lname__iexact=search_query)
+            )
+            if exact_matches.exists():
+                voters = exact_matches
+            else:
+                # Split the search query into first name and last name parts
+                parts = search_query.split(' ')
+                first_name = parts[0]
+                last_name = parts[1] if len(parts) > 1 else ''
 
-    #add_voter consolidated code
-    if request.method == "POST":
-        form = VoterForm(request.POST)
-        if form.is_valid():
-            # Create a new voter
-            voter = form.save(commit=False)
-            voter.session = voting_session  # Assign the VotingSession instance
-            voter.save()
-            # Redirect based on the identifier
-            if session_uuid:
-                return redirect('voter_list', session_uuid=extracted_uuid)
-            return redirect('voter_list', session_id=session_id)
-    else:
-        form = VoterForm()
+                # Construct a Q object for searching by first name and/or last name
+                filters = Q()
+                if first_name:
+                    filters &= Q(Fname__icontains=first_name) 
+                if last_name:
+                    filters &= Q(Lname__icontains=last_name)
+
+                # Filter voters based on constructed filters
+                voters = voters.filter(filters)
+        
+        # Render the page with the searched voters
         return render(
             request,
             'voters/voter_list.html',
             {
-                'form': form,
+                'form': VoterForm(),
                 'voters': voters,
                 'verified_voters_count': verified_voters_count,
                 'finished_voters_count': finished_voters_count,
@@ -262,9 +258,40 @@ def voter_list(request, session_id=None, session_uuid=None):
                 'voting_session': voting_session,
                 'session_uuid': extracted_uuid,  # Pass the extracted UUID
                 'session_id': session_id,
-                'is_active' : is_active,
+                'is_active': is_active,
             },
-    )
+        )
+
+    # Handle POST request (adding a voter)
+    elif request.method == "POST":
+        form = VoterForm(request.POST)
+        if form.is_valid():
+            # Create a new voter
+            voter = form.save(commit=False)
+            voter.session = voting_session  # Assign the VotingSession instance
+            voter.save()
+            # Redirect to the voter list page
+            if session_uuid:
+                return redirect('voter_list', session_uuid=session_uuid)
+            return redirect('voter_list', session_id=session_id)
+
+        # Handle invalid form: render page with errors
+        voters = voting_session.voters.all()  # Default voters (no search)
+        return render(
+            request,
+            'voters/voter_list.html',
+            {
+                'form': form,
+                'voters': voters,
+                'verified_voters_count': voters.filter(is_verified=True).count(),
+                'finished_voters_count': voters.filter(has_finished=True).count(),
+                'total_voters_count': voters.count(),
+                'voting_session': voting_session,
+                'session_uuid': session_uuid,
+                'session_id': session_id,
+                'is_active': voting_session.is_active,
+            },
+        )
 
 
 

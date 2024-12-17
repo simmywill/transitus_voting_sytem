@@ -105,9 +105,11 @@
 
 
         function clearSearch() {
-            document.querySelector('input[name="search"]').value = '';
-            document.forms[0].submit();
-        }
+            const url = new URL(window.location.href); // Get the current URL
+            url.searchParams.delete('search'); // Remove the 'search' query parameter
+            window.location.href = url.toString(); // Reload the page with the updated URL
+};
+        
 
 
         function filterVoters(status) {
