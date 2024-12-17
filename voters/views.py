@@ -655,7 +655,12 @@ def get_voters(request, session_id=None, session_uuid=None):
 
 
 def get_voter_status(request, session_uuid):
-    voters = Voter.objects.filter(session__session_uuid=session_uuid)
+    # Fetch the VotingSession object using the session_uuid
+    session = VotingSession.objects.get(unique_url__contains=session_uuid)
+
+    # Retrieve the associated Voters
+    voters = Voter.objects.filter(session=session)
     return render(request, 'voters/voter_list_partial.html', {'voters': voters})
+
 
 
