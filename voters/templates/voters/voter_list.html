@@ -122,70 +122,36 @@
             }
     
            
-            const session_uuid = "{{ session_uuid }}";
-
-            // Function to dynamically rebuild the voter list
-            function updateVoterList() {
+            function refreshVoterList() {
                 fetch(`/get_voter_status/${session_uuid}/`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error(`HTTP error! Status: ${response.status}`);
                         }
-                        return response.json();
+                        return response.text();
                     })
-                    .then(data => {
-                        // Select the voter list container
-                        const voterListContainer = document.querySelector('.voter-list');
-
-                        // Clear the container to rebuild it
-                        voterListContainer.innerHTML = '';
-
-                        // Rebuild the voter list from the fetched data
-                        data.voters.forEach(voter => {
-                            const voterRow = document.createElement('div');
-                            voterRow.id = `voter-${voter.id}`;
-                            voterRow.className = 'voter-row';
-
-                            // Create voter name element
-                            const voterName = document.createElement('p');
-                            voterName.textContent = `${voter.first_name} ${voter.last_name}`;
-                            voterName.className = 'voter-name';
-
-                            // Create voter status element
-                            const voterStatus = document.createElement('p');
-                            voterStatus.className = 'voter-status';
-
-                            // Set status text and CSS class dynamically
-                            if (voter.verified && voter.finished) {
-                                voterStatus.textContent = 'Verified - Finished';
-                                voterStatus.classList.add('status-verified-finished');
-                            } else if (voter.verified) {
-                                voterStatus.textContent = 'Verified - Not Finished';
-                                voterStatus.classList.add('status-verified-not-finished');
-                            } else {
-                                voterStatus.textContent = 'Not Verified - Not Finished';
-                                voterStatus.classList.add('status-not-verified');
-                            }
-
-                            // Append voter name and status to the voter row
-                            voterRow.appendChild(voterName);
-                            voterRow.appendChild(voterStatus);
-
-                            // Append the voter row to the container
-                            voterListContainer.appendChild(voterRow);
-                        });
+                    .then(html => {
+                        // Replace the current voter list with the new HTML
+                        document.getElementById('voter-list').innerHTML = html;
                     })
-                    .catch(error => console.error("Error updating voter list:", error));
+                    .catch(error => console.error("Error refreshing voter list:", error));
             }
+
+            // Example usage: Call this function periodically or on specific events
+            setInterval(refreshVoterList, 5000); // Refresh every 5 seconds (adjust as needed)
+
+
+            
+            
 
 
             // Set intervals for real-time updates
             const voterCountsInterval = setInterval(updateVoterCounts, 5000); // Update voter counts every 5 seconds
-            const voterListInterval = setInterval(updateVoterList, 5000); // Update voter list every 5 seconds
     
             // Execute immediately on page load
             updateVoterCounts();
-            updateVoterList();
+            refreshVoterList();
+            
         });
     </script>
     
