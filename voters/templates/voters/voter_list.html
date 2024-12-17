@@ -36,10 +36,13 @@
         <button type="submit" id="add-voter-button">Add Voter</button>
     </form>
 
-    <!-- Search Bar -->
     <form method="GET" action="">
         <input type="text" name="search" placeholder="Search by first or last name" value="{{ request.GET.search }}">
         <button type="submit">Search</button>
+        {% if request.GET.search %}
+            <!-- Clear Search Button -->
+            <a href="{% url 'voter_list' session_uuid=session_uuid %}" class="clear-search-btn">Clear Search</a>
+        {% endif %}
     </form>
 
     <!-- Filter Buttons -->
@@ -121,9 +124,19 @@
                     .catch(error => console.error('Error updating voter counts:', error));
             }
     
-           
+           // Function to clear the search input and reload all voters
+            document.getElementById('clear-search-btn').addEventListener('click', function() {
+                const searchInput = document.getElementById('search-input');
+                searchInput.value = '';  // Clear the search input field
+                refreshVoterList();  // Reload the voter list without a search filter
+            });
+
+
             function refreshVoterList() {
-                fetch(`/get_voter_status/${session_uuid}/`)
+                const searchQuery = document.querySelector('input[name="search"]').value;
+                const url = `/get_voter_status/${session_uuid}/?search=${encodeURIComponent(searchQuery)}`;
+
+                fetch(url)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error(`HTTP error! Status: ${response.status}`);

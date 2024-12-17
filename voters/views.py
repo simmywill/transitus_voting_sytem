@@ -220,8 +220,7 @@ def voter_list(request, session_id=None, session_uuid=None):
             Q(Lname__icontains=search_query) |
             Q(voter_id__icontains=search_query)
         )
-    else:
-        voters = Voter.objects.filter(session=voting_session)
+    
 
     # Extract the session_uuid from unique_url
     if voting_session.unique_url:
@@ -658,9 +657,24 @@ def get_voter_status(request, session_uuid):
     # Fetch the VotingSession object using the session_uuid
     session = VotingSession.objects.get(unique_url__contains=session_uuid)
 
+
+    # Fetch the search query parameter
+    search_query = request.GET.get('search', '').strip()
+
+
     # Retrieve the associated Voters
     voters = Voter.objects.filter(session=session)
-    return render(request, 'voters/voter_list_partial.html', {'voters': voters})
 
+    if search_query:  # Apply search filter if query exists
+        voters = voters.filter(
+            Q(Fname__icontains=search_query) | 
+            Q(Lname__icontains=search_query) | 
+            Q(voter_id__icontains=search_query)
+        )
+
+
+
+    html = render_to_string('voters/voter_list_partial.html', {'voters': voters})
+    return HttpResponse(html)
 
 
