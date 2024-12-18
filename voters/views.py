@@ -13,6 +13,8 @@ import json
 from django.urls import reverse
 from django.http import Http404
 from django.conf import settings
+from django.template.loader import render_to_string
+
 
 
 
@@ -446,6 +448,7 @@ def activate_session(request, session_id):
     # Generate the unique URL for the session (if not already done)
     if not session.unique_url:
         session.generate_qr_code(request)
+        print(session.generate_qr_code(request))
         session.save()
 
     # Activate the session
