@@ -567,7 +567,7 @@ def submit_vote(request, session_uuid , voter_id):
         for segment_id, candidate_id in votes.items():
             print(f"Processing vote for segment: {segment_id}, candidate: {candidate_id}")
             segment = get_object_or_404(VotingSegmentHeader, id=segment_id, session=session)
-            candidate = get_object_or_404(Candidate, id=candidate_id, segment_header__id=segment.id)
+            candidate = get_object_or_404(Candidate, id=candidate_id, segment_header__id=segment_id)
 
 
             # Save individual vote
@@ -607,7 +607,7 @@ def segment_results(request, session_uuid):
         })
 
     # Render the tally page with serialized tally data
-    return render(request, 'results.html', {
+    return render(request, 'voters/results.html', {
         'tally': tally,
         'session': session,
         'segments_json': json.dumps(tally)  # Pass JSON-encoded data
