@@ -84,7 +84,7 @@
         .winner-image {
             width: 60%;
             max-width: 400px;
-            transition: transform 1s ease-in-out;
+            transition: transform 1s ease-in-out; /* This line ensures the zoom effect */
         }
 
         .bouncing {
@@ -96,6 +96,7 @@
             50% { transform: translateY(-20px); }
             100% { transform: translateY(0); }
         }
+
 
         .confetti-canvas {
             position: absolute;
@@ -112,6 +113,29 @@
                 max-width: 300px;
             }
         }
+
+        /* Winner button style */
+        .winner-button {
+            background-color: green;
+            color: white;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        /* Close button style */
+        .close-winner-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            background: red;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
     </style>
 </head>
 <body>
@@ -121,10 +145,11 @@
             <h1>Results for {{ segment.name }}</h1>
             
             <!-- Show Winner Tab -->
-            <button class="show-winner-btn" onclick="toggleWinner('{{ segment.segment_id }}')">Show Winner</button>
+            <button class="show-winner-btn" onclick="showWinner('{{ segment.segment_id }}')">Show Winner</button>
 
             <div class="winner-container" id="winner-container-{{ segment.segment_id }}">
-                <div id="winner-name-{{ segment.segment_id }}" class="winner-name"></div>
+                <button class="close-winner-btn" onclick="closeWinner('{{ segment.segment_id }}')">X</button>
+                <div id="winner-name-{{ segment.segment_id }}" class="winner-name winner-button"></div>
                 <img id="winner-image-{{ segment.segment_id }}" src="" alt="Winner Image" class="winner-image" />
                 <div id="winner-votes-{{ segment.segment_id }}" class="winner-votes"></div>
             </div>
@@ -234,41 +259,44 @@
 
             showSegment(0);
         });
-
-        function toggleWinner(segmentId) {
+        function showWinner(segmentId) {
             const segmentData = voteData.find(segment => segment.segment_id === parseInt(segmentId, 10));
             if (!segmentData || !segmentData.winner) {
                 alert("No winner for this segment.");
                 return;
             }
-
             const winner = segmentData.winner;
-            const winnerContainer = document.getElementById(`winner-container-${segmentId}`);
-            const winnerName = document.getElementById(`winner-name-${segmentId}`);
+
+            // Display winner's image and votes
             const winnerImage = document.getElementById(`winner-image-${segmentId}`);
             const winnerVotes = document.getElementById(`winner-votes-${segmentId}`);
-            const showWinnerButton = document.querySelector(`.show-winner-btn`);
+            const winnerContainer = document.getElementById(`winner-container-${segmentId}`);
 
-            winnerName.textContent = `Winner: ${winner.name}`;
             winnerImage.src = winner.photo_url;
             winnerVotes.textContent = `Votes: ${winner.votes}`;
 
-            winnerContainer.classList.toggle("show");
+            // Show the winner container
+            winnerContainer.style.display = "block";
 
-            if (winnerContainer.classList.contains("show")) {
-                showWinnerButton.textContent = "Hide Winner";
-                // Trigger confetti animation
-                confetti({
-                    particleCount: 100,
-                    spread: 60,
-                    origin: { x: 0.5, y: 0.5 },
-                    colors: ['#ff0000', '#00ff00', '#0000ff'],
-                    disableForReducedMotion: true
-                });
-            } else {
-                showWinnerButton.textContent = "Show Winner";
-            }
+            // Apply bouncing and zoom effect
+            winnerImage.classList.add('bouncing');
+            gsap.to(winnerImage, { 
+                scale: 1.2, 
+                duration: 1, 
+                yoyo: true, 
+                repeat: -1 
+            });
+
+            // Trigger confetti animation
+            confetti({
+                particleCount: 100,
+                spread: 60,
+                origin: { x: 0.5, y: 0.5 },
+                colors: ['#ff0000', '#00ff00', '#0000ff'],
+                disableForReducedMotion: true
+            });
         }
+
 
         function confetti(options) {
             const confettiCanvas = document.createElement('canvas');
