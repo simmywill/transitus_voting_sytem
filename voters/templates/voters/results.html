@@ -124,7 +124,7 @@
     <script>
         let voteData;
         document.addEventListener("DOMContentLoaded", () => {
-            const voteData = JSON.parse('{{ segments_json|escapejs }}'); // Ensure JSON safety
+            voteData = JSON.parse('{{ segments_json|escapejs }}'); // Ensure JSON safety
             const segments = document.querySelectorAll(".segment-slide");
             const prevButton = document.getElementById("prev-button");
             const nextButton = document.getElementById("next-button");
@@ -214,6 +214,7 @@
         });
 
         function showWinner(segmentId) {
+            console.log("vote data before error msg" , voteData);
             const segmentData = voteData.find(segment => segment.segment_id === parseInt(segmentId, 10));
             if (!segmentData || !segmentData.winner) {
                 alert("No winner for this segment.");
