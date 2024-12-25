@@ -213,16 +213,21 @@
         });
 
         function showWinner(segmentId) {
-            const segmentData = voteData.find(segment => segment.segment_id === segmentId);
-            const winner = segmentData.candidates.reduce((max, candidate) => 
-                (candidate.votes > max.votes ? candidate : max), segmentData.candidates[0]);
+            const segmentData = voteData.find(segment => segment.segment_id === parseInt(segmentId, 10));
+            const winner = segmentData.winner;
+
+            if (!winner) {
+                alert("No winner for this segment.");
+                return;
+            }
 
             // Display winner's image and votes
             const winnerImage = document.getElementById(`winner-image-${segmentId}`);
             const winnerVotes = document.getElementById(`winner-votes-${segmentId}`);
             const winnerContainer = document.getElementById(`winner-container-${segmentId}`);
 
-            winnerImage.src = winner.image_url;  // Assume each candidate has an image_url field
+            winnerImage.src = winner.photo_url;
+
             winnerVotes.textContent = `Votes: ${winner.votes}`;
             
             // Show the winner container

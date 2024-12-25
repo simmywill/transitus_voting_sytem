@@ -603,7 +603,7 @@ def segment_results(request, session_uuid):
         tally.append({
             'segment_id': segment.id,
             'name': segment.name,
-            'candidates': [{'id': c.id, 'name': c.name, 'votes': c.vote_count} for c in candidates]
+            'candidates': [{'id': c.id, 'name': c.name, 'votes': c.vote_count, 'photo_url': c.photo.url } for c in candidates]
         })
 
     # Render the tally page with serialized tally data
@@ -616,7 +616,7 @@ def segment_results(request, session_uuid):
 
 
 
-
+        
 
 
 from django.shortcuts import render, get_object_or_404
