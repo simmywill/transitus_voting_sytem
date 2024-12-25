@@ -93,6 +93,8 @@ class Candidate(models.Model):
     photo = models.ImageField(upload_to='candidate_photos/')
     voting_session = models.ForeignKey(VotingSession, on_delete=models.CASCADE)
     segment_header = models.ForeignKey(VotingSegmentHeader, on_delete=models.CASCADE, related_name='candidates')
+    total_votes = models.IntegerField(default=0)
+
     
     def __str__(self):
         return self.name

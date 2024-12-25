@@ -540,26 +540,32 @@ def voter_session(request, session_uuid, voter_id):
 
 
 
-
 @csrf_exempt
-def submit_vote(request, session_uuid):
+def submit_vote(request, session_uuid , voter_id):
     if request.method == 'POST':
+        print(f"Received POST request for session: {session_uuid}, voter: {voter_id}")
+        
         session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
-        voter_id = request.session.get('voter_id')
+        if not session:
+            print(f"Session with UUID {session_uuid} not found.")
+            return JsonResponse({'error': 'Session invalid'}, status=402)
 
         if not voter_id:
+            print(f"Voter ID not found: {voter_id}")
             return JsonResponse({'error': 'Voter not authenticated'}, status=401)
 
         # Parse the incoming data
         try:
             data = json.loads(request.body)
+            print(f"Parsed vote data: {data}")
             votes = data.get('votes', {})
         except json.JSONDecodeError:
+            print(f"Error parsing JSON: {request.body}")
             return JsonResponse({'error': 'Invalid data'}, status=400)
 
         # Save votes and update tallies
         for segment_id, candidate_id in votes.items():
-            # Retrieve the segment and candidate using their IDs
+            print(f"Processing vote for segment: {segment_id}, candidate: {candidate_id}")
             segment = get_object_or_404(VotingSegmentHeader, id=segment_id, session=session)
             candidate = get_object_or_404(Candidate, id=candidate_id, segment=segment)
 
@@ -575,7 +581,10 @@ def submit_vote(request, session_uuid):
             candidate.save()
 
         return JsonResponse({'success': True})
+
+    print(f"Invalid request method: {request.method}")
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 
 
 from django.db.models import Count

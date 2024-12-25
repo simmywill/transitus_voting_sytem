@@ -42,7 +42,15 @@
     </div>
 </div>
 
+
+
 <script>
+    const session_uuid = "{{ session_uuid }}";
+    const voter_id = "{{ voter_id }}";
+</script>
+
+<script>
+
 
 
 let selectedVotes = JSON.parse(localStorage.getItem("selectedVotes")) || {};
@@ -78,29 +86,11 @@ window.onload = function() {
 };
 
 
-function submitVotes() {
-    // Send all the selected votes to the backend when the user submits
-    fetch("{% url 'submit_vote' session_uuid=session_uuid  voter_id=voter_id %}", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
-        },
-        body: JSON.stringify({ selectedVotes: selectedVotes })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === "success") {
-            alert("Vote successfully submitted!");
-            window.location.href = "{% url 'voter_verification' session_uuid=session_uuid  %}";
-        }
-    })
-    .catch(error => alert("Error submitting vote: " + error));
-}
-
 
 function confirmVote() {
     // Check if all segments have selections
+    console.log(`Session UUID: ${session_uuid}, Voter ID: ${voter_id}`);
+
     if (Object.keys(selectedVotes).length < "{{ total_segments }}") {
         alert("Please make selections for all segments before voting.");
         return;
@@ -115,9 +105,12 @@ function confirmVote() {
         };
 
         // Send the data to the backend
-        fetch("{% url 'submit_vote' session_uuid=session_uuid voter_id=voter_id %}", {
+        fetch(`/submit_vote/${session_uuid}/${voter_id}/` , {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
+             },
             body: JSON.stringify(voteData),
         })
         .then((response) => {
