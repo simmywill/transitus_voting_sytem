@@ -592,6 +592,8 @@ from django.db.models import Count
 
 from django.core.serializers import serialize
 
+from django.db.models import Count, Max
+
 def segment_results(request, session_uuid):
     session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
     segments = session.segments.all()
@@ -599,11 +601,24 @@ def segment_results(request, session_uuid):
     # Calculate the vote tallies
     tally = []
     for segment in segments:
+        # Annotate candidates with vote counts
         candidates = segment.candidates.annotate(vote_count=Count('vote__id'))
+        
+        # Determine the winner
+        winner = candidates.order_by('-vote_count').first() if candidates else None
+        winner_data = {
+            'id': winner.id,
+            'name': winner.name,
+            'votes': winner.vote_count,
+            'photo_url': winner.photo.url
+        } if winner else None
+        
+        # Append segment data with winner information
         tally.append({
             'segment_id': segment.id,
             'name': segment.name,
-            'candidates': [{'id': c.id, 'name': c.name, 'votes': c.vote_count, 'photo_url': c.photo.url } for c in candidates]
+            'candidates': [{'id': c.id, 'name': c.name, 'votes': c.vote_count, 'photo_url': c.photo.url } for c in candidates],
+            'winner': winner_data
         })
 
     # Render the tally page with serialized tally data
@@ -612,7 +627,6 @@ def segment_results(request, session_uuid):
         'session': session,
         'segments_json': json.dumps(tally)  # Pass JSON-encoded data
     })
-
 
 
 
