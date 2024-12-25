@@ -567,7 +567,8 @@ def submit_vote(request, session_uuid , voter_id):
         for segment_id, candidate_id in votes.items():
             print(f"Processing vote for segment: {segment_id}, candidate: {candidate_id}")
             segment = get_object_or_404(VotingSegmentHeader, id=segment_id, session=session)
-            candidate = get_object_or_404(Candidate, id=candidate_id, segment=segment)
+            candidate = get_object_or_404(Candidate, id=candidate_id, segment_header__id=segment.id)
+
 
             # Save individual vote
             Vote.objects.create(
