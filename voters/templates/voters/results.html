@@ -297,8 +297,16 @@
             });
         }
 
+        function closeWinner(segmentId) {
+            const winnerContainer = document.getElementById(`winner-container-${segmentId}`);
+            winnerContainer.classList.remove('show'); // Remove the 'show' class to hide the winner container
 
-        function confetti(options) {
+            // You can also stop the animation here if needed, for example, by resetting the image class
+            const winnerImage = document.getElementById(`winner-image-${segmentId}`);
+            winnerImage.classList.remove('bouncing');
+        }
+
+      /*  function confetti(options) {
             const confettiCanvas = document.createElement('canvas');
             document.body.appendChild(confettiCanvas);
             confettiCanvas.classList.add('confetti-canvas');
@@ -325,7 +333,7 @@
                 ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
             }
-        }
+        }*/
     </script>
 </body>
 </html>
