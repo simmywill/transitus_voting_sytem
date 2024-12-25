@@ -215,6 +215,9 @@
         function showWinner(segmentId) {
             const segmentData = voteData.find(segment => segment.segment_id === parseInt(segmentId, 10));
             const winner = segmentData.winner;
+            console.log("vote data" , voteData);
+            console.log("segment data", segmentData);
+            console.log("winner" , winner)
 
             if (!winner) {
                 alert("No winner for this segment.");
