@@ -7,11 +7,13 @@
     <title>Vote Tally Results</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.0/dist/confetti.browser.min.js"></script> <!-- Confetti library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.0/dist/confetti.browser.min.js"></script>
     <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet"> <!-- Link to your CSS -->
     <style>
         body {
             font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
         }
 
         .slideshow-container {
@@ -58,6 +60,25 @@
         .winner-container {
             text-align: center;
             margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: fixed; /* Full-screen effect */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            visibility: hidden; /* Hidden by default */
+            opacity: 0;
+            transition: visibility 0.3s, opacity 0.3s;
+        }
+
+        .winner-container.show {
+            visibility: visible;
+            opacity: 1;
         }
 
         .winner-image {
@@ -83,6 +104,14 @@
             pointer-events: none;
             z-index: 1000;
         }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .winner-image {
+                width: 80%;
+                max-width: 300px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -92,9 +121,10 @@
             <h1>Results for {{ segment.name }}</h1>
             
             <!-- Show Winner Tab -->
-            <button class="show-winner-btn" onclick="showWinner('{{ segment.segment_id }}')">Show Winner</button>
+            <button class="show-winner-btn" onclick="toggleWinner('{{ segment.segment_id }}')">Show Winner</button>
 
-            <div class="winner-container" id="winner-container-{{ segment.segment_id }}" style="display: none;">
+            <div class="winner-container" id="winner-container-{{ segment.segment_id }}">
+                <div id="winner-name-{{ segment.segment_id }}" class="winner-name"></div>
                 <img id="winner-image-{{ segment.segment_id }}" src="" alt="Winner Image" class="winner-image" />
                 <div id="winner-votes-{{ segment.segment_id }}" class="winner-votes"></div>
             </div>
@@ -132,14 +162,10 @@
             const charts = [];
 
             function showSegment(index) {
-                // Hide all segments
                 segments.forEach(segment => (segment.style.display = "none"));
-
-                // Show current segment
                 const currentSegment = segments[index];
                 currentSegment.style.display = "block";
 
-                // Animate leaderboard
                 const leaderboard = currentSegment.querySelectorAll(".candidate_vote");
                 gsap.fromTo(
                     leaderboard,
@@ -147,14 +173,12 @@
                     { opacity: 1, y: 0, duration: 1, stagger: 0.2 }
                 );
 
-                // Animate vote counts
                 const candidates = voteData[index].candidates;
                 candidates.forEach((candidate, i) => {
                     animateVoteCount(candidate.votes, `votes-${candidate.id}`);
                     document.getElementById(`position-${candidate.id}`).textContent = `${i + 1}`;
                 });
 
-                // Create or update chart
                 if (!charts[index]) {
                     const ctx = document
                         .getElementById(`chart-${voteData[index].segment_id}`)
@@ -198,7 +222,6 @@
                 }, 20);
             }
 
-            // Button event listeners
             prevButton.addEventListener("click", () => {
                 currentSegmentIndex = (currentSegmentIndex - 1 + segments.length) % segments.length;
                 showSegment(currentSegmentIndex);
@@ -209,54 +232,44 @@
                 showSegment(currentSegmentIndex);
             });
 
-            // Show the first segment on load
             showSegment(0);
         });
 
-        function showWinner(segmentId) {
-            console.log("vote data before error msg" , voteData);
+        function toggleWinner(segmentId) {
             const segmentData = voteData.find(segment => segment.segment_id === parseInt(segmentId, 10));
             if (!segmentData || !segmentData.winner) {
                 alert("No winner for this segment.");
                 return;
             }
+
             const winner = segmentData.winner;
-            console.log("vote data" , voteData);
-            console.log("segment data", segmentData);
-            console.log("winner" , winner)
-
-            if (!winner) {
-                alert("No winner for this segment.");
-                return;
-            }
-
-            // Display winner's image and votes
+            const winnerContainer = document.getElementById(`winner-container-${segmentId}`);
+            const winnerName = document.getElementById(`winner-name-${segmentId}`);
             const winnerImage = document.getElementById(`winner-image-${segmentId}`);
             const winnerVotes = document.getElementById(`winner-votes-${segmentId}`);
-            const winnerContainer = document.getElementById(`winner-container-${segmentId}`);
+            const showWinnerButton = document.querySelector(`.show-winner-btn`);
 
+            winnerName.textContent = `Winner: ${winner.name}`;
             winnerImage.src = winner.photo_url;
-
             winnerVotes.textContent = `Votes: ${winner.votes}`;
-            
-            // Show the winner container
-            winnerContainer.style.display = "block";
 
-            // Apply bouncing and zoom effect
-            winnerImage.classList.add('bouncing');
-            gsap.to(winnerImage, { scale: 1.2, duration: 1, yoyo: true, repeat: -1 });
+            winnerContainer.classList.toggle("show");
 
-            // Trigger confetti animation
-            confetti({
-                particleCount: 100,
-                spread: 60,
-                origin: { x: 0.5, y: 0.5 },
-                colors: ['#ff0000', '#00ff00', '#0000ff'],
-                disableForReducedMotion: true
-            });
+            if (winnerContainer.classList.contains("show")) {
+                showWinnerButton.textContent = "Hide Winner";
+                // Trigger confetti animation
+                confetti({
+                    particleCount: 100,
+                    spread: 60,
+                    origin: { x: 0.5, y: 0.5 },
+                    colors: ['#ff0000', '#00ff00', '#0000ff'],
+                    disableForReducedMotion: true
+                });
+            } else {
+                showWinnerButton.textContent = "Show Winner";
+            }
         }
 
-        // Confetti function using canvas-confetti
         function confetti(options) {
             const confettiCanvas = document.createElement('canvas');
             document.body.appendChild(confettiCanvas);
@@ -271,20 +284,19 @@
             const spread = options.spread || 60;
             const colors = options.colors || ['#ff0000', '#00ff00', '#0000ff'];
 
-            // Generate particles
             for (let i = 0; i < particleCount; i++) {
                 const x = Math.random() * width;
                 const y = Math.random() * height;
+                const size = Math.random() * 5 + 2;
+                const speed = Math.random() * 5 + 1;
+                const angle = Math.random() * spread - spread / 2;
                 const color = colors[Math.floor(Math.random() * colors.length)];
-                ctx.beginPath();
-                ctx.arc(x, y, 5, 0, 2 * Math.PI);
                 ctx.fillStyle = color;
+
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
                 ctx.fill();
             }
-
-            setTimeout(() => {
-                document.body.removeChild(confettiCanvas);
-            }, 3000);  // Remove canvas after 3 seconds
         }
     </script>
 </body>
