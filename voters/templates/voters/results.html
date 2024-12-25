@@ -122,6 +122,7 @@
     </div>
 
     <script>
+        let voteData;
         document.addEventListener("DOMContentLoaded", () => {
             const voteData = JSON.parse('{{ segments_json|escapejs }}'); // Ensure JSON safety
             const segments = document.querySelectorAll(".segment-slide");
@@ -214,6 +215,10 @@
 
         function showWinner(segmentId) {
             const segmentData = voteData.find(segment => segment.segment_id === parseInt(segmentId, 10));
+            if (!segmentData || !segmentData.winner) {
+                alert("No winner for this segment.");
+                return;
+            }
             const winner = segmentData.winner;
             console.log("vote data" , voteData);
             console.log("segment data", segmentData);
