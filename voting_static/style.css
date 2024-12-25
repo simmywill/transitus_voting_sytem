@@ -1384,3 +1384,32 @@ html, body {
 .filter-btn:hover {
     text-decoration: underline;
 }
+
+.winner-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.winner-image {
+    width: 60%;
+    max-width: 400px;
+    transition: transform 1s ease-in-out;
+}
+
+.bouncing {
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+    100% { transform: translateY(0); }
+}
+
+.confetti-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1000;
+}

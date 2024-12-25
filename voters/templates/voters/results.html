@@ -1,161 +1,89 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vote Tally Results</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="styles.css"> <!-- Link to your CSS -->
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .slideshow-container {
-            position: relative;
-            width: 80%;
-            margin: auto;
-            text-align: center;
-        }
-        .segment-slide {
-            display: none;
-        }
-        .candidate_vote {
-            font-size: 1.2em;
-            margin: 10px 0;
-        }
-        .chart-container {
-            width: 80%;
-            margin: auto;
-        }
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-        .controls button {
-            padding: 10px 20px;
-            font-size: 1em;
-            cursor: pointer;
-        }
-    </style>
-</head>
-<body>
-    <div id="slideshow-container" class="slideshow-container">
-        {% for segment in tally %}
-        <div class="segment-slide" id="segment-{{ segment.segment_id }}">
-            <h1>Results for {{ segment.name }}</h1>
-            <div id="leaderboard-{{ segment.segment_id }}" class="leaderboard">
-                {% for candidate in segment.candidates %}
-                <div class="candidate_vote" id="candidate-{{ candidate.id }}">
-                    <span class="position" id="position-{{ candidate.id }}"></span>:
-                    <span class="name">{{ candidate.name }}</span> -
-                    <span class="votes" id="votes-{{ candidate.id }}">0</span>
-                </div>
-                {% endfor %}
-            </div>
-            <div class="chart-container">
-                <canvas id="chart-{{ segment.segment_id }}"></canvas>
-            </div>
-        </div>
-        {% endfor %}
-        <div class="controls">
-            <button id="prev-button">Previous</button>
-            <button id="next-button">Next</button>
-        </div>
+<div class="segment-slide" id="segment-{{ segment.segment_id }}">
+    <h1>Results for {{ segment.name }}</h1>
+    
+    <!-- Show Winner Tab -->
+    <button class="show-winner-btn" onclick="showWinner('{{ segment.segment_id }}')">Show Winner</button>
+
+    <div class="winner-container" id="winner-container-{{ segment.segment_id }}" style="display: none;">
+        <img id="winner-image-{{ segment.segment_id }}" src="" alt="Winner Image" class="winner-image" />
+        <div id="winner-votes-{{ segment.segment_id }}" class="winner-votes"></div>
     </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", () => {
-    const voteData = JSON.parse('{{ segments_json|escapejs }}'); // Ensure JSON safety
-    const segments = document.querySelectorAll(".segment-slide");
-    const prevButton = document.getElementById("prev-button");
-    const nextButton = document.getElementById("next-button");
-    let currentSegmentIndex = 0;
-    const charts = [];
+    <div id="leaderboard-{{ segment.segment_id }}" class="leaderboard">
+        {% for candidate in segment.candidates %}
+        <div class="candidate_vote" id="candidate-{{ candidate.id }}">
+            <span class="position" id="position-{{ candidate.id }}"></span>:
+            <span class="name">{{ candidate.name }}</span> - 
+            <span class="votes" id="votes-{{ candidate.id }}">0</span>
+        </div>
+        {% endfor %}
+    </div>
 
-    function showSegment(index) {
-        // Hide all segments
-        segments.forEach(segment => (segment.style.display = "none"));
+    <div class="chart-container">
+        <canvas id="chart-{{ segment.segment_id }}"></canvas>
+    </div>
+</div>
+<script>
 
-        // Show current segment
-        const currentSegment = segments[index];
-        currentSegment.style.display = "block";
+function showWinner(segmentId) {
+    const segmentData = voteData.find(segment => segment.segment_id === segmentId);
+    const winner = segmentData.candidates.reduce((max, candidate) => 
+        (candidate.votes > max.votes ? candidate : max), segmentData.candidates[0]);
 
-        // Animate leaderboard
-        const leaderboard = currentSegment.querySelectorAll(".candidate_vote");
-        gsap.fromTo(
-            leaderboard,
-            { opacity: 0, y: 50 },
-            { opacity: 1, y: 0, duration: 1, stagger: 0.2 }
-        );
+    // Display winner's image and votes
+    const winnerImage = document.getElementById(`winner-image-${segmentId}`);
+    const winnerVotes = document.getElementById(`winner-votes-${segmentId}`);
+    const winnerContainer = document.getElementById(`winner-container-${segmentId}`);
 
-        // Animate vote counts
-        const candidates = voteData[index].candidates;
-        candidates.forEach((candidate, i) => {
-            animateVoteCount(candidate.votes, `votes-${candidate.id}`);
-            document.getElementById(`position-${candidate.id}`).textContent = `${i + 1}`;
-        });
+    winnerImage.src = winner.image_url;  // Assume each candidate has an image_url field
+    winnerVotes.textContent = `Votes: ${winner.votes}`;
+    
+    // Show the winner container
+    winnerContainer.style.display = "block";
 
-        // Create or update chart
-        if (!charts[index]) {
-            const ctx = document
-                .getElementById(`chart-${voteData[index].segment_id}`)
-                .getContext("2d");
-            charts[index] = new Chart(ctx, {
-                type: "bar",
-                data: {
-                    labels: candidates.map(c => c.name),
-                    datasets: [
-                        {
-                            label: "Votes",
-                            data: candidates.map(c => c.votes),
-                            backgroundColor: ["#ff6384", "#36a2eb", "#ffce56", "#4bc0c0", "#9966ff"]
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        } else {
-            charts[index].data.datasets[0].data = candidates.map(c => c.votes);
-            charts[index].update();
-        }
+    // Apply bouncing and zoom effect
+    winnerImage.classList.add('bouncing');
+    gsap.to(winnerImage, { scale: 1.2, duration: 1, yoyo: true, repeat: -1 });
+
+    // Trigger confetti animation
+    confetti({
+        particleCount: 100,
+        spread: 60,
+        origin: { x: 0.5, y: 0.5 },
+        colors: ['#ff0000', '#00ff00', '#0000ff'],
+        disableForReducedMotion: true
+    });
+}
+
+// Confetti function using canvas-confetti
+function confetti(options) {
+    const confettiCanvas = document.createElement('canvas');
+    document.body.appendChild(confettiCanvas);
+    confettiCanvas.classList.add('confetti-canvas');
+
+    const ctx = confettiCanvas.getContext('2d');
+    const { width, height } = window.innerWidth;
+    confettiCanvas.width = width;
+    confettiCanvas.height = height;
+
+    const particleCount = options.particleCount || 100;
+    const spread = options.spread || 60;
+    const colors = options.colors || ['#ff0000', '#00ff00', '#0000ff'];
+
+    // Generate particles
+    for (let i = 0; i < particleCount; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = color;
+        ctx.fill();
     }
 
-    function animateVoteCount(target, elementId) {
-        let current = 0;
-        const increment = Math.ceil(target / 100);
-        const element = document.getElementById(elementId);
-        const timer = setInterval(() => {
-            current += increment;
-            if (current >= target) {
-                current = target;
-                clearInterval(timer);
-            }
-            element.textContent = current;
-        }, 20);
-    }
+    setTimeout(() => {
+        document.body.removeChild(confettiCanvas);
+    }, 3000);  // Remove canvas after 3 seconds
+}
 
-    // Button event listeners
-    prevButton.addEventListener("click", () => {
-        currentSegmentIndex = (currentSegmentIndex - 1 + segments.length) % segments.length;
-        showSegment(currentSegmentIndex);
-    });
-
-    nextButton.addEventListener("click", () => {
-        currentSegmentIndex = (currentSegmentIndex + 1) % segments.length;
-        showSegment(currentSegmentIndex);
-    });
-
-    // Show the first segment on load
-    showSegment(0);
-});
-
-    </script>
-</body>
-</html>
+</script>
