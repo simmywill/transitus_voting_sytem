@@ -291,13 +291,34 @@
             });
 
             // Trigger confetti animation
-            confetti({
-                particleCount: 100,
-                spread: 60,
-                origin: { x: 0.5, y: 0.5 },
-                colors: ['#ff0000', '#00ff00', '#0000ff'],
-                disableForReducedMotion: true
-            });
+            const duration = 10000; // 10 seconds
+            const interval = 100; // Interval between confetti bursts (in milliseconds)
+
+            const endTime = Date.now() + duration;
+
+            // Function to trigger confetti around the image
+            const fireConfetti = () => {
+                // Randomize origin within a range around the image
+                const randomX = 0.4 + Math.random() * 0.2; // Range around 0.5 (center)
+                const randomY = 0.4 + Math.random() * 0.2; // Range around 0.5 (center)
+
+                confetti({
+                    particleCount: 50, // Adjust particle count per burst
+                    spread: 70, // Spread of the confetti
+                    origin: { x: randomX, y: randomY }, // Randomize position
+                    colors: ['#ff0000', '#00ff00', '#0000ff'], // Custom colors
+                    disableForReducedMotion: true, // Accessibility
+                });
+            };
+
+            // Trigger confetti bursts until the duration ends
+            const intervalId = setInterval(() => {
+                if (Date.now() > endTime) {
+                    clearInterval(intervalId); // Stop after 10 seconds
+                } else {
+                    fireConfetti();
+                }
+            }, interval);
         }
 
         function closeWinner(segmentId) {
