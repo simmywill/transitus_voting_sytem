@@ -80,15 +80,20 @@ def create_voting_session(request):
 
 
 @login_required
-def manage_session(request, session_id):
-    # Fetch the session and its related data (if any) for display purposes
-    session = get_object_or_404(VotingSession, session_id=session_id, admin=request.user)
+def manage_session(request, session_id=None , session_uuid=None):
+     # Determine the voting session
+    if session_uuid:
+        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    elif session_id:
+        voting_session = get_object_or_404(VotingSession, session_id=session_id)
+    else:
+        raise Http404("Session identifier not provided.")
     
     # Retrieve any existing segments and candidates associated with this session
-    segments = VotingSegmentHeader.objects.filter(session=session).prefetch_related('candidate_set')
+    segments = VotingSegmentHeader.objects.filter(session=voting_session).prefetch_related('candidate_set')
     
     return render(request, 'voters/manage_session.html', {
-        'session': session,
+        'session': voting_session,
         'segments': segments,
     })
     
@@ -222,6 +227,7 @@ def voter_list(request, session_id=None, session_uuid=None):
     # Handle GET request (search functionality)
     if request.method == "GET":
         search_query = request.GET.get('search', '').strip()  # Get and strip the search query
+        filter_state = request.GET.get('filter', 'all')
         
         if search_query:
             search_query = search_query.strip()
@@ -247,6 +253,15 @@ def voter_list(request, session_id=None, session_uuid=None):
 
                 # Filter voters based on constructed filters
                 voters = voters.filter(filters)
+        # Apply the selected filter
+        if filter_state == 'verified':
+            voters = voters.filter(is_verified=True)
+        elif filter_state == 'not_verified':
+            voters = voters.filter(is_verified=False)
+        elif filter_state == 'verified_finished':
+            voters = voters.filter(is_verified=True, has_finished=True)
+        elif filter_state == 'all':
+            pass  # No additional filtering, show all voters
         
         # Render the page with the searched voters
         return render(

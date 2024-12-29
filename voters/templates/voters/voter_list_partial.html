@@ -5,13 +5,14 @@
         <td class="voter-status">
             {% if voter.is_verified %}
                 <button type="button"  class = "status-verified">Verified</button>
-            {% if voter.has_finished %}
-                <button type="button"  class = "status-verified"> Finished </button>
-            {% else %}
-                <button type="button" class= "status-not-verified" > Not Finished</button> 
-           {% endif %}
+                {% if voter.has_finished %}
+                    <button type="button"  class = "status-verified"> Finished </button>
+                {% else %}
+                    <button type="button" class= "status-not-verified" > Not Finished</button> 
+                {% endif %}
             {% else %}
                 <button type="button" class= "status-not-verified" > Not Verified </button>
+                <button type="button" class= "status-not-verified" > Not Finished</button> 
             {% endif %}
         </td>
         <td>

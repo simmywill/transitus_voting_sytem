@@ -31,6 +31,7 @@ urlpatterns = [
     path('create_session/', voters_views.create_voting_session, name = 'create_voting_session'),
     path('list_sessions/', voters_views.list_voting_sessions, name = 'list_voting_sessions'),
     path('manage_session/<int:session_id>/', voters_views.manage_session, name='manage_session'),
+    path('manage_session-uuid/<uuid:session_uuid>/', voters_views.manage_session, name='manage_session'),
     path('delete_session/<int:session_id>/', voters_views.delete_voting_session, name = 'delete_voting_session'),
     path('add_segments/<int:session_id>/', voters_views.add_segments, name='add_segments'),
     path('voters/', include('voters.urls')),
