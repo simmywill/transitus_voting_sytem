@@ -544,8 +544,11 @@ def voter_session(request, session_uuid, voter_id):
 def submit_vote(request, session_uuid , voter_id):
     if request.method == 'POST':
         print(f"Received POST request for session: {session_uuid}, voter: {voter_id}")
-        
+        voter = get_object_or_404(Voter,voter_id=voter_id)
         session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+
+        
+
         if not session:
             print(f"Session with UUID {session_uuid} not found.")
             return JsonResponse({'error': 'Session invalid'}, status=402)
@@ -580,6 +583,10 @@ def submit_vote(request, session_uuid , voter_id):
             # Update candidate's total tally
             candidate.total_votes += 1
             candidate.save()
+        
+        # Mark the voter as having finished voting
+        voter.has_finished = True
+        voter.save()
 
         return JsonResponse({'success': True})
 

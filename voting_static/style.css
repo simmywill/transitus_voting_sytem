@@ -1002,22 +1002,25 @@ html, body {
     margin-bottom: 20px;
     text-align: center;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    
 }
 
 /* Candidates wrapper styled like the brown div */
 .voting_page_candidates {
+    position:relative;
     background-color: #d9b38c; /* Brown background */
     padding: 20px;
     border-radius: 10px;
-    max-height: 450px; /* Scrollable height for 4 rows */
+    min-height: 70vh; /* Scrollable height for 4 rows */
     overflow-y: auto; /* Scrollbar for overflow */
     margin: 0 auto; /* Center the container */
     width: 80%;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
     display: grid;
-    grid-template-columns: repeat(3, 1fr); /* 3 columns */
-    grid-auto-rows: 1fr; /* Uniform row height */
+    grid-template-columns: repeat(4, 1fr); /* 3 columns */
+    grid-auto-rows: min-content; /* Uniform row height */
     gap: 20px;
+    align-items: start; /* Align content at the top */
 }
 
 /* Individual candidate styling */
@@ -1029,6 +1032,7 @@ html, body {
     text-align: center;
     transition: transform 0.3s, box-shadow 0.3s;
     cursor: pointer;
+    height:auto;
 }
 
 .voting_page_candidate:hover {
@@ -1041,7 +1045,7 @@ html, body {
 .voting_page_candidate img {
     width: 80px; /* Small uniform image size */
     height: 80px; /* Ensure square dimensions */
-    object-fit: cover; /* Prevent distortion */
+    object-fit: fill; /* Prevent distortion */
     border-radius: 50%;
     margin-bottom: 10px;
     border: 2px solid #ddd;
@@ -1055,6 +1059,44 @@ html, body {
     color: #333;
 }
 
+/* Styling for navigation buttons */
+.voting_navigation_button {
+    position: absolute;
+    top: 45%;
+    transform: translateY(-50%);
+    background-color: red;
+    color: white;
+    font-size: 2.5rem; /* Adjust icon size */
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    text-decoration: none;
+    border: none;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+/* Positioning for previous arrow */
+.voting_navigation_previous {
+    left: 105px; /* Adjust spacing from candidates */
+}
+
+/* Positioning for next arrow */
+.voting_navigation_next {
+    right: 105px; /* Adjust spacing from candidates */
+}
+
+/* Hover effect for navigation buttons */
+.voting_navigation_button:hover {
+    background-color: white;
+    color: red;
+    border: 2px solid red;
+    transition: 0.3s;
+}
+
 /* Hidden radio button */
 .hidden {
     display: none;
@@ -1065,30 +1107,33 @@ html, body {
     margin-top: 20px;
 }
 
-.voting_page_navigation a, 
-.voting_page_navigation button {
-    background-color: #76c95b;
+.voting_page_navigation a {
+    background-color: red;
     color: #fff;
     text-decoration: none;
     padding: 10px 20px;
     border: none;
     border-radius: 5px;
-    font-size: 16px;
+    font-size: 70px;
     cursor: pointer;
     transition: background-color 0.3s;
 }
 
-.voting_page_navigation a:hover,
-.voting_page_navigation button:hover {
-    background-color: #5ba946;
+.vote-button{
+    background-color: #007bff;
+    border-color: white;
+    color: white;
+    font-size: x-large;
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 5px;
 }
-
 
 
 
 @media (max-width: 768px) {
     .voting_page_candidates {
-        grid-template-columns: repeat(2, 1fr); /* 2 columns on tablets and small screens */
+        grid-template-columns: repeat(3, 1fr); /* 2 columns on tablets and small screens */
         gap: 15px; /* Slightly reduced gap */
     }
 
@@ -1118,6 +1163,18 @@ html, body {
     .voting_page_navigation button {
         font-size: 14px; /* Smaller navigation buttons */
         padding: 8px 12px;
+        width: 50px; /* Smaller button size */
+        height: 50px;
+        font-size: 2rem; /* Adjust icon size */
+        top: 20%; /* Adjust positioning */
+    }
+
+    .voting_navigation_previous {
+        left: 20px; /* Move closer to the edge */
+    }
+
+    .voting_navigation_next {
+        right: 20px; /* Move closer to the edge */
     }
 }
 
@@ -1139,13 +1196,27 @@ html, body {
     .voting_page_header {
         font-size: 18px; /* Header adjusts further */
     }
+
+    .voting_navigation_button {
+        width: 40px; /* Even smaller button size */
+        height: 40px;
+        font-size: 1.5rem; /* Adjust icon size */
+        top: 18%; /* Further adjust positioning */
+    }
+
+    .voting_navigation_previous {
+        left: 10px; /* Align closer for very small screens */
+    }
+
+    .voting_navigation_next {
+        right: 10px; /* Align closer for very small screens */
+    }
 }
 
 
 .voting_page_tick {
-    /*position: absolute;*/
-    top: 5px;
-    right: 5px;
+    margin-top: 15px;
+    margin-left: 125px;
     width: 20px;
     height: 20px;
     background: url('tick-icon.png') no-repeat center/cover;
@@ -1265,20 +1336,14 @@ html, body {
 /* Not Verified - Not Finished */
 .status-not-verified {
     color: #333; /* Dark gray text */
-    background-color: #f5f5f5; /* Light gray background */
+    background-color: red; /* Light gray background */
     border: 1px solid #ccc; /* Light gray border */
 }
 
-/* Verified - Not Finished */
-.status-verified-not-finished {
-    color: #ffffff; /* White text */
-    background-color: #007bff; /* Blue background */
-    border: 3px solid white; /* White edge */
-    box-shadow: 0 0 0 3px black; /* Black border around white edge */
-}
+
 
 /* Verified - Finished */
-.status-verified-finished {
+.status-verified {
     color: #ffffff; /* White text */
     background-color: #28a745; /* Green background */
     border: 3px solid white; /* White edge */
@@ -1412,4 +1477,10 @@ html, body {
     left: 0;
     pointer-events: none;
     z-index: 1000;
+}
+
+.next-button {
+    background-color: red;
+    color: white;
+    text-decoration: solid;
 }
