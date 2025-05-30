@@ -49,7 +49,7 @@
                 <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
                 <li>
                     {% if session_uuid %}
-                        <a href="{% url 'manage_session' session_uuid=voting_session_uuid %}">Manage Session</a>
+                        <a href="{% url 'manage_session' session_uuid=voting_session.session_uuid %}">Manage Session</a>
                     {% else %}
                         <a href="{% url 'manage_session' session_id=voting_session.session_id %}">Manage Session</a>
                     {% endif %}
