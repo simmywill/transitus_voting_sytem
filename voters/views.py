@@ -226,6 +226,7 @@ def voter_list(request, session_id=None, session_uuid=None):
 
     # Extract UUID
     extracted_uuid = voting_session.unique_url.split('/')[-1] if voting_session.unique_url else None
+    print(extracted_uuid)
 
     # Handle GET request (search functionality)
     if request.method == "GET":

@@ -69,7 +69,7 @@
     <div class="voter-form-column">
         <h2>Create Voter</h2>
         <form id="add-voter-form" method="POST" 
-            action="{% if session_id %}{% url 'voter_list' session_id %}{% elif session_uuid %}{% url 'voter_list' session_uuid=extracted_uuid %}{% endif %}">
+            action="{% if session_id %}{% url 'voter_list' session_id %}{% elif session_uuid %}{% url 'voter_list' session_uuid=voting_session.get_uuid %}{% endif %}">
             {% csrf_token %}
             {{ form.as_p }}
             <button type="submit" id="add-voter-button">Add Voter</button>
