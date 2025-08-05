@@ -46,6 +46,9 @@ class VotingSession(models.Model):
  
 
     def generate_qr_code(self, request):
+        if self.unique_url:  # prevent regeneration if already set
+            return self.unique_url
+            
         protocol = 'https' if request.is_secure() else 'http'
         # Get the host dynamically from the request
         host = request.get_host()
