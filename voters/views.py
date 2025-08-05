@@ -214,7 +214,6 @@ def voter_list(request, session_id=None, session_uuid=None):
         raise Http404("Session identifier not provided.")
     
     print("Voting session:", voting_session)
-    print("Session UUID from object:", voting_session.session_uuid)
     print("Unique URL:", voting_session.unique_url)
 
     voters = voting_session.voters.all()  # Retrieve all voters for the session
