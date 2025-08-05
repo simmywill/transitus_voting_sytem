@@ -195,8 +195,8 @@ function filterVoters(status) {
                     })
                     .then(data => {
                         // Update navbar voter counts
-                        document.querySelector('.navbar p:first-of-type').textContent = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
-                        document.querySelector('.navbar p:last-of-type').textContent = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
+                        document.querySelector('.voting_session-navbar p:first-of-type').textContent = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
+                        document.querySelector('.voting_session-navbar p:last-of-type').textContent = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
     
                         // Stop updates if all voters are finished
                         if (data.verified_voters === data.total_voters && data.finished_voters === data.total_voters) {
