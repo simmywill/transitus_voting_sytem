@@ -233,8 +233,12 @@ function filterVoters(status) {
                         return response.text();
                     })
                     .then(html => {
-                        // Replace the current voter list with the new HTML
-                        document.getElementById('voter-list').innerHTML = html;
+                        const voterList = document.getElementById('voter-list');
+                        if (voterList) {
+                            voterList.innerHTML = html;
+                        } else {
+                            console.error("Element #voter-list not found in DOM");
+                        }
                     })
                     .catch(error => console.error("Error refreshing voter list:", error));
             }

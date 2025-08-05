@@ -16,9 +16,6 @@
             {% endif %}
         </td>
         <td>
-            {% if voter.is_verified and voter.has_finished %}
-                <a href="{% url 'review_voter_results' voter.voter_id session.session_uuid %}">Review Results</a>
-            {% endif %}
             <a hr ef="{% url 'edit_voter' voter.voter_id %}">Edit</a>
             <a href="{% url 'delete_voter' voter.voter_id %}" onclick="return confirm('Are you sure?')">Delete</a>
         </td>
