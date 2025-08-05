@@ -480,7 +480,7 @@ function addCandidate(segmentIndex) {
                 <li><a href="{% url 'active_voting_session' session.session_id %}">View Voting Session</a></li>
                 <li>
                     {% if session.unique_url %}
-                        <a href="{% url 'voter_list' session_uuid=session.get_uuid %}">Manage Voters</a>
+                        <a href="{% url 'voter_list' session_uuid=session.session_uuid %}">Manage Voters</a>
                     {% else %}
                       <a href="{% url 'voter_list' session_id=session.session_id %}">Manage Voters</a>
                     {% endif %}
