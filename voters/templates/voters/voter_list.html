@@ -214,7 +214,7 @@ function filterVoters(status) {
                 //refreshVoterList();  // Reload the voter list without a search filter
            // });
 
-           let voterListInterval;
+           
 
             function refreshVoterList() {
                 let searchQuery = "";
@@ -231,7 +231,7 @@ function filterVoters(status) {
                         if (!response.ok) {
                             throw new Error(`HTTP error! Status: ${response.status}`);
                         }
-                        return response.text();
+                        return response.json();
                     })
                     .then(data => {
                         const voterList = document.getElementById('voter-list');
@@ -244,7 +244,7 @@ function filterVoters(status) {
                             data.verified_voters === data.total_voters &&
                             data.finished_voters === data.total_voters
                         ) {
-                            console.log("All voters verified and finished. Stopping voter list updates.");
+                            console.log("All voters vvvvverified and finished. Stopping voter list updates.");
                             clearInterval(voterListInterval);
                         }
                     })
@@ -255,7 +255,7 @@ function filterVoters(status) {
             
 
             // Example usage: Call this function periodically or on specific events
-            voterListInterval = setInterval(refreshVoterList, 5000); // Refresh every 5 seconds (adjust as needed)
+            const voterListInterval = setInterval(refreshVoterList, 5000); // Refresh every 5 seconds (adjust as needed)
 
 
             
