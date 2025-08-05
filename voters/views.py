@@ -735,27 +735,44 @@ def get_voters(request, session_id=None, session_uuid=None):
 
 
 def get_voter_status(request, session_uuid):
-    # Fetch the VotingSession object using the session_uuid
-    session = VotingSession.objects.get(unique_url__contains=session_uuid)
+    try:
+        # Fetch the VotingSession object using the session_uuid
+        session = VotingSession.objects.get(unique_url__contains=session_uuid)
 
 
-    # Fetch the search query parameter
-    search_query = request.GET.get('search', '').strip()
+        # Fetch the search query parameter
+        search_query = request.GET.get('search', '').strip()
 
 
-    # Retrieve the associated Voters
-    voters = Voter.objects.filter(session=session)
+        # Retrieve the associated Voters
+        voters = Voter.objects.filter(session=session)
 
-    if search_query:  # Apply search filter if query exists
-        voters = voters.filter(
-            Q(Fname__icontains=search_query) | 
-            Q(Lname__icontains=search_query) | 
-            Q(voter_id__icontains=search_query)
-        )
+        if search_query:  # Apply search filter if query exists
+            voters = voters.filter(
+                Q(Fname__icontains=search_query) | 
+                Q(Lname__icontains=search_query) | 
+                Q(voter_id__icontains=search_query)
+            )
 
 
 
-    html = render_to_string('voters/voter_list_partial.html', {'voters': voters ,  'session': session})
-    return HttpResponse(html)
+        # Get counts for all voters in the session
+        total_voters = Voter.objects.filter(session=session).count()
+        verified_voters = Voter.objects.filter(session=session, is_verified=True).count()
+        finished_voters = Voter.objects.filter(session=session, has_finished=True).count()
+
+        html = render_to_string('voters/voter_list_partial.html', {
+            'voters': voters,
+            'session': session
+        })
+
+        return JsonResponse({
+            'html': html,
+            'total_voters': total_voters,
+            'verified_voters': verified_voters,
+            'finished_voters': finished_voters
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
