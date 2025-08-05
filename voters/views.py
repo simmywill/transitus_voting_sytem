@@ -751,7 +751,7 @@ def get_voter_status(request, session_uuid):
 
 
 
-    html = render_to_string('voters/voter_list_partial.html', {'voters': voters})
+    html = render_to_string('voters/voter_list_partial.html', {'voters': voters ,  'session': session})
     return HttpResponse(html)
 
 

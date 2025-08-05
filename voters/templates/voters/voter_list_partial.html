@@ -1,4 +1,4 @@
-<tbody id="voter-list">
+
     {% for voter in voters %}
     <tr id="voter-{{ voter.voter_id }}" class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
         <td>{{ voter.Fname }} {{ voter.Lname }}</td>
@@ -24,4 +24,4 @@
         </td>
     </tr>
     {% endfor %}
-</tbody>
+
