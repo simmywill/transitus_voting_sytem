@@ -216,8 +216,13 @@ function filterVoters(status) {
 
 
             function refreshVoterList() {
-                const searchQuery = document.querySelector('input[name="search"]').value;
-                const filterState = document.querySelector('select[name="filter"]').value;
+                let searchQuery = "";
+                let filterState = "";
+                const searchInput = document.querySelector('input[name="search"]');
+                const filterSelect = document.querySelector('select[name="filter"]');
+
+                if (searchInput) searchQuery = searchInput.value;
+                if (filterSelect) filterState = filterSelect.value;
                 const url = `/get_voter_status/${session_uuid}/?search=${encodeURIComponent(searchQuery)}&filter=${filterState}`;
 
                 fetch(url)
