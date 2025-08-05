@@ -467,7 +467,7 @@ def activate_session(request, session_id):
     # Generate the unique URL for the session (if not already done)
     if not session.unique_url:
         session.generate_qr_code(request)
-        print(session.generate_qr_code(request))
+        print(session.unique_url)
         session.save()
 
     # Activate the session
