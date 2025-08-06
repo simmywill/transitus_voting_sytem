@@ -1581,3 +1581,42 @@ html, body {
     margin: 0;
 }
 
+/*   Deactivate Button
+  body {
+    background: #121212;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+  }*/
+
+  .hold-button {
+    position: relative;
+    width: 200px;
+    height: 50px;
+    border: 2px solid red;
+    background: transparent;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .hold-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: red;
+    transition: width 0s;
+    z-index: 0;
+  }
+
+  .hold-button span {
+    position: relative;
+    z-index: 1;
+  }

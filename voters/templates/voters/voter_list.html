@@ -45,6 +45,10 @@
             <ul>
                 {% if voting_session.is_active %}
                 <li><a class="generate-results-link" href="{% url 'segment_results' session_uuid %}">Generate Results</a></li>
+                <button class="hold-button" id="holdBtn">
+                    <div class="hold-progress" id="progressBar"></div>
+                    <span>Hold to Confirm</span>
+                </button>
                 {% endif %}
                 <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
                 <li>
