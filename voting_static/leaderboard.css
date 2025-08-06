@@ -1,0 +1,85 @@
+body {
+    background: radial-gradient(#0f1d2f, #0a0e1a);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: white;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+  
+  .leaderboard-container {
+    padding: 30px;
+  }
+  
+  .leaderboard-title {
+    text-align: center;
+    font-size: 2em;
+    margin-bottom: 20px;
+    color: #ffd700;
+  }
+  
+  .leaderboard {
+    width: 90%;
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid #ccc;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .candidate-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background-color: rgba(255,255,255,0.04);
+    margin: 5px 0;
+    transform: translateY(100px);
+    opacity: 0;
+    animation: riseUp 1s ease-out forwards;
+  }
+  
+  .candidate-row:nth-child(even) {
+    background-color: rgba(255,255,255,0.07);
+  }
+  
+  .avatar img {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+  }
+  
+  .rank {
+    width: 30px;
+    text-align: center;
+    font-weight: bold;
+    color: #00ffea;
+  }
+  
+  .name {
+    flex: 1;
+    margin-left: 15px;
+    font-size: 1.2em;
+  }
+  
+  .votes {
+    font-family: monospace;
+    font-size: 1.2em;
+    color: #ffd700;
+    min-width: 60px;
+    text-align: right;
+  }
+  
+  /* Animation Effects */
+  @keyframes riseUp {
+    0% {
+      transform: translateY(100px);
+      opacity: 0;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  

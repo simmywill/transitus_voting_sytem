@@ -4,11 +4,10 @@
     {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vote Tally Results</title>
+    <title>Leaderboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet"> <!-- Link to your CSS -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -140,6 +139,9 @@
         }
 
     </style>
+    <link rel="stylesheet" href="{% static 'leaderboard.css' %}?v={% now 'U' %}">
+    <!-- <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">  Link to your CSS -->
+    <script src="{% static 'leaderboard.js' %}" defer></script>
 </head>
 <body>
     <div id="slideshow-container" class="slideshow-container">
@@ -157,15 +159,24 @@
                 <div id="winner-votes-{{ segment.segment_id }}" class="winner-votes"></div>
             </div>
 
-            <div id="leaderboard-{{ segment.segment_id }}" class="leaderboard">
-                {% for candidate in segment.candidates %}
-                <div class="candidate_vote" id="candidate-{{ candidate.id }}">
-                    <span class="position" id="position-{{ candidate.id }}"></span>:
-                    <span class="name">{{ candidate.name }}</span> - 
-                    <span class="votes" id="votes-{{ candidate.id }}">0</span>
-                </div>
+            <div class="leaderboard-container">
+                <div class="leaderboard-title">🏁 Candidate Leaderboard 🏁</div>
+                {% for segment in tally %}
+                  <div class="leaderboard" id="leaderboard-{{ segment.segment_id }}" data-segment="{{ segment.segment_id }}">
+                    {% for candidate in segment.candidates %}
+                      <div class="candidate-row" 
+                           data-votes="{{ candidate.votes }}" 
+                           data-name="{{ candidate.name }}"
+                           id="candidate-{{ candidate.id }}">
+                        <div class="rank"></div>
+                        <div class="avatar"><img src="{{ candidate.photo_url }}" alt="photo"></div>
+                        <div class="name">{{ candidate.name }}</div>
+                        <div class="votes" id="votes-{{ candidate.id }}">0</div>
+                      </div>
+                    {% endfor %}
+                  </div>
                 {% endfor %}
-            </div>
+              </div>
 
             <div class="chart-container">
                 <canvas id="chart-{{ segment.segment_id }}"></canvas>
