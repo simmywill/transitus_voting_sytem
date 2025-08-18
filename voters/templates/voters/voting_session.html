@@ -5,6 +5,8 @@
     {% load static %}
     <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 </head>
 
@@ -22,7 +24,6 @@
     
             <div class="voting_session-navbar-links">
                 <ul>
-                    <li><a href="{% url 'admin_main_page' %}">Admin Main Page</a></li>
                     <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
                     <li><a href="{% url 'voter_list' session.session_id %}">Manage Voters</a></li>
                     <li><a href="{% url 'manage_session' session.session_id %}">Manage Session {{ session.session_id }}</a></li>
@@ -30,6 +31,31 @@
             </div>
         </div>
     </nav>
+    
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <div class="breadcrumb">
+      <div class="step">
+        <a href="{% url 'list_voting_sessions' %}">
+          <i class="fas fa-home"></i> Home
+        </a>
+      </div>
+      <div class="step">
+        <a href="{% url 'add_segments' session.session_id %}">
+          <i class="fas fa-poll-h"></i> Add Candidates and Segments
+        </a>
+      </div>
+      <div class="step active">
+        <a href="{% url 'voter_list' session.session_id %}">
+          <i class="fas fa-poll-h"></i> Add Voters
+        </a>
+      </div>
+    </div>
+    
+      
+
+      
     <form method="post" action="{% url 'activate_session' session.session_id %}">
         {% csrf_token %}
         <div id="sortable-segments">
@@ -55,13 +81,49 @@
                 </div>
             {% endfor %}
         </div>
-        <button style="align-items: center;" type="submit">Activate Session</button>
+        <div class="save_button-container">
+            <button class="save_voting_session" type="submit">Activate Session</button>
+        </div>
     </form>
+<!--
+    <div id="instructionalVideoModal" class="video-modal">
+        <div class="video-modal-content">
+            <span class="close-video" onclick="closeVideoModal()">&times;</span>
+            <video id="instructionalVideo" controls autoplay>
+                <source src="{% static 'videos/tutorial.mp4' %}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <label>
+                <input type="checkbox" id="dontShowAgain">
+                Don't show this again
+            </label>
+        </div>
+    </div>
+    -->
     
     
         
           
           <script>
+
+
+function closeVideoModal() {
+    const modal = document.getElementById("instructionalVideoModal");
+    modal.style.display = "none";
+
+    const dontShowAgain = document.getElementById("dontShowAgain").checked;
+    if (dontShowAgain) {
+        localStorage.setItem("hideInstructionalVideo", "true");
+    }
+}
+
+// Show modal only if not previously hidden
+window.onload = function () {
+    if (!localStorage.getItem("hideInstructionalVideo")) {
+        document.getElementById("instructionalVideoModal").style.display = "block";
+    }
+};
+
 
             // Toggle the dropdown menu visibility
 function toggleOptionsMenu(event) {

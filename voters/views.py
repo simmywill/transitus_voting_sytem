@@ -51,16 +51,16 @@ def login_view(request):
 
         if user is not None:
             login(request, user)  # Log in the user
-            return redirect( "/admin_main_page")  # Redirect to admin main page
+            return redirect("list_voting_sessions")  # Redirect to admin main page
         else:
             messages.error(request, "Invalid username and/or password")
     
     return render(request, "voters/landing_page.html")  # Render login form if GET request
 
-
+'''
 @login_required
 def admin_main_page(request):
-    return render(request, "voters/admin_main_page.html")
+    return redirect(request, "voters/list_voting_sessions")
 
 
 @login_required
@@ -75,8 +75,8 @@ def create_voting_session(request):
             return redirect('list_voting_sessions')
     else:
         form = VotingSessionForm()
-    return render(request, 'voters/create_session.html', {'form': form})
-
+    return render(request, 'voters/list_sessions.html', {'form': form})
+'''
 
 
 @login_required
@@ -100,8 +100,8 @@ def manage_session(request, session_id=None , session_uuid=None):
 
 @login_required
 def add_segments(request, session_id):
+    session = get_object_or_404(VotingSession, session_id=session_id, admin=request.user)
     if request.method == 'POST':
-        session = get_object_or_404(VotingSession, session_id=session_id, admin=request.user)
         print("Successfully received form data")
 
         # Iterate over all the keys in the POST data
@@ -129,7 +129,10 @@ def add_segments(request, session_id):
                                 segment_header=header
                             )
                         candidate_index += 1
-        return redirect('active_voting_session', session_id=session_id)
+        return redirect('add_segments', session_id=session_id)                
+    return render(request , 'voters/manage_session.html' , {
+        'session' :  session
+    })
 
 
 
@@ -149,8 +152,22 @@ def active_voting_session(request, session_id):
 
 @login_required
 def list_voting_sessions(request):
-    sessions = VotingSession.objects.filter(admin=request.user)  # Admin's own sessions
-    return render(request, 'voters/list_sessions.html', {'sessions': sessions})
+    if request.method == 'POST':
+        form = VotingSessionForm(request.POST)
+        if form.is_valid():
+            voting_session = form.save(commit=False)
+            voting_session.admin = request.user
+            voting_session.save()
+            return redirect('list_voting_sessions')
+    else:
+        form = VotingSessionForm()
+
+    sessions = VotingSession.objects.filter(admin=request.user)
+    return render(request, 'voters/list_sessions.html', {
+        'sessions': sessions,
+        'form': form
+    })
+
 
 def delete_voting_session(request, session_id):
     session = VotingSession.objects.get(session_id=session_id)

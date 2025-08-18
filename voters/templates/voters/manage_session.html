@@ -5,34 +5,38 @@
     <meta charset="UTF-8">
     <title>Manage Voting Session {{ session.session_id }}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.10.0/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        .manage_session_form {
-            position: relative;
-        }
+       
 
-        .save_button-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 20px;
-            /* Optional: stick to bottom if form has a fixed height */
-            /* position: absolute;
-            bottom: 20px; */
-        }
 
-        .save_voting_session {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4da6ff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
+.manage_session_form {
+   position:relative;
+}
 
-        .save_voting_session:hover {
-            background-color: #005bb5;
-        }
+.save_button-container {
+    margin-top: auto;
+    text-align: center;
+    padding: 20px;
+    margin-left: 50px;
+}
+
+
+.save_voting_session {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4da6ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    align-items: center;
+}
+
+.save_voting_session:hover {
+    background-color: #005bb5;
+}
         .segment {
             border: 2px solid transparent;
             padding: 10px;
@@ -347,6 +351,79 @@
     }
 }
 
+.breadcrumb {
+    display: flex;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    margin: 20px;
+    overflow: hidden;
+  }
+  
+  .step {
+    display: flex;
+    align-items: center;
+    background: #f5f5f5;
+    color: #333;
+    padding: 10px 30px 10px 20px; /* increased right padding, reduced left */
+    position: relative;
+    clip-path: polygon(
+      0% 0%, calc(100% - 10px) 0%, 100% 50%,
+      calc(100% - 10px) 100%, 0% 100%, 10px 50%
+    );
+    margin-right: -4px; /* Almost touch */
+    transition: background 0.3s;
+    z-index: 1;
+    border-color: #999;
+  }
+  
+  
+  .step i {
+    margin-right: 8px;
+  }
+  
+  .step a {
+    color: inherit;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+  
+  .step:last-child {
+    margin-right: 0;
+  }
+  
+  .step.active {
+    background-color: #9d2235; /* Burgundy red */
+    color: white;
+    animation: multiPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes multiPulse {
+    0% {
+        background-color: #9d2235;
+        box-shadow: 0 0 5px rgba(157, 34, 53, 0.3);
+        transform: scale(1);
+    }
+    100% {
+        background-color: #c42d47;
+        box-shadow: 0 0 25px rgba(157, 34, 53, 0.7), 0 0 35px rgba(157, 34, 53, 0.4);
+        transform: scale(1.10);
+    }
+}
+  
+  .step.active a {
+    color: white;
+  }
+  
+  .step:not(.active):hover {
+    background-color: #e0e0e0;
+  }
+
+
+  /* Optional: Icon support with Font Awesome */
+  @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+
     </style>
     <script>
         function toggleNavbar() {
@@ -460,9 +537,11 @@ function addCandidate(segmentIndex) {
             segmentDiv.remove();
         }
     </script>
+    
 </head>
 <nav class="manage_session-navbar">
     <div class="manage_navbar-content">
+        
         <h1 class="session-navbar_title">Manage "{{ session.title }}" Voting Session</h1>
         
         <!-- Hamburger icon for mobile devices -->
@@ -474,10 +553,7 @@ function addCandidate(segmentIndex) {
 
         <div class="session_navbar">
             <ul>
-                <li><a href="{% url 'admin_main_page' %}">Admin Main Page</a></li>
-                <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
-                <li><a href="{% url 'create_voting_session' %}">Create Session</a></li>
-                <li><a href="{% url 'active_voting_session' session.session_id %}">View Voting Session</a></li>
+              <!--
                 <li>
                     {% if session.unique_url %}
                         <a href="{% url 'voter_list' session_uuid=session.get_uuid %}">Manage Voters</a>
@@ -485,11 +561,33 @@ function addCandidate(segmentIndex) {
                       <a href="{% url 'voter_list' session_id=session.session_id %}">Manage Voters</a>
                     {% endif %}
                   </li>
-                  
+                  -->
             </ul>
         </div>
     </div>
+   
 </nav>
+
+<div class="breadcrumb">
+    <div class="step">
+      <a href="{% url 'list_voting_sessions' %}">
+        <i class="fas fa-home"></i> Home
+      </a>
+    </div>
+    <div class="step active">
+      <a href="{% url 'active_voting_session' session.session_id %}">
+        <i class="fas fa-poll-h"></i> View Voting Session
+      </a>
+    </div>
+    
+  </div>
+
+
+
+  
+  
+
+
 <body>
     
 
@@ -532,7 +630,7 @@ function addCandidate(segmentIndex) {
     
         <br><br>
         <div class="save_button-container">
-            <button class="save_voting_session" type="submit">Save Voting Session</button>
+            <button class="save_voting_session" type="submit">Save Voting Sessions</button>
         </div>
     </form>
 </body>

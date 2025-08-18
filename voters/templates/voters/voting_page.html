@@ -1,7 +1,102 @@
 <style>
-    .hidden {
-        display: none;
+    
+    .hidden { display: none; }
+
+    /* Arrow tips */
+    .arrow_tip_container {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
     }
+    .arrow_tip {
+        position: absolute;
+        top: -35px;
+        background: #333;
+        color: #fff;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        white-space: nowrap;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.5s ease, transform 0.5s ease;
+        pointer-events: none;
+    }
+    .arrow_tip.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    /* Pulse effect for arrow */
+    .pulse {
+        animation: pulseAnim 1.2s infinite;
+    }
+    @keyframes pulseAnim {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+        100% { transform: scale(1); }
+    }
+
+    /* Swipe overlay tip */
+    .swipe-overlay {
+        position: fixed;
+        top: 20%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.8);
+        color: #fff;
+        padding: 10px 15px;
+        border-radius: 10px;
+        font-size: 0.95rem;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.5s ease;
+        z-index: 10;
+    }
+    .swipe-overlay.active {
+        opacity: 1;
+    }
+
+    /* Swipe hand animation */
+    /* Swipe hand animation */
+    /* Swipe hand animation */
+/* Swipe hand animation */
+.swipe-hint {
+    position: absolute;
+    bottom: 0.0%;       /* Use percentage of container height */
+    left: 50%;         /* Center horizontally */
+    transform: translateX(-50%);
+    font-size: clamp(2rem, 5vw, 3rem); /* Responsive size */
+    opacity: 0;
+    animation: swipeFade 6s ease forwards;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* Hand emoji pointing finger with wider motion */
+.hand {
+    display: inline-block;
+    animation: swipeMotion 2s infinite;
+    font-size: 2.5rem; /* Adjust size */
+}
+
+/* Widened horizontal swipe */
+@keyframes swipeMotion {
+    0%   { transform: translateX(-50%) translateX(0); }
+    25%  { transform: translateX(-50%) translateX(-30px); }
+    50%  { transform: translateX(-50%) translateX(30px); }
+    75%  { transform: translateX(-50%) translateX(-30px); }
+    100% { transform: translateX(-50%) translateX(0); }
+}
+
+/* Fade in/out animation for hand */
+@keyframes swipeFade {
+    0%, 90%, 100% { opacity: 0; }
+    10%, 70% { opacity: 1; }
+}
+
+    
+</style>
 </style>
 <head>
     {% load static %}
@@ -11,7 +106,18 @@
 </head>
 <div class="voting_page_container">
     <h2 class="voting_page_header">{{ segment.name }}</h2>
-    <div class="voting_page_candidates">
+    <div class="voting_instruction">
+        <p>Tip: Click on a candidate to select them. Use the arrows below to move to the next section. 
+        If you change your mind, simply click another candidate. When finished, press the green “Vote” button.</p>
+    </div>
+    {% if segment.candidates.count > 4 %}
+        <!-- Swipe overlay tip -->
+        <div class="swipe-overlay" id="swipeOverlay">
+            👉 Swipe left or right to see more candidates
+        </div>
+       
+    {% endif %}
+    <div class="voting_page_candidates" id="candidatesWrapper">
         {% csrf_token %}
         {% for candidate in segment.candidates.all %}
             <div class="voting_page_candidate" 
@@ -27,27 +133,43 @@
                 </div>
             </div>
         {% endfor %}
+
+        {% if segment.candidates.count > 4 %}
+         <!-- Swipe hand hint -->
+         <div class="swipe-hint" id="swipeHint">
+            <span class="hand">☝️</span>
+        </div>
+        {%endif%}
     </div>
     
     
 
     <div class="voting_page_navigation">
         {% if current_segment > 1 %}
-        <a href="{% url 'voter_session' session_uuid=session_uuid voter_id=voter_id%}?segment={{ current_segment|add:-1 }}" 
-           class="voting_navigation_button voting_navigation_previous">
-           <i class="bi bi-caret-left-fill"></i>
-        </a>
+        <div class="arrow_tip_container">
+            <a href="{% url 'voter_session' session_uuid=session_uuid voter_id=voter_id%}?segment={{ current_segment|add:-1 }}" 
+               class="voting_navigation_button voting_navigation_previous">
+               <i class="bi bi-caret-left-fill"></i>
+            </a>
+            <span class="arrow_tip">Click to go back</span>
+        </div>
         {% endif %}
         
         {% if current_segment < total_segments %}
-        <a href="{% url 'voter_session' session_uuid=session_uuid voter_id=voter_id%}?segment={{ current_segment|add:1 }}" 
-           class="voting_navigation_button voting_navigation_next">
-           <i class="bi bi-caret-right-fill"></i>
-        </a>
+        <div class="arrow_tip_container">
+            <a href="{% url 'voter_session' session_uuid=session_uuid voter_id=voter_id%}?segment={{ current_segment|add:1 }}" 
+               class="voting_navigation_button voting_navigation_next pulse">
+               <i class="bi bi-caret-right-fill"></i>
+            </a>
+            <span class="arrow_tip">Click to go next</span>
+        </div>
         {% else %}
         <button class="vote-button" onclick="confirmVote()">Vote</button>
         {% endif %}
     </div>
+</div>
+    
+    
     
 </div>
 
@@ -92,8 +214,39 @@ window.onload = function() {
                 candidateElement.classList.add('selected');
             }
         }
+
+        // Arrow tips fade in/out
+    document.querySelectorAll('.arrow_tip').forEach((tip) => {
+        tip.classList.add('show');
+        setTimeout(() => tip.classList.remove('show'), 4000);
+    });
+
+    // Swipe instructions if overflow
+    const wrapper = document.getElementById("candidatesWrapper");
+    const overlay = document.getElementById("swipeOverlay");
+    const handHint = document.getElementById("swipeHint");
+
+    if (wrapper && wrapper.scrollWidth > wrapper.clientWidth) {
+        if (overlay) {
+            overlay.classList.add("active");
+            setTimeout(() => overlay.classList.remove("active"), 3500);
+        }
+        if (handHint) {
+            setTimeout(() => {
+                handHint.style.opacity = "1";
+            }, 3500);
+            setTimeout(() => {
+                handHint.style.opacity = "0";
+            }, 9000);
+        }
+        wrapper.addEventListener("scroll", () => {
+            if (overlay) overlay.classList.remove("active");
+            if (handHint) handHint.style.opacity = "0";
+        }, { once: true });
     }
 };
+    }
+
 
 
 

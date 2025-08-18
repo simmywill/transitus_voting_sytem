@@ -12,7 +12,6 @@
         <div class="profile">
             <ul>
                 <h2 class="page-title"></h2>
-                <li class="home_link"><a  href="{% url 'admin_main_page' %}">Home</a></li>
             </ul>
         </div>
     </div>
@@ -27,12 +26,19 @@
     </div>
 {% endif %}
 
-<div class="sessions-container">
-    <a href="{% url 'create_voting_session' %}" class="create-session-btn">Create New Session</a>
+<form class="create_session_form" method="POST" action="{% url 'list_voting_sessions' %}">
+    {% csrf_token %}
+    <div class="session-form-row">
+        {{ form.title }}
+        <button class="create-session-btn" type="submit">Create New Session</button>
+    </div>
+</form>
+
+    
     
     <div class="session-list">
         {% for session in sessions %}
-            <div class="session-card">
+            <div class="session-card" onclick="window.location.href='{% url 'manage_session' session.session_id %}'">
                 <div class="session-info">
                     <a href="{% url 'manage_session' session.session_id %}" class="session-title">{{ session.title }}</a>
                     <div class="session-links">
