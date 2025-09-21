@@ -510,28 +510,43 @@ def voter_verification(request, session_uuid):
 
 
     error_message = None  # Initialize an error message variable
+    submitted_first_name = ''
+    submitted_last_name = ''
 
     if request.method == 'POST':
         # Verify the name entered by the voter
-        first_name = request.POST.get('first_name')
-        last_name = request.POST.get('last_name')
+        submitted_first_name = (request.POST.get('first_name') or '').strip()
+        submitted_last_name = (request.POST.get('last_name') or '').strip()
 
-        # Check if the voter exists in the session
-        voter = session.voters.filter(Fname=first_name, Lname=last_name).first()
-        
-        # Check if the name is valid
-        if voter:
-            # Save voter ID in session and redirect
-            voter.is_verified = True
-            voter.save()
-            request.session['voter_id'] = voter.voter_id
-            return redirect('voter_session', session_uuid=session_uuid , voter_id=voter.voter_id)
+        if not submitted_first_name or not submitted_last_name:
+            error_message = "Both first and last name are required."
         else:
-            # Set an error message if the voter is not found
-            error_message = "The name entered does not match any registered voter. Please try again."
-    
+            # Check if the voter exists in the session, case-insensitive
+            voter = session.voters.filter(
+                Fname__iexact=submitted_first_name,
+                Lname__iexact=submitted_last_name
+            ).first()
+
+            # Check if the name is valid
+            if voter:
+                # Save voter ID in session and redirect
+                if not voter.is_verified:
+                    voter.is_verified = True
+                    voter.save(update_fields=['is_verified'])
+                request.session['voter_id'] = voter.voter_id
+                return redirect('voter_session', session_uuid=session_uuid, voter_id=voter.voter_id)
+            else:
+                # Set an error message if the voter is not found
+                error_message = "The name entered does not match any registered voter. Please try again."
+
     # Render the verification page with a form
-    return render(request, 'voters/voter_verification.html', {'session': session})
+    context = {
+        'session': session,
+        'error_message': error_message,
+        'submitted_first_name': submitted_first_name,
+        'submitted_last_name': submitted_last_name,
+    }
+    return render(request, 'voters/voter_verification.html', context)
 
 
 from django.shortcuts import render, get_object_or_404

@@ -15,16 +15,28 @@ document.addEventListener("DOMContentLoaded", () => {
         lb.appendChild(row);
   
         // Animate vote counter
-        const votes = parseInt(row.dataset.votes);
+        const votes = parseInt(row.dataset.votes, 10) || 0;
         const voteEl = row.querySelector(".votes");
+
+        if (votes <= 0) {
+          voteEl.textContent = "0";
+          return;
+        }
+
         let count = 0;
         const duration = 1000;
         const stepTime = Math.max(Math.floor(duration / votes), 20);
-        
+
         const counter = setInterval(() => {
-          count++;
-          voteEl.textContent = count;
-          if (count >= votes) clearInterval(counter);
+          count += 1;
+
+          if (count >= votes) {
+            voteEl.textContent = String(votes);
+            clearInterval(counter);
+            return;
+          }
+
+          voteEl.textContent = String(count);
         }, stepTime);
       });
     });
