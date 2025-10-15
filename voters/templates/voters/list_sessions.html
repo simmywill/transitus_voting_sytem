@@ -4,6 +4,7 @@
     <title>Voting Sessions</title>
     {% load static %}
     <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 </head>
 
 <nav class="admin-navbar">
@@ -38,21 +39,45 @@
     
     <div class="session-list">
         {% for session in sessions %}
-            <div class="session-card" onclick="window.location.href='{% url 'manage_session' session.session_id %}'">
+            <div class="session-card" onclick="window.location.href='{% url 'active_voting_session' session.session_id %}'">
                 <div class="session-info">
-                    <a href="{% url 'manage_session' session.session_id %}" class="session-title">{{ session.title }}</a>
+                    <a href="{% url 'active_voting_session' session.session_id %}" class="session-title">{{ session.title }}</a>
                     <div class="session-links">
                         {% if session.is_active %}
-                            <span class="no-qr">Active</span>
-                            {% if session.qr_code %}
-                                <a href="{{ session.qr_code.url }}" class="qr-link">QR Code</a>
-                            {% else %}
-                                <span class="no-qr">No QR Code generated</span>
-                            {% endif %}
+                            <span class="session-status session-status--active">Active</span>
+                            <div class="session-uuid-row">
+                                <span class="session-uuid-display" id="uuid-display-{{ session.session_id }}">
+                                    {{ session.get_uuid }}
+                                </span>
+                                <button
+                                    type="button"
+                                    class="session-copy-trigger"
+                                    data-copy-target="uuid-display-{{ session.session_id }}"
+                                    aria-label="Copy session UUID"
+                                    onclick="event.stopPropagation();"
+                                >
+                                    <i class="bi bi-clipboard"></i>
+                                    <span class="session-copy-tooltip" role="status" aria-live="polite">Copied</span>
+                                </button>
+                            </div>
+                            <div class="session-actions">
+                                {% if session.qr_code %}
+                                    <a href="{{ session.qr_code.url }}" class="qr-link" onclick="event.stopPropagation();">QR Code</a>
+                                {% else %}
+                                    <span class="no-qr">No QR Code generated</span>
+                                {% endif %}
+                                <a
+                                    href="{% url 'voter_list' session.session_id %}"
+                                    class="manage-voters-link"
+                                    onclick="event.stopPropagation();"
+                                >
+                                    Manage Voters
+                                </a>
+                            </div>
                         {% else %}
                             <span class="no-qr">Inactive</span>
                         {% endif %}
-                        <a href="{% url 'delete_voting_session' session.session_id %}" class="delete-link">Delete</a>
+                        <a href="{% url 'delete_voting_session' session.session_id %}" class="delete-link" onclick="event.stopPropagation();">Delete</a>
                     </div>
                 </div>
             </div>
@@ -71,5 +96,24 @@
                 }, 600); // Wait for the fade-out effect
             }, 5000); // Message will disappear after 5000 milliseconds (5 seconds)
         }
+
+        const copyButtons = document.querySelectorAll('.session-copy-trigger');
+        copyButtons.forEach((button) => {
+            button.addEventListener('click', async () => {
+                const targetId = button.getAttribute('data-copy-target');
+                const contentEl = targetId ? document.getElementById(targetId) : null;
+                const textToCopy = contentEl ? contentEl.textContent.trim() : '';
+                if (!textToCopy) {
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    button.classList.add('is-copied');
+                    setTimeout(() => button.classList.remove('is-copied'), 1600);
+                } catch (err) {
+                    console.error('Unable to copy UUID', err);
+                }
+            });
+        });
     });
 </script>

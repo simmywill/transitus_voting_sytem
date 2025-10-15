@@ -19,7 +19,6 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from voters import views as voters_views
-from voters.views import manage_session, add_segments  , edit_segment
 
 urlpatterns = [
     #path('admin/', admin.site.urls),
@@ -30,14 +29,16 @@ urlpatterns = [
     #path('admin_main_page', voters_views.admin_main_page, name = 'admin_main_page'),
     #path('create_session/', voters_views.create_voting_session, name = 'create_voting_session'),
     path('list_sessions/', voters_views.list_voting_sessions, name = 'list_voting_sessions'),
-    path('manage_session/<int:session_id>/', voters_views.manage_session, name='manage_session'),
-    path('manage_session-uuid/<uuid:session_uuid>/', voters_views.manage_session, name='manage_session'),
     path('delete_session/<int:session_id>/', voters_views.delete_voting_session, name = 'delete_voting_session'),
     path('add_segments/<int:session_id>/', voters_views.add_segments, name='add_segments'),
     path('voters/', include('voters.urls')),
     path('view_voting_session/<int:session_id>/', voters_views.active_voting_session, name = 'active_voting_session'),
     path('edit_segment/<int:segment_id>/', voters_views.edit_segment, name = 'edit_segment'),
     path('delete_candidate/<int:candidate_id>/', voters_views.delete_candidate, name = 'delete_candidate'),
+    path('segments/<int:segment_id>/candidates/', voters_views.create_candidate, name='create_candidate'),
+    path('candidate/<int:candidate_id>/name/', voters_views.update_candidate_name, name='update_candidate_name'),
+    path('candidate/<int:candidate_id>/photo/', voters_views.update_candidate_photo, name='update_candidate_photo'),
+    path('candidate/<int:candidate_id>/photo/remove/', voters_views.remove_candidate_photo, name='remove_candidate_photo'),
     path('delete-segment/<int:segment_id>/', voters_views.delete_segment, name = 'delete_segment'),
     path('update-segment-order/', voters_views.update_segment_order, name='update_segment_order'),
     path('activate_session/<int:session_id>/', voters_views.activate_session, name = 'activate_session'),
@@ -49,7 +50,8 @@ urlpatterns = [
     path('get_voters-uuid/<uuid:session_uuid>/', voters_views.get_voters, name = 'get_voters'),
     path('get_voters/<int:session_id>/', voters_views.get_voters, name='get_voters'),
     path('get_voter_status/<uuid:session_uuid>/', voters_views.get_voter_status, name='get_voter_status'),
-
+    path('sessions/<int:session_id>/segments/', voters_views.create_segment, name='create_segment'),
+    path('segment/<int:segment_id>/name/', voters_views.update_segment_name, name='update_segment_name'),
 
 
 

@@ -5,6 +5,11 @@ class VoterForm(forms.ModelForm):
     class Meta:
         model = Voter
         fields = ['Fname', 'Lname']
+        labels = {'Fname': '', 'Lname': ''}
+        widgets = {
+            'Fname': forms.TextInput(attrs={'placeholder': 'First Name', 'aria-label': 'First Name'}),
+            'Lname': forms.TextInput(attrs={'placeholder': 'Last Name', 'aria-label': 'Last Name'}),
+        }
 
     @staticmethod
     def _normalize_name(value):

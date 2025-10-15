@@ -550,34 +550,11 @@ html, body {
     font-weight: bold;
     margin-bottom: 20px;
     transition: background-color 0.3s;
-    height: 40px;
-    margin-top: 20px;;
 }
 
 .create-session-btn:hover {
     background-color: #0056b3;
 }
-
-
-
-
-.session-form-row {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-left: 30px;
-    margin-bottom: 20px;
-}
-.session-title-input {
-    height: 40px;
-    padding: 0 10px;
-    font-size: 16px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    width: 300px; /* or flex: 1; */
-}
-
-
 
 /* Session list container */
 .session-list {
@@ -998,423 +975,12 @@ html, body {
         }
 
 /* On hover, apply red background, white icon color, bold font, and magnification */
-        .bi-trash3:hover {
-            background-color: red; /* Red background */
-            color: white; /* White icon */
-            font-weight: bold; /* Bold font */
-            transform: scale(1.2); /* Magnify the icon */
-        }
-/*segment resutlts styling*/
-       /* #leaderboard {
-            max-width: 500px;
-            margin: auto;
-            text-align: center;
-        }
-        
-        .candidate_vote {
-            margin: 20px 0;
-            font-size: 1.5rem;
-            font-weight: bold;
-            opacity: 0; /* Hidden initially for animation 
-            transform: translateY(50px); /* Slide up effect 
-        }
-        
-        .candidate_vote .votes {
-            color: #007bff; /* Blue for the vote count 
-        }
-        
-        .candidate_vote.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        */
-
-        #slideshow-container {
-            position: relative;
-            width: 100%;
-            margin: auto;
-        }
-        
-        .segment-slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            display: none;
-        }
-        
-        .candidate_vote {
-            font-size: 1.2rem;
-            margin: 10px 0;
-        }
-        
-        .chart-container {
-            margin-top: 20px;
-            text-align: center;
-        }
-        
-        #next-button {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 20px;
-            background-color: #4caf50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-/* Base styles for the status element */
-.voter-status {
-    display: inline-block;
-    padding: 5px 10px;
-    border-radius: 5px;
-    font-weight: bold;
-    text-align: center;
+.bi-trash3:hover {
+    background-color: red; /* Red background */
+    color: white; /* White icon */
+    font-weight: bold; /* Bold font */
+    transform: scale(1.2); /* Magnify the icon */
 }
-
-/* Not Verified - Not Finished */
-.status-not-verified {
-    color: #333; /* Dark gray text */
-    background-color: #f5f5f5; /* Light gray background */
-    border: 1px solid #ccc; /* Light gray border */
-}
-
-/* Verified - Not Finished */
-.status-verified-not-finished {
-    color: #ffffff; /* White text */
-    background-color: #007bff; /* Blue background */
-    border: 3px solid white; /* White edge */
-    box-shadow: 0 0 0 3px black; /* Black border around white edge */
-}
-
-/* Verified - Finished */
-.status-verified-finished {
-    color: #ffffff; /* White text */
-    background-color: #28a745; /* Green background */
-    border: 3px solid white; /* White edge */
-    box-shadow: 0 0 0 3px black; /* Black border around white edge */
-}
-
-/* Parent Flexbox Container */
-.voter-management-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 20px;
-    margin: 20px auto;
-    width: 90%;
-}
-
-/* Columns */
-.voter-form-column, .search-bar-column, .filter-buttons-column {
-    flex: 1;
-}
-
-/* Add Voter Button */
-#add-voter-button {
-    background-color: #28a745;
-    color: white;
-    padding: 8px 12px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-/* Search Form */
-.search-form {
-    display: flex;
-    align-items: center;
-    position: relative;
-}
-
-/* Input Field */
-.search-input-container {
-    position: relative;
-    width: 100%;
-}
-
-.search-input {
-    width: 100%;
-    padding: 8px 12px;
-    padding-right: 30px; /* Space for clear button */
-    border: none;
-    border-bottom: 2px solid #ccc;
-    outline: none;
-    font-size: 16px;
-}
-
-.search-input:focus {
-    border-bottom: 2px solid #007bff;
-}
-
-/* Search Button */
-.search-button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 8px 12px;
-    margin-left: -4px; /* Attach to input field */
-    cursor: pointer;
-    border-radius: 0 4px 4px 0;
-}
-
-.search-button:hover {
-    background-color: #0056b3;
-}
-
-/* Clear Search "X" Button */
-.clear-search {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent;
-    border: none;
-    color: #aaa;
-    font-size: 18px;
-    cursor: pointer;
-}
-
-.clear-search:hover {
-    color: #000;
-}
-
-/* Filter Buttons */
-.filter-btn {
-    margin: 5px 0;
-    padding: 8px 12px;
-    background: none;
-    color: #007bff;
-    border: none;
-    cursor: pointer;
-    font-size: 16px;
-}
-
-.filter-btn:hover {
-    text-decoration: underline;
-}
-
-.winner-container {
-    text-align: center;
-    margin-top: 20px;
-}
-
-.winner-image {
-    width: 60%;
-    max-width: 400px;
-    transition: transform 1s ease-in-out;
-}
-
-.bouncing {
-    animation: bounce 1s infinite;
-}
-
-@keyframes bounce {
-    0% { transform: translateY(0); }
-    50% { transform: translateY(-20px); }
-    100% { transform: translateY(0); }
-}
-
-.confetti-canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    pointer-events: none;
-    z-index: 1000;
-}
-
-.breadcrumb {
-    display: inline-flex;
-    align-items: center;
-    gap: 1.35rem;
-    margin: 20px;
-    padding: 1rem 1.6rem;
-    border-radius: 26px;
-    background: linear-gradient(165deg, rgba(15, 23, 42, 0.78), rgba(15, 23, 42, 0.55));
-    border: 1px solid rgba(59, 130, 246, 0.22);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        inset 0 -1px 0 rgba(15, 23, 42, 0.65),
-        0 24px 48px rgba(2, 10, 24, 0.55);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-}
-
-body.view-session-body .breadcrumb {
-    margin-bottom: 2.5rem;
-}
-
-.breadcrumb__button {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.65rem;
-    padding: 0.75rem 1.65rem;
-    border-radius: 999px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 0.95rem;
-    letter-spacing: 0.02em;
-    color: #f8fafc;
-    overflow: hidden;
-    transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
-    box-shadow: 0 16px 32px rgba(14, 116, 219, 0.28);
-    border: 1px solid transparent;
-}
-
-.breadcrumb__button::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    opacity: 0;
-    transition: opacity 0.25s ease;
-    z-index: 0;
-}
-
-.breadcrumb__button .breadcrumb__icon,
-.breadcrumb__button .breadcrumb__label {
-    position: relative;
-    z-index: 1;
-    display: inline-flex;
-    align-items: center;
-}
-
-.breadcrumb__button .breadcrumb__icon i {
-    font-size: 0.95rem;
-    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.45));
-}
-
-.breadcrumb__button--home {
-    background: linear-gradient(135deg, #00bfff 0%, #0080ff 100%);
-    border-color: rgba(0, 191, 255, 0.55);
-    box-shadow:
-        0 18px 36px rgba(0, 128, 255, 0.35),
-        0 0 22px rgba(0, 191, 255, 0.4);
-}
-
-.breadcrumb__button--home::after {
-    box-shadow: 0 0 24px rgba(0, 191, 255, 0.55);
-    background: linear-gradient(135deg, rgba(0, 191, 255, 0.35), rgba(0, 128, 255, 0.4));
-}
-
-.breadcrumb__button--home:hover {
-    transform: translateY(-1px) scale(1.02);
-    box-shadow:
-        0 22px 42px rgba(0, 128, 255, 0.4),
-        0 0 28px rgba(0, 191, 255, 0.6);
-}
-
-.breadcrumb__button--home:hover::after {
-    opacity: 1;
-}
-
-.breadcrumb__button--voters {
-    background: linear-gradient(135deg, #ff4d4d 0%, #ff1a1a 100%);
-    border-color: rgba(255, 77, 77, 0.5);
-    box-shadow:
-        0 20px 44px rgba(255, 26, 26, 0.4),
-        0 0 22px rgba(255, 77, 77, 0.45);
-    animation: breadcrumbPulse 2.6s ease-in-out infinite;
-}
-
-.breadcrumb__button--voters::after {
-    background: radial-gradient(circle at top, rgba(255, 109, 109, 0.55), rgba(255, 26, 26, 0.45));
-    box-shadow: 0 0 32px rgba(255, 26, 26, 0.65);
-    opacity: 0.75;
-    animation: breadcrumbGlow 2.6s ease-in-out infinite;
-}
-
-.breadcrumb__button--voters:hover {
-    transform: translateY(-1px) scale(1.025);
-    box-shadow:
-        0 26px 48px rgba(255, 26, 26, 0.5),
-        0 0 30px rgba(255, 77, 77, 0.65);
-    filter: saturate(1.1);
-}
-
-.breadcrumb__button--voters:hover::after {
-    opacity: 1;
-}
-
-.breadcrumb__button:active {
-    transform: translateY(0);
-    box-shadow: 0 12px 18px rgba(15, 23, 42, 0.45);
-}
-
-@keyframes breadcrumbPulse {
-    0%, 100% {
-        box-shadow:
-            0 20px 44px rgba(255, 26, 26, 0.38),
-            0 0 22px rgba(255, 77, 77, 0.42);
-    }
-    50% {
-        box-shadow:
-            0 24px 50px rgba(255, 26, 26, 0.54),
-            0 0 32px rgba(255, 102, 102, 0.58);
-    }
-}
-
-@keyframes breadcrumbGlow {
-    0%, 100% {
-        opacity: 0.65;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.95;
-        transform: scale(1.08);
-    }
-}
-
-  .video-modal {
-    display: none;
-    position: fixed;
-    z-index: 9999;
-    left: 0; top: 0;
-    width: 100%; height: 100%;
-    background-color: rgba(0, 0, 0, 0.8);
-}
-
-.video-modal-content {
-    position: relative;
-    margin: 5% auto;
-    width: 80%;
-    max-width: 800px;
-    background: #fff;
-    padding: 20px;
-    border-radius: 10px;
-}
-
-.video-modal-content video {
-    width: 100%;
-    height: auto;
-    border-radius: 5px;
-}
-
-.close-video {
-    position: absolute;
-    top: 10px; right: 20px;
-    font-size: 24px;
-    cursor: pointer;
-    color: #333;
-}
-.save_voting_session {
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: #4da6ff;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-.save_voting_session:hover {
-    background-color: #005bb5;
-}
-
 
 /* ===============================
    VOTING PAGE STYLING
@@ -1467,7 +1033,7 @@ body.view-session-body .breadcrumb {
     padding: 1rem 0;
 }
 
-/* Hide scrollbar on modern browsers */
+/* Hide scrollbar on modern browsers 
 .voting_page_candidates::-webkit-scrollbar {
     display: none;
 }
@@ -1475,7 +1041,7 @@ body.view-session-body .breadcrumb {
     -ms-overflow-style: none;
     scrollbar-width: none;
 }
-
+*/
 /* Candidate Card */
 .voting_page_candidate {
     flex: 0 0 220px;
@@ -1692,7 +1258,568 @@ body.view-session-body .breadcrumb {
     80%  { opacity: 1; }
     100% { opacity: 0; }
 }
-/* ===============================
+
+
+
+/* Hidden radio button */
+.hidden {
+    display: none;
+}
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+.voter_verification_navbar {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+}
+
+.voter_verification_container {
+    max-width: 600px;
+    margin: 20px auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.voter_verification_heading {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.voter_verification_input_card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f9f9f9;
+    margin: 10px;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.voter_verification_input_card label {
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.voter_verification_input_card input {
+    width: 90%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.voter_verification_button {
+    display: block;
+    margin: 20px auto;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.voter_verification_button:hover {
+    background-color: #45a049;
+}
+
+.voter_verification_error_message {
+    color: red;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+@media (max-width: 600px) {
+    .voter_verification_container {
+        padding: 15px;
+    }
+
+    .voter_verification_input_card input {
+        width: 100%;
+    }
+
+    .voter_verification_button {
+        width: 100%;
+    }
+}
+
+/* Base styles for the status element */
+.voter-status {
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    text-align: center;
+    justify-content: space-between;
+}
+
+.voter-status button {
+    margin-right: 10px; /* Adds space to the right of each button */
+}
+
+.voter-status button:last-child {
+    margin-right: 0; /* Removes the margin on the last button */
+}
+
+
+/* Not Verified - Not Finished */
+.status-not-verified {
+    color: #ffffff; /* Dark gray text */
+    background-color: red; /* Light gray background */
+    border: 1px solid #ccc; /* Light gray border */
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 3px;
+    box-shadow: 0 0 0 3px red; /* Black border around white edge */
+    border: 3px solid white; /* White edge */
+}
+
+
+
+/* Verified - Finished */
+.status-verified {
+    color: #ffffff; /* White text */
+    background-color: #28a745; /* Green background */
+    font-weight: bold;
+    padding: 10px;
+    border-radius: 3px;
+    border: 3px solid white; /* White edge */
+    box-shadow: 0 0 0 3px #28a745; /* Black border around white edge */
+}
+
+
+/* Parent Flexbox Container */
+.voter-management-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    margin: 20px auto;
+    width: 90%;
+}
+
+/* Columns */
+.voter-form-column, .search-bar-column, .filter-buttons-column {
+    flex: 1;
+}
+
+/* Dropdown content (hidden by default) */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 160px;
+    box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    border-radius: 5px;
+}
+
+.filter-header{
+    display: flex; /* Use Flexbox to align items horizontally */
+    align-items: center; /* Vertically center the items */
+    gap: 10px; /* Add some space between the icon and text */
+    margin-left: 200px;
+}
+
+/* Optionally, you can adjust the icon size */
+.filter-header i {
+    font-size: 1.5rem; /* Adjust the size of the icon if needed */
+}
+
+
+/* Show dropdown on hover */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
+
+/* Style for individual filter buttons inside dropdown */
+.filter-btn {
+    padding: 10px;
+    background-color: #f1f1f1;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+/* Add Voter Button */
+#add-voter-button {
+    background-color: #28a745;
+    color: white;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Search Form */
+.search-form {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+/* Input Field */
+.search-input-container {
+    position: relative;
+    width: 100%;
+}
+
+.search-input {
+    width: 100%;
+    padding: 8px 12px;
+    padding-right: 30px; /* Space for clear button */
+    border: none;
+    border-bottom: 2px solid #ccc;
+    outline: none;
+    font-size: 16px;
+}
+
+.search-input:focus {
+    border-bottom: 2px solid #007bff;
+}
+
+/* Search Button */
+.search-button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    margin-left: -4px; /* Attach to input field */
+    cursor: pointer;
+    border-radius: 0 4px 4px 0;
+}
+
+.search-button:hover {
+    background-color: #0056b3;
+}
+
+/* Clear Search "X" Button */
+.clear-search {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.clear-search:hover {
+    color: #000;
+}
+
+/* Filter Buttons */
+.filter-btn {
+    margin: 5px 0;
+    padding: 8px 12px;
+    background: none;
+    color: #007bff;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.filter-btn:hover {
+    text-decoration: underline;
+}
+
+.winner-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.winner-image {
+    width: 60%;
+    max-width: 400px;
+    transition: transform 1s ease-in-out;
+}
+
+.bouncing {
+    animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+    100% { transform: translateY(0); }
+}
+
+.confetti-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.next-button {
+    background-color: red;
+    color: white;
+    text-decoration: solid;
+}
+.final-navbar{
+    display: flex;
+
+}
+/* Centering the title */
+.voter_list-navbar-title {
+    text-align: center;
+    font-size: 2.5rem; /* Larger text */
+    font-weight: bold;
+    margin: 0;
+    color: #333;
+}
+
+
+/* Blinking "Generate Results" */
+.generate-results-link {
+    font-size: 1.8rem; /* Larger text for emphasis */
+    font-weight: bold;
+    color: orange;
+    animation: blink 1s infinite;
+}
+
+/* Blinking animation */
+@keyframes blink {
+    0%, 100% {
+        color: orange;
+    }
+    50% {
+        color: white;
+    }
+}
+
+/* Stats section */
+.final-navbar p {
+    font-size: 1.5rem; /* Larger text */
+    color: white;
+    margin: 0;
+}
+
+/* Create new session button */
+.create-session-btn {
+    display: inline-block;
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    margin-bottom: 20px;
+    transition: background-color 0.3s;
+    height: 40px;
+    margin-top: 20px;;
+}
+
+.create-session-btn:hover {
+    background-color: #0056b3;
+}
+
+
+
+
+.session-form-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-left: 30px;
+    margin-bottom: 20px;
+}
+.session-title-input {
+    height: 40px;
+    padding: 0 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    width: 300px; /* or flex: 1; */
+}
+.breadcrumb {
+    display: flex;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    margin: 20px;
+    overflow: hidden;
+  }
+  
+  .step {
+    display: flex;
+    align-items: center;
+    background: #f5f5f5;
+    color: #333;
+    padding: 10px 30px 10px 20px; /* increased right padding, reduced left */
+    position: relative;
+    clip-path: polygon(
+      0% 0%, calc(100% - 10px) 0%, 100% 50%,
+      calc(100% - 10px) 100%, 0% 100%, 10px 50%
+    );
+    margin-right: -1px; /* Almost touch */
+    transition: background 0.3s;
+    z-index: 1;
+  }
+  
+  
+  .step i {
+    margin-right: 8px;
+  }
+  
+  .step a {
+    color: inherit;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+  
+  .step:last-child {
+    margin-right: 0;
+  }
+  
+  .step.active {
+    background-color: #9d2235;
+    color: white;
+    animation: multiPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes multiPulse {
+    0% {
+        background-color: #9d2235;
+        box-shadow: 0 0 5px rgba(157, 34, 53, 0.3);
+        transform: scale(1);
+    }
+    100% {
+        background-color: #c42d47;
+        box-shadow: 0 0 25px rgba(157, 34, 53, 0.7), 0 0 35px rgba(157, 34, 53, 0.4);
+        transform: scale(1.10);
+    }
+}
+  
+  .step.active a {
+    color: white;
+  }
+  
+  .step:not(.active):hover {
+    background-color: #e0e0e0;
+  }
+  
+  .video-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+}
+
+.video-modal-content {
+    position: relative;
+    margin: 5% auto;
+    width: 80%;
+    max-width: 800px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.video-modal-content video {
+    width: 100%;
+    height: auto;
+    border-radius: 5px;
+}
+
+.close-video {
+    position: absolute;
+    top: 10px; right: 20px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #333;
+}
+.save_voting_session {
+    padding: 10px 20px;
+    font-size: 16px;
+    background-color: #4da6ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.save_voting_session:hover {
+    background-color: #005bb5;
+}
+
+/*   Deactivate Button
+  body {
+    background: #121212;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: Arial, sans-serif;
+  }*/
+
+  .hold-button {
+    position: relative;
+    width: 200px;
+    height: 50px;
+    border: 2px solid red;
+    background: transparent;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    overflow: hidden;
+    border-radius: 8px;
+  }
+
+  .hold-progress {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0%;
+    background: red;
+    transition: width 0s;
+    z-index: 0;
+  }
+
+  .hold-button span {
+    position: relative;
+    z-index: 1;
+  }
+
+ 
+  /* Optional: Icon support with Font Awesome */
+  @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
+  .save_button-container {
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    background-color: #f9f9f9; /* Optional background */
+}/* ===============================
    Voting Session Glassmorphism UI
    =============================== */
 body.view-session-body {
@@ -1700,12 +1827,6 @@ body.view-session-body {
     color: #e2e8f0;
     min-height: 100vh;
     font-family: 'Poppins', sans-serif;
-    background-attachment: fixed;
-}
-
-/* Default background across pages to match voting session */
-body {
-    background: radial-gradient(circle at 10% 20%, #1f2937 0%, #0f172a 45%, #020617 100%);
     background-attachment: fixed;
 }
 
@@ -1883,7 +2004,6 @@ body.view-session-body #sortable-segments.view-session-grid {
     border: 1px dashed rgba(148, 163, 184, 0.4);
 }
 
-/* Legacy candidate overflow block patched
 .view-session-candidate {
     position: relative;
     border-radius: 24px;
@@ -1896,7 +2016,6 @@ body.view-session-body #sortable-segments.view-session-grid {
     overflow: hidden;
     transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
-*/
 
 .view-session-candidate::after {
     content: '';
@@ -1929,13 +2048,12 @@ body.view-session-body #sortable-segments.view-session-grid {
     transition: background 0.2s ease, color 0.2s ease;
     z-index: 2;
 }
-
+/*
 .view-session-candidate__menu-toggle:hover {
     background: rgba(15, 23, 42, 0.22);
     color: rgba(15, 23, 42, 0.95);
 }
 
-/* Legacy menu positioning block patched
 .view-session-candidate__menu {
     position: absolute;
     top: 54px;
@@ -1948,7 +2066,6 @@ body.view-session-body #sortable-segments.view-session-grid {
     display: none;
     z-index: 35;
 }
-*/
 
 .view-session-candidate__menu.is-open {
     display: block;
@@ -1982,7 +2099,7 @@ body.view-session-body #sortable-segments.view-session-grid {
     background: rgba(248, 113, 113, 0.16);
     color: #fee2e2;
 }
-
+*/
 .view-session-candidate__avatar {
     position: relative;
     width: 96px;
@@ -2011,7 +2128,21 @@ body.view-session-body #sortable-segments.view-session-grid {
     text-transform: uppercase;
 }
 
-.view-session-candidate__name {\n  margin: 0.1rem auto 0;\n  padding: 0.4rem 0.35rem;\n  border: none;\n  border-radius: 12px;\n  font-size: 1.05rem;\n  font-weight: 600;\n  color: #0f172a;\n  text-align: center;\n  background: transparent;\n}
+.view-session-candidate__name {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    margin: 0 auto 0.45rem;
+    padding: 0.4rem 0.35rem;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #0f172a;
+    text-align: center;
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+}
 
 .view-session-candidate__name:focus {
     outline: none;
@@ -2154,6 +2285,19 @@ body.view-session-body .save_voting_session {
         min-height: 180px;
     }
 }
+.view-session-card {
+    cursor: grab;
+}
+
+.view-session-card.sortable-chosen {
+    cursor: grabbing;
+    opacity: 0.95;
+    box-shadow: 0 40px 80px rgba(15, 23, 42, 0.55);
+}
+
+.view-session-card.sortable-ghost {
+    opacity: 0.5;
+}
 
 .view-session-segment__name-input {
   font: inherit;
@@ -2167,239 +2311,3 @@ body.view-session-body .save_voting_session {
   box-shadow: 0 0 0 3px rgba(14,165,233,.15);
   border-color: var(--segment-color, #0ea5e9);
 }
-
-
-
-/* ============================================================
-   UI PATCH - Candidate row height parity & menu visibility
-   Date: 2025-10-11
-   ------------------------------------------------------------
-   Purpose:
-   - Ensure the Add tile’s spacer input matches candidate input
-   - Make menus fixed-position & above any overflow/stacking
-   - Prevent tile-level overflow from clipping menus
-   - Keep grid scroll behavior managed by its wrapper
-   ============================================================ */
-
-/* A) First-row parity: Make spacer identical in metrics to candidate input */
-.view-session-candidate__name,
-.add-name-spacer {
-  box-sizing: border-box;
-  border: none;                 /* neutralize border height */
-  padding: 0.4rem 0.35rem;      /* match candidate input padding */
-  font-size: 1.05rem;           /* match candidate input font sizing */
-  line-height: 1.2;             /* consistent line-box height */
-  font-weight: 600;             /* match candidate style (if used) */
-  background: transparent;
-}
-
-/* Ensure the Add tile uses the same tile skin (only border-style differs) */
-.view-session-candidate.tile {\n  border: 1px solid rgba(0,0,0,.06);\n  padding: 8px 8px 6px;\n  gap: 6px;\n}
-.add-tile.tile {
-  border-width: 1px;            /* keep identical box-model thickness */
-  border-style: dashed;
-}
-
-/* B) Menus: force fixed positioning & high stacking */
-.view-session-candidate__menu {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: auto !important;
-  bottom: auto !important;
-  background: #fff;
-  border: 1px solid rgba(0,0,0,.08);
-  border-radius: 10px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.12);
-  min-width: 180px;
-  padding: 6px 0;
-  display: none;                /* toggled via .is-open */
-  z-index: 10000 !important;    /* above local stacking contexts */
-}
-.view-session-candidate__menu.is-open { display: block !important; }
-
-/* The tile itself must not clip the menu */
-.view-session-candidate { overflow: visible !important; }
-
-/* The grid can stay overflow:visible so menus can spill; wrapper handles scroll */
-.view-session-candidate-grid { overflow: visible !important; }
-
-/* Optional: consistent 18px hint line rhythm under avatar */
-.avatar-hint {
-  height: 18px;
-  line-height: 18px;
-  font-size: 12px;
-}
-
-/* ===== Session activation & sharing ===== */
-.session-activation-panel{
-  margin: 22px 0 18px;
-  display: grid;
-  gap: 14px;
-}
-.session-activation-message{
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: .75rem 1rem;
-  border-radius: 12px;
-  background: rgba(59,130,246,.12);
-  color: #0f172a;
-  font-weight: 600;
-  border: 1px solid rgba(59,130,246,.18);
-  transition: background .2s ease, color .2s ease, border-color .2s ease;
-}
-.session-activation-message.is-idle{
-  background: rgba(148,163,184,.14);
-  border-color: rgba(148,163,184,.22);
-  color: #334155;
-}
-.session-activation-message.has-error{
-  background: rgba(248,113,113,.18);
-  border-color: rgba(248,113,113,.35);
-  color: #b91c1c;
-}
-.session-activation-message .status-dot{
-  width: 10px;
-  height: 10px;
-  border-radius: 999px;
-  background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34,197,94,.25);
-}
-.session-activation-message .status-dot.is-idle{
-  background: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148,163,184,.25);
-}
-/* ===== Session list cards enhancements ===== */
-.session-status{
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-}
-.session-status::before{
-  content:'';
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #94a3b8;
-  box-shadow: 0 0 0 3px rgba(148,163,184,.23);
-}
-.session-status--active{
-  color: #16a34a;
-}
-.session-status--active::before{
-  background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34,197,94,.26);
-}
-.session-uuid-row{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  margin-top:12px;
-}
-.session-uuid-display{
-  flex:1;
-  min-width:0;
-  padding:.55rem .95rem;
-  border-radius:16px;
-  background:rgba(15,23,42,.78);
-  border:1px solid rgba(59,130,246,.3);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.07),
-    inset 0 -1px 0 rgba(15,23,42,.6);
-  color:#e2e8f0;
-  font-family:'Fira Code','SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;
-  font-size:.9rem;
-  letter-spacing:.01em;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.session-copy-trigger{
-  position:relative;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  width:38px;
-  height:38px;
-  border-radius:12px;
-  border:1px solid rgba(148,163,184,.35);
-  background:rgba(15,23,42,.72);
-  color:#e2e8f0;
-  cursor:pointer;
-  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease, color .2s ease;
-}
-.session-copy-trigger i{
-  pointer-events:none;
-  font-size:1.05rem;
-  filter:drop-shadow(0 0 4px rgba(148,163,184,.35));
-}
-.session-copy-trigger:hover:not(:disabled){
-  transform:translateY(-1px);
-  border-color:rgba(96,165,250,.45);
-  color:#bae6fd;
-  background:rgba(30,64,175,.8);
-  box-shadow:
-    0 12px 26px rgba(37,99,235,.25),
-    0 0 18px rgba(59,130,246,.35);
-}
-.session-copy-trigger:focus-visible{
-  outline:2px solid rgba(59,130,246,.55);
-  outline-offset:3px;
-}
-.session-copy-trigger:disabled{
-  cursor:not-allowed;
-  opacity:.6;
-  border-color:rgba(148,163,184,.32);
-  background:rgba(15,23,42,.55);
-  color:#94a3b8;
-  box-shadow:none;
-}
-.session-copy-trigger .session-copy-tooltip{
-  position:absolute;
-  top:-34px;
-  left:50%;
-  transform:translate(-50%, -6px);
-  background:rgba(15,23,42,.92);
-  color:#f8fafc;
-  padding:.25rem .55rem;
-  border-radius:6px;
-  font-size:.75rem;
-  letter-spacing:.02em;
-  opacity:0;
-  pointer-events:none;
-  transition:opacity .2s ease, transform .2s ease;
-  box-shadow:0 12px 24px rgba(15,23,42,.35);
-}
-.session-copy-trigger.is-copied .session-copy-tooltip{
-  opacity:1;
-  transform:translate(-50%, -2px);
-}
-.session-actions{
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-.manage-voters-link{
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: .45rem .9rem;
-  background: #2563eb;
-  color: #fff;
-  border-radius: 10px;
-  font-weight: 600;
-  text-decoration: none;
-  transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
-}
-.manage-voters-link:hover{
-  background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(37,99,235,.25);
-}
-
-
-

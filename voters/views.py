@@ -4,7 +4,8 @@ from .forms import VoterForm , VotingSessionForm
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
 import logging
-from django.db.models import Q
+from django.db.models import Q, Value
+from django.db.models.functions import Concat
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -14,7 +15,8 @@ from django.urls import reverse
 from django.http import Http404
 from django.conf import settings
 from django.template.loader import render_to_string
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
+from django.views.decorators.http import require_POST
 
 
 
@@ -440,9 +442,131 @@ def edit_segment(request, segment_id):
 def delete_candidate(request, candidate_id):
     if request.method == 'POST':
         candidate = get_object_or_404(Candidate, id=candidate_id)
+        session_admin = getattr(candidate.segment_header.session, 'admin', None)
+        if request.user.is_authenticated and session_admin and request.user != session_admin:
+            return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+        if candidate.photo:
+            candidate.photo.delete(save=False)
         candidate.delete()
-        return JsonResponse({'success': True})  # Respond with success status
+        return JsonResponse({'success': True})
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
+
+
+@csrf_exempt
+def create_candidate(request, segment_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+    segment = get_object_or_404(VotingSegmentHeader, id=segment_id)
+    session_admin = getattr(segment.session, 'admin', None)
+    if request.user.is_authenticated and session_admin and request.user != session_admin:
+        return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+
+    default_name = 'Candidate Name'
+    name = default_name
+    photo = None
+
+    content_type = request.content_type or ''
+    if 'application/json' in content_type:
+        try:
+            payload = json.loads(request.body or '{}')
+        except json.JSONDecodeError:
+            payload = {}
+        name = payload.get('name') or default_name
+    else:
+        name = request.POST.get('name') or default_name
+        photo = request.FILES.get('photo')
+
+    candidate = Candidate(
+        name=(name or default_name).strip() or default_name,
+        voting_session=segment.session,
+        segment_header=segment,
+    )
+
+    if photo:
+        candidate.photo = photo
+
+    candidate.save()
+
+    return JsonResponse({
+        'success': True,
+        'candidate': {
+            'id': candidate.id,
+            'name': candidate.name,
+            'photo_url': candidate.photo.url if candidate.photo else None,
+        }
+    }, status=201)
+
+
+@csrf_exempt
+def update_candidate_name(request, candidate_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+    candidate = get_object_or_404(Candidate, id=candidate_id)
+    session_admin = getattr(candidate.segment_header.session, 'admin', None)
+    if request.user.is_authenticated and session_admin and request.user != session_admin:
+        return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+
+    try:
+        payload = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        payload = {}
+
+    name = (payload.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+
+    candidate.name = name
+    candidate.save(update_fields=['name'])
+
+    return JsonResponse({'success': True, 'candidate': {'id': candidate.id, 'name': candidate.name}})
+
+
+@csrf_exempt
+def update_candidate_photo(request, candidate_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+    candidate = get_object_or_404(Candidate, id=candidate_id)
+    session_admin = getattr(candidate.segment_header.session, 'admin', None)
+    if request.user.is_authenticated and session_admin and request.user != session_admin:
+        return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+
+    photo = request.FILES.get('photo')
+    if not photo:
+        return JsonResponse({'success': False, 'error': 'No photo supplied'}, status=400)
+
+    if candidate.photo:
+        candidate.photo.delete(save=False)
+    candidate.photo = photo
+    candidate.save(update_fields=['photo'])
+
+    return JsonResponse({
+        'success': True,
+        'candidate': {
+            'id': candidate.id,
+            'photo_url': candidate.photo.url if candidate.photo else None,
+        }
+    })
+
+
+@csrf_exempt
+def remove_candidate_photo(request, candidate_id):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+
+    candidate = get_object_or_404(Candidate, id=candidate_id)
+    session_admin = getattr(candidate.segment_header.session, 'admin', None)
+    if request.user.is_authenticated and session_admin and request.user != session_admin:
+        return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+
+    if candidate.photo:
+        candidate.photo.delete(save=False)
+        candidate.photo = None
+        candidate.save(update_fields=['photo'])
+
+    return JsonResponse({'success': True, 'candidate': {'id': candidate.id, 'photo_url': None}})
 
 @csrf_exempt
 def update_segment_order(request):
@@ -478,21 +602,48 @@ def delete_segment(request, segment_id):
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
+@login_required
 def activate_session(request, session_id):
-    # Retrieve the session by its ID
-    session = VotingSession.objects.get(session_id=session_id)
+    session = get_object_or_404(VotingSession, session_id=session_id)
 
-    # Generate the unique URL for the session (if not already done)
+    if request.method != 'POST':
+        expects_json = 'application/json' in (request.headers.get('Accept') or '')
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or expects_json:
+            return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
+        next_url = request.GET.get('next')
+        if next_url:
+            return redirect(next_url)
+        return redirect('voter_list', session_id=session_id)
+
+    generated_unique_url = False
     if not session.unique_url:
         session.generate_qr_code(request)
-        print(session.unique_url)
-        session.save()
+        generated_unique_url = True
 
-    # Activate the session
-    session.is_active = True
-    session.save()
+    if not session.is_active:
+        session.is_active = True
+        session.save(update_fields=['is_active'])
 
-    return redirect('list_voting_sessions')
+    payload = {
+        'success': True,
+        'is_active': session.is_active,
+        'unique_url': session.unique_url,
+        'session_uuid': session.get_uuid(),
+        'qr_code_url': session.qr_code.url if session.qr_code else None,
+        'generated_unique_url': generated_unique_url,
+    }
+
+    expects_json = (
+        request.headers.get('x-requested-with') == 'XMLHttpRequest'
+        or 'application/json' in (request.headers.get('Accept') or '')
+    )
+    if expects_json:
+        return JsonResponse(payload)
+
+    next_url = request.POST.get('next') or request.GET.get('next')
+    if next_url:
+        return redirect(next_url)
+    return redirect('voter_list', session_id=session_id)
 
 
 
@@ -766,6 +917,43 @@ def get_voters(request, session_id=None, session_uuid=None):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@require_POST
+def create_segment(request, session_id):
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        payload = {}
+
+    session = get_object_or_404(VotingSession, pk=session_id)
+    name = (payload.get('name') or '').strip() or 'New Segment'
+
+    seg = VotingSegmentHeader.objects.create(session=session, name=name)
+    # if you use an "order" field, you can initialize it here as needed
+
+    return JsonResponse({
+        'success': True,
+        'segment': {'id': seg.id, 'name': seg.name}
+    }, status=201)
+
+
+@require_POST
+def update_segment_name(request, segment_id):
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest('Invalid JSON')
+
+    name = (payload.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'success': False, 'error': 'Name cannot be empty'}, status=400)
+
+    seg = get_object_or_404(VotingSegmentHeader, pk=segment_id)
+    seg.name = name
+    seg.save(update_fields=['name'])
+
+    return JsonResponse({'success': True, 'segment': {'id': seg.id, 'name': seg.name}})
+
+
 def get_voter_status(request, session_uuid):
     try:
         # Fetch the VotingSession object using the session_uuid
@@ -780,12 +968,17 @@ def get_voter_status(request, session_uuid):
         voters = Voter.objects.filter(session=session)
 
         if search_query:  # Apply search filter if query exists
-            voters = voters.filter(
-                Q(Fname__icontains=search_query) | 
-                Q(Lname__icontains=search_query) | 
-                Q(voter_id__icontains=search_query)
+            normalized_query = " ".join(search_query.split())
+            voters = voters.annotate(
+                full_name=Concat('Fname', Value(' '), 'Lname'),
+                reverse_full_name=Concat('Lname', Value(' '), 'Fname')
+            ).filter(
+                Q(Fname__icontains=search_query) |
+                Q(Lname__icontains=search_query) |
+                Q(voter_id__icontains=search_query) |
+                Q(full_name__icontains=normalized_query) |
+                Q(reverse_full_name__icontains=normalized_query)
             )
-
 
 
         # Get counts for all voters in the session
@@ -806,5 +999,4 @@ def get_voter_status(request, session_uuid):
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
 

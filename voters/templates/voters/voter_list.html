@@ -4,16 +4,12 @@
     {% load static %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <title>Voter List</title>
-    <link rel="stylesheet" href="{% static 'style.css' %}">
-    <style>
-        .voter-table { width: 100%; border-collapse: collapse; }
-        .voter-table th, .voter-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        .navbar { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .filter-btn { margin: 10px 0; cursor: pointer; }
-    </style>
-    <script src="{% static 'deactivate_button.js' %}" defer></script>
+    <link rel="stylesheet" href="{% static 'voting_static/style.css' %}">
+    
+    <script src="{% static 'voting_static/deactivate_button.js' %}" defer></script>
 </head>
 
 <nav class="voting_session-navbar">
@@ -46,25 +42,60 @@
             <ul>
                 {% if voting_session.is_active %}
                 <li><a class="generate-results-link" href="{% url 'segment_results' session_uuid %}">Generate Results</a></li>
-                <button class="hold-button" id="holdBtn">
-                    <div class="hold-progress" id="progressBar"></div>
-                    <span>Hold to Confirm</span>
-                </button>
+                <li>
+                    <button
+                        class="hold-button is-complete"
+                        id="holdBtn"
+                        type="button"
+                        data-is-active="true"
+                        data-session-id="{{ voting_session.session_id }}"
+                        data-session-uuid="{{ voting_session.get_uuid }}"
+                        disabled
+                    >
+                        <div class="hold-progress" id="progressBar"></div>
+                        <span>Session Active</span>
+                    </button>
+                </li>
+                {% else %}
+                <li>
+                    <button
+                        class="hold-button"
+                        id="holdBtn"
+                        type="button"
+                        data-activate-url="{% url 'activate_session' voting_session.session_id %}"
+                        data-session-id="{{ voting_session.session_id }}"
+                        data-session-uuid="{{ voting_session.get_uuid }}"
+                        data-is-active="false"
+                    >
+                        <div class="hold-progress" id="progressBar"></div>
+                        <span>Hold to Activate</span>
+                    </button>
+                </li>
                 {% endif %}
                 <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
-                <li>
-                    {% if session_uuid %}
-                        <a href="{% url 'manage_session' session_uuid=voting_session.get_uuid %}">Manage Session</a>
-                    {% else %}
-                        <a href="{% url 'manage_session' session_id=session_id %}">Manage Session</a>
-                    {% endif %}
-                </li>
             </ul>
         </div>
     </div>
 </nav>
 
 <body>
+    <section class="session-activation-panel">
+        <div
+            id="activationMessage"
+            class="session-activation-message{% if not voting_session.is_active %} is-idle{% endif %}"
+            data-active="{{ voting_session.is_active|yesno:'true,false' }}"
+            data-idle-text="Activate the session to generate a shareable link and QR code."
+            data-active-text="Voting session is active."
+        >
+            {% if voting_session.is_active %}
+                <span class="status-dot"></span>
+                Voting session is active.
+            {% else %}
+                <span class="status-dot is-idle"></span>
+                Activate the session to generate a shareable link and QR code.
+            {% endif %}
+        </div>
+    </section>
    
 
 
@@ -134,7 +165,8 @@
             {% for voter in voters %}
             <tr id="voter-{{ voter.voter_id }}" class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
                 <td style="font-weight: bold;">{{ voter.Fname }} {{ voter.Lname }}</td>
-                <td class="voter-status">
+                <td class="voter-status-cell">
+                    <div class="voter-status">
                     {% if voter.is_verified %}
                         <button type="button"  class = "status-verified">Verified</button>
                         {% if voter.has_finished %}
@@ -146,6 +178,7 @@
                         <button type="button" class= "status-not-verified" > Not Verified </button>
                         <button type="button" class= "status-not-verified" > Not Finished</button> 
                     {% endif %}
+                    </div>
                 </td>
                 <td>
                     <a href="{% url 'edit_voter' voter.voter_id %}">Edit</a>

@@ -8,6 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
   <!-- Page-local layout for uniform tiles & segments -->
   <style>
     /* ===== Segment grid: 3 columns (wide), 2 (medium), 1 (small) ===== */
@@ -19,6 +20,7 @@
     }
     @media (max-width: 1400px) { .view-session-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 900px)  { .view-session-grid { grid-template-columns: 1fr; } }
+
     /* ===== Each segment body contains a scroll wrapper around the grid ===== */
     .view-session-card__body {
       display: flex;
@@ -26,12 +28,14 @@
       /* JS sets a uniform min-height based on one-row measurement */
       min-height: 260px; /* fallback */
     }
+
     /* This wrapper controls scrolling (grid itself allows overflow for menus) */
     .view-session-candidate-scroll {
       position: relative;
       overflow-y: hidden;  /* JS toggles to auto if > 3 tiles */
       overflow-x: visible;
     }
+
     /* ===== Candidate grid inside segment: exactly 3 columns ===== */
     .view-session-candidate-grid {
       display: grid;
@@ -43,6 +47,7 @@
     @media (max-width: 520px) {
       .view-session-candidate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
+
     /* ===== Tile: shared base for candidates & add-tile ===== */
     .tile {
       position: relative;
@@ -57,8 +62,10 @@
       box-sizing: border-box;
       min-width: 0;
     }
+
     /* Candidate tile specifics */
     .view-session-candidate.tile {}
+
     /* Kebab menu button */
     .view-session-candidate__menu-toggle {
       position: absolute;
@@ -68,6 +75,7 @@
       z-index: 2;
     }
     .view-session-candidate__menu-toggle:hover { background: rgba(0,0,0,.06); }
+
     /* Candidate menu: fixed to viewport so it's never clipped */
     .view-session-candidate__menu {
       position: fixed;     /* << key change */
@@ -79,7 +87,7 @@
       min-width: 180px;
       padding: 6px 0;
       display: none;       /* toggled via .is-open */
-      z-index: 12000;
+      z-index: 10000;
     }
     .view-session-candidate__menu.is-open { display: block; }
     .view-session-candidate__menu-item {
@@ -91,27 +99,9 @@
     }
     .view-session-candidate__menu-item:hover { background: rgba(0,0,0,.06); }
     .view-session-candidate__menu-item--danger { color: #b91c1c; }
-    .view-session-candidate__menu-item[data-action="change-photo"],
-    .view-session-candidate__menu-item[data-action="remove-photo"] {
-      color: #000;
-    }
-    .view-session-candidate__menu-item[data-action="change-photo"]:hover,
-    .view-session-candidate__menu-item[data-action="remove-photo"]:hover {
-      color: #000;
-    }
-    .view-session-candidate--menu-open {
-      z-index: 12000 !important;
-    }
-    .view-session-candidate--menu-open .view-session-candidate__menu {
-      z-index: 12001 !important;
-    }
-    .view-session-card--menu-open {
-      overflow: visible;
-      z-index: 9000;
-    }
+
     /* Avatar: square, consistent */
     .avatar {
-      position: relative;
       width: 100%;
       max-width: 120px;
       aspect-ratio: 1/1;
@@ -124,12 +114,7 @@
       user-select: none;
     }
     .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center;
-      display: block;
-      border-radius: inherit;
+      width: 100%; height: 100%; object-fit: cover; display: block;
     }
     /* Inline SVG placeholder image */
     .avatar-placeholder-image {
@@ -143,42 +128,14 @@
     }
     /* When a photo exists, keep space but hide hint text for consistent height */
     .view-session-candidate.has-photo .avatar-hint { visibility: hidden; opacity: 0; }
-    .view-session-candidate.has-photo .avatar-placeholder-image { display: none !important; }
-    .view-session-candidate .avatar-hint {
-      position: absolute;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      padding: 4px 12px;
-      height: auto;
-      line-height: 1.2;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.95);
-      color: var(--segment-color, #0ea5e9);
-      font-size: 13px;
-      font-weight: 600;
-      text-decoration: underline;
-      box-shadow: 0 10px 24px rgba(14,165,233,.16);
-    }
-    /* Add-tile label: white, bold, outlined */
-    .add-tile .avatar-hint {
-      color: #fff;
-      font-weight: 800;
-      text-decoration: none;
-      /* Outline the glyphs for better contrast across backgrounds */
-      -webkit-text-stroke: 1px rgba(14,165,233,.85);
-      text-shadow:
-        0 0 1px rgba(14,165,233,.85),
-        0 0 2px rgba(14,165,233,.65),
-        0 0 4px rgba(14,165,233,.35);
-    }
+
     /* Name field */
     .name-input {
       width: 100%; max-width: 100%;
       text-align: center;
       border: 1px solid rgba(0,0,0,.08);
       border-radius: 8px;
-      padding: 8px 10px;
+      padding: 8px 10px; /* fixed to unify row heights */
       background: #fff; box-sizing: border-box;
       font-size: 15px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -187,58 +144,7 @@
       outline: none; box-shadow: 0 0 0 3px rgba(14,165,233,.15);
       border-color: var(--segment-color, #0ea5e9);
     }
-    .view-session-candidate__name-wrapper {
-      position: relative;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-    }
-    .view-session-candidate__name-wrapper.is-active .name-input {
-      border-color: var(--segment-color, #0ea5e9);
-      box-shadow: 0 0 0 3px rgba(14,165,233,.15);
-    }
-    .view-session-candidate__name-popover {
-      position: absolute;
-      bottom: calc(100% + 8px);
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-      display: none;
-      padding: 8px 12px;
-      min-width: 100%;
-      max-width: 260px;
-      text-align: center;
-      font-weight: 600;
-      line-height: 1.35;
-      color: #000;
-      background: rgba(255,255,255,0.98);
-      border: 2px solid var(--segment-color, #0ea5e9);
-      border-radius: 10px;
-      box-shadow: 0 12px 28px rgba(15,23,42,.18);
-      pointer-events: none;
-      white-space: normal;
-      word-break: break-word;
-    }
-    .view-session-candidate__name-popover::before,
-    .view-session-candidate__name-popover::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      transform: translateX(-50%);
-      border-style: solid;
-      border-color: transparent;
-    }
-    .view-session-candidate__name-popover::before {
-      top: 100%;
-      border-width: 8px 9px 0 9px;
-      border-top-color: var(--segment-color, #0ea5e9);
-    }
-    .view-session-candidate__name-popover::after {
-      top: calc(100% - 2px);
-      border-width: 8px 9px 0 9px;
-      border-top-color: rgba(255,255,255,0.98);
-    }
-    .view-session-candidate__name-popover.is-visible { display: block; }
+
     /* ===== Add tile has the SAME vertical stack as a candidate ===== */
     .add-tile.tile {
       border: 1px dashed var(--segment-color, #0ea5e9);
@@ -256,50 +162,31 @@
       pointer-events: none;
     }
     .add-tile:hover { background: rgba(14,165,233,.12); }
+
     /* Segment header actions */
     .view-session-card__actions { display: inline-flex; align-items: center; gap: 8px; }
     .view-session-card__expand-toggle {
       background: transparent; border: 0; cursor: pointer; padding: .4rem; border-radius: 6px; line-height: 0;
     }
     .view-session-card__expand-toggle:hover { background: rgba(0,0,0,.06); }
-    .view-session-card__title-text[contenteditable="true"] {
-      cursor: text;
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 10px;
-      border: 2px solid transparent;
-      transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    }
-    .view-session-card__title-text[contenteditable="true"]:focus {
-      outline: none;
-      border-color: var(--segment-color, #0ea5e9);
-      box-shadow: 0 0 0 3px rgba(14,165,233,.15);
-      background: rgba(255,255,255,0.65);
-    }
+
     /* Fullscreen segment */
     .view-session-card--expanded {
       position: fixed; inset: 0; z-index: 9999;
       width: 100vw; height: 100vh; margin: 0 !important;
-      border-radius: 0 !important; background: transparent; box-shadow: none;
+      border-radius: 0 !important; background: #fff; box-shadow: none;
       display: flex; flex-direction: column;
     }
     .view-session-card--expanded .view-session-card__body {
-      height: calc(100vh - var(--expanded-header-h, 64px));
+      height: calc(100vh - var(--expanded-header-h, 64px) - 16px);
       overflow: hidden;
-      padding: 0; /* fill full viewport height without inner padding loss */
     }
     .view-session-card--expanded .view-session-candidate-scroll {
       height: 100%;
-      overflow-y: auto; /* auto shows scroll only if content exceeds */
-    }
-    /* Center Add Photo chip within avatar when expanded */
-    .view-session-card--expanded .view-session-candidate .avatar-hint {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      bottom: auto;
+      overflow-y: auto; /* in expanded view, always scroll as needed */
     }
     body.view-session--expanded { overflow: hidden; }
+
     /* Empty state line */
     .view-session-card__empty {
       grid-column: 1 / -1;
@@ -308,6 +195,7 @@
     }
   </style>
 </head>
+
 <body class="view-session-body">
   <nav class="voting_session-navbar">
     <div class="voting_session-navbar-content">
@@ -319,36 +207,27 @@
         <ul>
           <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
           <li><a href="{% url 'voter_list' session.session_id %}">Manage Voters</a></li>
+          <li><a href="{% url 'manage_session' session.session_id %}">Manage Session {{ session.session_id }}</a></li>
           <li><a href="#" id="add-segment-btn"><i class="fas fa-plus-circle"></i> Add Segment</a></li>
         </ul>
       </div>
     </div>
   </nav>
+
   <div class="view-session-wrapper">
-    <nav class="breadcrumb">
-      <a class="breadcrumb__button breadcrumb__button--home" href="{% url 'list_voting_sessions' %}">
-        <span class="breadcrumb__icon"><i class="fas fa-arrow-left"></i></span>
-        <span class="breadcrumb__label">Home</span>
-      </a>
-      <a class="breadcrumb__button breadcrumb__button--voters" href="{% url 'voter_list' session.session_id %}">
-        <span class="breadcrumb__label">Add Voters</span>
-        <span class="breadcrumb__icon"><i class="fas fa-arrow-right"></i></span>
-      </a>
-    </nav>
-    <div class="view-session-content">
+    <div class="breadcrumb">
+      <div class="step"><a href="{% url 'list_voting_sessions' %}"><i class="fas fa-home"></i> Home</a></div>
+      <div class="step"><a href="{% url 'add_segments' session.session_id %}"><i class="fas a-poll-h"></i> Add Candidates and Segments</a></div>
+      <div class="step active"><a href="{% url 'voter_list' session.session_id %}"><i class="fas fa-poll-h"></i> Add Voters</a></div>
+    </div>
+
+    <form method="post" action="{% url 'activate_session' session.session_id %}">
+      {% csrf_token %}
       <div id="sortable-segments" class="view-session-grid">
         {% for segment in segments %}
         <section class="view-session-card" data-id="{{ segment.id }}">
           <header class="view-session-card__header">
-            <div class="view-session-card__title">
-              <span class="view-session-card__title-text"
-                    contenteditable="true"
-                    data-original-value="{{ segment.name }}"
-                    role="textbox"
-                    aria-label="Segment name"
-                    spellcheck="false"
-                    tabindex="0">{{ segment.name }}</span>
-            </div>
+            <div class="view-session-card__title">{{ segment.name }}</div>
             <div class="view-session-card__actions">
               <button type="button" class="view-session-card__expand-toggle" title="Maximize" aria-pressed="false">
                 <i class="fas fa-expand"></i>
@@ -367,6 +246,7 @@
               </div>
             </div>
           </header>
+
           <div class="view-session-card__body">
             <div class="view-session-candidate-scroll">
               <div class="view-session-candidate-grid">
@@ -375,13 +255,15 @@
                   <div class="avatar add-avatar"><i class="fas fa-plus"></i></div>
                   <div class="avatar-hint">Add Candidate</div>
                   <!-- spacer to match candidate name input height -->
-                  <input class="name-input view-session-candidate__name add-name-spacer" type="text" disabled aria-hidden="true" tabindex="-1">
+                  <input class="name-input add-name-spacer" type="text" disabled aria-hidden="true" tabindex="-1">
                 </button>
+
                 {% for candidate in segment.candidates.all %}
                 <article class="view-session-candidate tile {% if candidate.photo %}has-photo{% endif %}" data-candidate-id="{{ candidate.id }}">
                   <button type="button" class="view-session-candidate__menu-toggle" aria-haspopup="true" aria-expanded="false">
                     <i class="fas fa-ellipsis-v"></i>
                   </button>
+
                   <div class="view-session-candidate__menu" role="menu">
                     <button type="button" class="view-session-candidate__menu-item" data-action="change-photo">
                       <i class="far fa-image"></i> Change Photo
@@ -393,7 +275,9 @@
                       <i class="fas fa-user-times"></i> Delete Candidate
                     </button>
                   </div>
+
                   <input type="file" class="view-session-candidate__file-input" accept="image/*" hidden>
+
                   <div class="avatar">
                     {% if candidate.photo %}
                       <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" class="view-session-candidate__avatar-image">
@@ -404,17 +288,14 @@
                       <img class="avatar-placeholder-image"
                            src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><circle cx='64' cy='40' r='24' fill='%23d1d1d1'/><path d='M16,112c0-24,24-40,48-40s48,16,48,40' fill='%23d1d1d1'/></svg>">
                     {% endif %}
-                    <div class="avatar-hint">Add Photo</div>
                   </div>
-                  <div class="view-session-candidate__name-wrapper">
-                    <input class="name-input view-session-candidate__name"
-                           type="text"
-                           value="{{ candidate.name }}"
-                           placeholder="Candidate Name"
-                           data-original-value="{{ candidate.name }}"
-                           title="{{ candidate.name }}">
-                    <div class="view-session-candidate__name-popover" aria-hidden="true"></div>
-                  </div>
+                  <div class="avatar-hint">Add Photo</div>
+
+                  <input class="name-input view-session-candidate__name"
+                         type="text"
+                         value="{{ candidate.name }}"
+                         placeholder="Candidate Name"
+                         data-original-value="{{ candidate.name }}">
                 </article>
                 {% empty %}
                   <p class="view-session-card__empty">No candidates added yet.</p>
@@ -425,14 +306,20 @@
         </section>
         {% endfor %}
       </div>
-    </div>
+
+      <div class="save_button-container">
+        <button class="save_voting_session" type="submit">Activate Session</button>
+      </div>
+    </form>
   </div>
+
   <!-- Candidate template -->
   <template id="view-session-candidate-template">
     <article class="view-session-candidate tile" data-candidate-id="">
       <button type="button" class="view-session-candidate__menu-toggle" aria-haspopup="true" aria-expanded="false">
         <i class="fas fa-ellipsis-v"></i>
       </button>
+
       <div class="view-session-candidate__menu" role="menu">
         <button type="button" class="view-session-candidate__menu-item" data-action="change-photo">
           <i class="far fa-image"></i> Change Photo
@@ -444,36 +331,30 @@
           <i class="fas fa-user-times"></i> Delete Candidate
         </button>
       </div>
+
       <input type="file" class="view-session-candidate__file-input" accept="image/*" hidden>
       <div class="avatar">
         <img src="" alt="" class="view-session-candidate__avatar-image" hidden>
         <img class="avatar-placeholder-image"
              src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'><circle cx='64' cy='40' r='24' fill='%23d1d1d1'/><path d='M16,112c0-24,24-40,48-40s48,16,48,40' fill='%23d1d1d1'/></svg>">
-        <div class="avatar-hint">Add Photo</div>
       </div>
-      <div class="view-session-candidate__name-wrapper">
-        <input class="name-input view-session-candidate__name"
-               type="text"
-               value="Candidate Name"
-               placeholder="Candidate Name"
-               data-original-value="Candidate Name"
-               title="Candidate Name">
-        <div class="view-session-candidate__name-popover" aria-hidden="true"></div>
-      </div>
+      <div class="avatar-hint">Add Photo</div>
+
+      <input class="name-input view-session-candidate__name"
+             type="text"
+             value="Candidate Name"
+             placeholder="Candidate Name"
+             data-original-value="Candidate Name">
     </article>
   </template>
+
   <!-- Segment template -->
   <template id="view-session-segment-template">
     <section class="view-session-card" data-id="">
       <header class="view-session-card__header">
         <div class="view-session-card__title">
-          <span class="view-session-card__title-text"
-                contenteditable="true"
-                data-original-value=""
-                role="textbox"
-                aria-label="Segment name"
-                spellcheck="false"
-                tabindex="0"></span>
+          <span class="view-session-card__title-text"></span>
+          <input type="text" class="view-session-segment__name-input" placeholder="Segment name" value="" hidden>
         </div>
         <div class="view-session-card__actions">
           <button type="button" class="view-session-card__expand-toggle" title="Maximize" aria-pressed="false">
@@ -493,6 +374,7 @@
           </div>
         </div>
       </header>
+
       <div class="view-session-card__body">
         <div class="view-session-candidate-scroll">
           <div class="view-session-candidate-grid">
@@ -500,7 +382,7 @@
             <button type="button" class="tile add-tile view-session-add-candidate" data-segment-id="">
               <div class="avatar add-avatar"><i class="fas fa-plus"></i></div>
               <div class="avatar-hint">Add Candidate</div>
-              <input class="name-input view-session-candidate__name add-name-spacer" type="text" disabled aria-hidden="true" tabindex="-1">
+              <input class="name-input add-name-spacer" type="text" disabled aria-hidden="true" tabindex="-1">
             </button>
             <p class="view-session-card__empty">No candidates added yet.</p>
           </div>
@@ -508,16 +390,19 @@
       </div>
     </section>
   </template>
+
   <script>
     const sessionId = '{{ session.session_id }}';
     const editSegmentUrlPattern = "{% url 'edit_segment' 0 %}";
     const createSegmentUrl = `/sessions/${sessionId}/segments/`;
     const updateSegmentNameUrl = (id) => `/segment/${id}/name/`;
     const csrfToken = '{{ csrf_token }}';
+
     function toggleNavbar() {
       const navbar = document.querySelector('.voting_session-navbar-links');
       if (navbar) navbar.classList.toggle('active');
     }
+
     (function () {
       const colors = [
         { base: '#ff6b6b', light: '#ffa7a7' },
@@ -526,16 +411,18 @@
         { base: '#14b8a6', light: '#5eead4' },
         { base: '#0ea5e9', light: '#38bdf8' }
       ];
+
       let expandedCard = null;
+
       document.addEventListener('DOMContentLoaded', () => {
         applySegmentColors();
         initSortable();
         bindAddCandidateButtons();
-        initializeCandidateNameFields();
-        initializeSegmentTitleEditing();
         bindGlobalEvents();
+
         // Lock height so each segment shows exactly 1 row × 3 tiles (3 total)
         lockAllGridsToOneRowUniform();
+
         // Recompute on resize
         let resizeTimer = null;
         window.addEventListener('resize', () => {
@@ -546,10 +433,12 @@
             resizeTimer = setTimeout(lockAllGridsToOneRowUniform, 120);
           }
         });
+
         // Close candidate menus on scroll/resize to avoid odd anchoring
         window.addEventListener('scroll', closeAllMenus, { passive: true });
         window.addEventListener('resize', closeAllMenus);
       });
+
       /* ========== Colors & Sortable ========== */
       function applySegmentColors() {
         document.querySelectorAll('.view-session-card').forEach(segment => {
@@ -560,6 +449,7 @@
           segment.style.setProperty('--segment-light-color', color.light);
         });
       }
+
       function initSortable() {
         const container = document.getElementById('sortable-segments');
         if (!container) return;
@@ -576,75 +466,19 @@
           }
         });
       }
+
       /* ========== Events ========== */
       function bindAddCandidateButtons() {
         document.querySelectorAll('.view-session-add-candidate').forEach(button => {
           button.addEventListener('click', () => handleAddCandidate(button));
         });
       }
-      function initializeCandidateNameFields(scope = document) {
-        const fields = Array.from(scope.querySelectorAll('.view-session-candidate__name'));
-        fields.forEach(setupCandidateNameField);
-      }
-      function setupCandidateNameField(field) {
-        if (!field || field.dataset.nameBound === 'true') return;
-        if (field.disabled) return;
-        field.dataset.nameBound = 'true';
-        updateCandidateNameMeta(field);
-        field.addEventListener('focus', () => {
-          showCandidateNamePopover(field);
-        });
-        field.addEventListener('blur', () => {
-          hideCandidateNamePopover(field);
-        });
-        field.addEventListener('input', () => {
-          updateCandidateNameMeta(field);
-          if (document.activeElement === field) {
-            showCandidateNamePopover(field);
-          }
-        });
-      }
-      function updateCandidateNameMeta(field) {
-        if (!field) return;
-        const text = (field.value || '').trim();
-        const visibleText = text || field.placeholder || '';
-        field.title = visibleText;
-        const popover = getCandidateNamePopover(field);
-        if (popover && popover.classList.contains('is-visible')) {
-          popover.textContent = visibleText;
-        }
-      }
-      function getCandidateNameWrapper(field) {
-        return field?.closest('.view-session-candidate__name-wrapper') || null;
-      }
-      function getCandidateNamePopover(field) {
-        const wrapper = getCandidateNameWrapper(field);
-        return wrapper ? wrapper.querySelector('.view-session-candidate__name-popover') : null;
-      }
-      function showCandidateNamePopover(field) {
-        const wrapper = getCandidateNameWrapper(field);
-        const popover = getCandidateNamePopover(field);
-        if (!wrapper || !popover) return;
-        const text = (field.value || '').trim() || field.placeholder || '';
-        popover.textContent = text;
-        popover.classList.add('is-visible');
-        wrapper.classList.add('is-active');
-      }
-      function hideCandidateNamePopover(field) {
-        const wrapper = getCandidateNameWrapper(field);
-        const popover = getCandidateNamePopover(field);
-        if (!wrapper || !popover) return;
-        popover.classList.remove('is-visible');
-        wrapper.classList.remove('is-active');
-      }
+
       function bindGlobalEvents() {
         document.addEventListener('click', handleDocumentClick);
-        document.addEventListener('pointerout', handleCandidatePointerOut, true);
         document.addEventListener('input', e => {
           const input = e.target.closest('.view-session-candidate__name');
-          if (input) {
-            updateCandidateInitial(input.closest('.view-session-candidate'));
-          }
+          if (input) updateCandidateInitial(input.closest('.view-session-candidate'));
         });
         document.addEventListener('keydown', e => {
           const input = e.target.closest('.view-session-candidate__name');
@@ -658,6 +492,7 @@
           const fileInput = e.target.closest('.view-session-candidate__file-input');
           if (fileInput) handlePhotoUpload(fileInput);
         });
+
         // Click avatar/placeholder to open file chooser
         document.addEventListener('click', e => {
           const avatar = e.target.closest('.view-session-candidate .avatar');
@@ -670,10 +505,12 @@
           if (fileInput) fileInput.click();
         });
       }
+
       function handleDocumentClick(event) {
         // Expand/Collapse
         const expandToggle = event.target.closest('.view-session-card__expand-toggle');
         if (expandToggle) { event.preventDefault(); toggleExpand(expandToggle); return; }
+
         // Candidate actions (menu items)
         const candidateAction = event.target.closest('.view-session-candidate__menu-item');
         if (candidateAction) {
@@ -682,6 +519,7 @@
           if (candidate) handleCandidateAction(candidateAction.dataset.action, candidate);
           return;
         }
+
         // Delete segment
         const deleteSegmentBtn = event.target.closest('[data-action="delete-segment"]');
         if (deleteSegmentBtn) {
@@ -693,6 +531,7 @@
           closeAllMenus();
           return;
         }
+
         // Candidate menu toggle
         const candidateToggle = event.target.closest('.view-session-candidate__menu-toggle');
         if (candidateToggle) {
@@ -700,6 +539,7 @@
           toggleMenu(candidateToggle.nextElementSibling, candidateToggle);
           return;
         }
+
         // Segment kebab (if you have a segment-level menu in your base CSS)
         const segmentToggle = event.target.closest('.view-session-card__menu-toggle');
         if (segmentToggle) {
@@ -707,177 +547,66 @@
           toggleMenu(segmentToggle.nextElementSibling, segmentToggle);
           return;
         }
+
         // Clicked elsewhere => close menus
         if (!event.target.closest('.view-session-card__menu') && !event.target.closest('.view-session-candidate__menu')) {
           closeAllMenus();
         }
       }
+
       // Position menu in viewport relative to its toggle (and flip if needed)
       function toggleMenu(menu, toggle) {
         if (!menu) return;
         const willOpen = !menu.classList.contains('is-open');
         closeAllMenus();
         if (!willOpen) return;
+
         // Make it measurable to compute width/height
         menu.style.visibility = 'hidden';
         menu.style.display = 'block';
+
         const rect   = toggle.getBoundingClientRect();
         const width  = menu.offsetWidth  || 200;
         const height = menu.offsetHeight || 140;
+
         // Default: below-right of toggle
         let top  = rect.bottom + 6;
         let left = rect.right - width;
+
         // Flip to fit viewport with small margins
         if (left < 8) left = 8;
         if (top + height > window.innerHeight - 8) {
           top = Math.max(8, rect.top - 6 - height);
         }
+
         // Apply & show
         menu.style.left = `${left}px`;
         menu.style.top  = `${top}px`;
         menu.classList.add('is-open');
         menu.style.visibility = 'visible';
-        const candidate = toggle.closest('.view-session-candidate');
-        if (candidate) {
-          candidate.classList.add('view-session-candidate--menu-open');
-          const card = candidate.closest('.view-session-card');
-          if (card) card.classList.add('view-session-card--menu-open');
-        }
-        if (toggle) toggle.setAttribute('aria-expanded', 'true');
       }
-      function closeCandidateMenu(menu) {
-        if (!menu) return;
-        menu.classList.remove('is-open');
-        const toggle = menu.previousElementSibling;
-        if (toggle) toggle.setAttribute('aria-expanded', 'false');
-        const candidateEl = menu.closest('.view-session-candidate');
-        if (candidateEl) {
-          candidateEl.classList.remove('view-session-candidate--menu-open');
-        }
-        const cardEl = menu.closest('.view-session-card');
-        if (cardEl && !cardEl.querySelector('.view-session-candidate__menu.is-open')) {
-          cardEl.classList.remove('view-session-card--menu-open');
-        }
-        // reset transient styles
-        menu.style.display = '';
-        menu.style.visibility = '';
-        menu.style.left = '';
-        menu.style.top = '';
-      }
+
       function closeAllMenus() {
         document.querySelectorAll('.view-session-card__menu').forEach(menu => {
           menu.classList.remove('is-open');
-          const t = menu.previousElementSibling;
-          if (t) t.setAttribute('aria-expanded', 'false');
+          const t = menu.previousElementSibling; if (t) t.setAttribute('aria-expanded', 'false');
         });
         document.querySelectorAll('.view-session-candidate__menu').forEach(menu => {
-          closeCandidateMenu(menu);
+          menu.classList.remove('is-open');
+          const t = menu.previousElementSibling; if (t) t.setAttribute('aria-expanded', 'false');
+          // reset transient styles
+          menu.style.display = '';
+          menu.style.visibility = '';
+          menu.style.left = '';
+          menu.style.top  = '';
         });
       }
-      function handleCandidatePointerOut(event) {
-        const target = event.target;
-        if (!target || !target.classList || !target.classList.contains('view-session-candidate')) return;
-        const next = event.relatedTarget;
-        if (next && target.contains(next)) return;
-        const menu = target.querySelector('.view-session-candidate__menu');
-        if (menu && menu.classList.contains('is-open')) {
-          closeCandidateMenu(menu);
-        }
-      }
-      /* ========== Segment inline editing ========== */
-      function initializeSegmentTitleEditing(scope = document) {
-        const titles = Array.from(scope.querySelectorAll('.view-session-card__title-text'));
-        titles.forEach(title => {
-          const card = title.closest('.view-session-card');
-          const segmentId = card?.dataset?.id;
-          if (!segmentId) return;
-          setupSegmentTitleEditing(title, segmentId);
-        });
-      }
-      function setupSegmentTitleEditing(titleEl, segmentId) {
-        if (!titleEl || !segmentId) return;
-        if (titleEl.dataset.segmentBound === 'true') return;
-        titleEl.dataset.segmentBound = 'true';
-        titleEl.dataset.segmentId = segmentId;
-        const initialText = (titleEl.textContent || '').trim() || 'New Segment';
-        titleEl.textContent = initialText;
-        if (!('originalValue' in titleEl.dataset)) {
-          titleEl.dataset.originalValue = initialText;
-        }
-        titleEl.addEventListener('focus', () => {
-          requestAnimationFrame(() => {
-            const selection = window.getSelection();
-            if (!selection) return;
-            const range = document.createRange();
-            range.selectNodeContents(titleEl);
-            selection.removeAllRanges();
-            selection.addRange(range);
-          });
-        });
-        titleEl.addEventListener('keydown', event => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            titleEl.blur();
-          } else if (event.key === 'Escape') {
-            event.preventDefault();
-            titleEl.textContent = titleEl.dataset.originalValue || 'New Segment';
-            titleEl.blur();
-          }
-        });
-        titleEl.addEventListener('paste', event => {
-          event.preventDefault();
-          const text = event.clipboardData?.getData('text/plain') || '';
-          if (typeof document.execCommand === 'function') {
-            document.execCommand('insertText', false, text);
-          } else {
-            const selection = window.getSelection();
-            if (!selection) return;
-            selection.deleteFromDocument();
-            if (!selection.rangeCount) return;
-            const range = selection.getRangeAt(0);
-            range.insertNode(document.createTextNode(text));
-            range.collapse(false);
-          }
-        });
-        titleEl.addEventListener('blur', () => commitSegmentTitle(titleEl));
-      }
-      function focusTitleForEditing(titleEl) {
-        if (!titleEl) return;
-        requestAnimationFrame(() => {
-          titleEl.focus();
-          const selection = window.getSelection();
-          if (!selection) return;
-          const range = document.createRange();
-          range.selectNodeContents(titleEl);
-          selection.removeAllRanges();
-          selection.addRange(range);
-        });
-      }
-      async function commitSegmentTitle(titleEl) {
-        if (!titleEl || titleEl.dataset.saving === 'true') return;
-        const segmentId = titleEl.dataset.segmentId;
-        if (!segmentId) return;
-        const original = (titleEl.dataset.originalValue || '').trim();
-        const rawValue = (titleEl.textContent || '').trim();
-        const fallback = rawValue || original || 'New Segment';
-        if (!rawValue) titleEl.textContent = fallback;
-        if (fallback === original) return;
-        titleEl.dataset.saving = 'true';
-        try {
-          await updateSegmentName(segmentId, fallback);
-          titleEl.dataset.originalValue = fallback;
-        } catch (err) {
-          console.error(err);
-          titleEl.textContent = original || 'New Segment';
-          alert('Unable to update the segment name. Reverting.');
-        } finally {
-          delete titleEl.dataset.saving;
-        }
-      }
+
       /* ========== Add/Delete candidate ========== */
       async function handleAddCandidate(button) {
         const segmentId = button.dataset.segmentId;
         if (!segmentId) return;
+
         button.disabled = true;
         try {
           const res = await fetch(`/segments/${segmentId}/candidates/`, {
@@ -888,29 +617,20 @@
           if (!res.ok) throw new Error('Failed to add candidate');
           const data = await res.json();
           if (!data.success || !data.candidate) throw new Error(data.error || 'Unable to add candidate');
+
           const grid = button.closest('.view-session-candidate-grid');
           if (!grid) return;
+
           removeEmptyState(grid);
           const card = buildCandidateCard(data.candidate);
+
           // Insert new candidate AFTER the add tile (row becomes [ADD, C1, C2])
           grid.insertBefore(card, grid.children[1] || null);
-          initializeCandidateNameFields(card);
+
           card.classList.add('view-session-candidate--just-added');
-          const remeasure = () => {
-            if (document.body.classList.contains('view-session--expanded') && expandedCard) {
-              updateExpandedMeasurements(expandedCard);
-            } else {
-              lockAllGridsToOneRowUniform();
-            }
-          };
-          // Re-measure after animation completes
-          card.addEventListener('animationend', (e) => {
-            if (!e || e.animationName === 'view-session-candidate-pop') remeasure();
-          }, { once: true });
           setTimeout(() => card.classList.remove('view-session-candidate--just-added'), 600);
-          // Fallback re-measure
-          setTimeout(remeasure, 620);
-          remeasure();
+
+          lockAllGridsToOneRowUniform();
         } catch (e) {
           console.error(e);
           alert('Unable to add a candidate right now. Please try again.');
@@ -918,6 +638,7 @@
           button.disabled = false;
         }
       }
+
       function buildCandidateCard(candidateData) {
         const template = document.getElementById('view-session-candidate-template');
         const fragment = template.content.cloneNode(true);
@@ -925,14 +646,12 @@
         const nameInput = card.querySelector('.view-session-candidate__name');
         const img = card.querySelector('.view-session-candidate__avatar-image');
         const placeholderImg = card.querySelector('.avatar-placeholder-image');
+
         card.dataset.candidateId = candidateData.id;
         const candidateName = candidateData.name || 'Candidate Name';
-        if (nameInput) {
-          nameInput.value = candidateName;
-          nameInput.title = candidateName;
-          nameInput.dataset.originalValue = candidateName;
-          setupCandidateNameField(nameInput);
-        }
+        nameInput.value = candidateName;
+        nameInput.dataset.originalValue = candidateName;
+
         if (candidateData.photo_url) {
           img.src = candidateData.photo_url;
           img.alt = candidateName;
@@ -947,9 +666,11 @@
         }
         return card;
       }
+
       function handleCandidateAction(action, candidateElement) {
         const candidateId = candidateElement?.dataset?.candidateId;
         if (!candidateElement) return;
+
         switch (action) {
           case 'change-photo': {
             candidateElement.querySelector('.view-session-candidate__file-input')?.click();
@@ -972,29 +693,23 @@
           default: closeAllMenus();
         }
       }
+
       function handlePhotoUpload(fileInput) {
         const file = fileInput.files[0]; if (!file) return;
         const candidate = fileInput.closest('.view-session-candidate'); if (!candidate) return;
-        const candidateId = candidate.dataset.candidateId || null;
+        const candidateId = candidate.dataset.candidateId; if (!candidateId) return;
         uploadCandidatePhoto(candidateId, file, candidate, fileInput);
       }
+
       async function uploadCandidatePhoto(candidateId, file, candidateElement, fileInput) {
         const formData = new FormData(); formData.append('photo', file);
         const img = candidateElement.querySelector('.view-session-candidate__avatar-image');
         const placeholderImg = candidateElement.querySelector('.avatar-placeholder-image');
-        const previousPreview = candidateElement.dataset.previewObjectUrl;
-        if (previousPreview) {
-          URL.revokeObjectURL(previousPreview);
-          delete candidateElement.dataset.previewObjectUrl;
-        }
         const previewUrl = URL.createObjectURL(file);
-        candidateElement.dataset.previewObjectUrl = previewUrl;
         if (img) { img.src = previewUrl; img.hidden = false; }
         if (placeholderImg) placeholderImg.hidden = true;
         candidateElement.classList.add('has-photo');
-        if (!candidateId) {
-          return;
-        }
+
         try {
           const res = await fetch(`/candidate/${candidateId}/photo/`, {
             method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body: formData
@@ -1009,9 +724,9 @@
           resetCandidateAvatar(candidateElement);
         } finally {
           URL.revokeObjectURL(previewUrl); fileInput.value = ''; closeAllMenus();
-          delete candidateElement.dataset.previewObjectUrl;
         }
       }
+
       async function removeCandidatePhoto(candidateId, candidateElement) {
         try {
           const res = await fetch(`/candidate/${candidateId}/photo/remove/`, {
@@ -1023,6 +738,7 @@
           console.error(e); alert('Unable to delete the photo right now.');
         }
       }
+
       async function deleteCandidate(candidateId, candidateElement) {
         try {
           const res = await fetch(`/delete_candidate/${candidateId}/`, {
@@ -1032,18 +748,12 @@
           if (!res.ok) throw new Error('Failed to delete candidate');
           const grid = candidateElement.closest('.view-session-candidate-grid');
           candidateElement.remove();
-          if (grid) {
-            ensureEmptyState(grid);
-            if (document.body.classList.contains('view-session--expanded') && expandedCard) {
-              updateExpandedMeasurements(expandedCard);
-            } else {
-              lockAllGridsToOneRowUniform();
-            }
-          }
+          if (grid) { ensureEmptyState(grid); lockAllGridsToOneRowUniform(); }
         } catch (e) {
           console.error(e); alert('Unable to delete the candidate right now. Please try again.');
         }
       }
+
       /* ========== Delete segment ========== */
       async function deleteSegment(segmentId) {
         try {
@@ -1065,24 +775,18 @@
           console.error(e); alert('Unable to delete the segment right now.');
         }
       }
+
       /* ========== Candidate name inline updates ========== */
       async function handleNameUpdate(input) {
         const candidateElement = input.closest('.view-session-candidate');
         if (!candidateElement) return;
         const candidateId = candidateElement.dataset.candidateId;
-        const original = (input.dataset.originalValue || '').trim();
-        const rawValue = input.value || '';
-        const nextValue = rawValue.trim();
-        if (!nextValue) {
-          input.value = original;
-          updateCandidateNameMeta(input);
-          return;
-        }
-        input.value = nextValue;
-        updateCandidateNameMeta(input);
-        if (!candidateId || nextValue === original) {
-          return;
-        }
+        const original = input.dataset.originalValue || '';
+        const nextValue = input.value.trim();
+
+        if (!candidateId || nextValue === original) return;
+        if (!nextValue) { input.value = original; return; }
+
         try {
           const res = await fetch(`/candidate/${candidateId}/name/`, {
             method: 'POST',
@@ -1095,17 +799,12 @@
           console.error(e);
           alert('Unable to update the candidate name. Reverting to the previous value.');
           input.value = original;
-          updateCandidateNameMeta(input);
         }
       }
+
       function resetCandidateAvatar(candidateElement) {
         const img = candidateElement.querySelector('.view-session-candidate__avatar-image');
         const placeholderImg = candidateElement.querySelector('.avatar-placeholder-image');
-        const previewUrl = candidateElement.dataset.previewObjectUrl;
-        if (previewUrl) {
-          URL.revokeObjectURL(previewUrl);
-          delete candidateElement.dataset.previewObjectUrl;
-        }
         if (img) { img.hidden = true; img.removeAttribute('src'); }
         if (placeholderImg) placeholderImg.hidden = false;
         candidateElement.classList.remove('has-photo');
@@ -1113,92 +812,60 @@
       function updateCandidateInitial(_candidateElement) {
         /* No letter placeholder anymore; keeping this as a no-op to avoid refactors. */
       }
+
       /* ========== Height locking: one row (3 tiles) per segment ========== */
       function lockAllGridsToOneRowUniform() {
-        // Do not clamp heights while a segment is expanded.
-        if (document.body.classList.contains('view-session--expanded')) return;
         const wrappers = Array.from(document.querySelectorAll('.view-session-candidate-scroll'));
         const grids = Array.from(document.querySelectorAll('.view-session-candidate-grid'));
         if (grids.length === 0) return;
-          wrappers.forEach(w => {
-            w.style.maxHeight = '';
-            w.style.height = '';
-            w.style.overflowY = 'hidden';
-            // Preserve w.dataset.lockedRowHeight so we don't shrink after add/delete
-          });
-        document.querySelectorAll('.view-session-card__body').forEach(b => {
-          b.style.minHeight = '';
-        });
-        let maxRowHeight = 0;
-        const bodyExtra = 18;
-        grids.forEach((grid, index) => {
-          const wrapper = wrappers[index] || grid.closest('.view-session-candidate-scroll');
-          const tiles = Array.from(grid.querySelectorAll('.tile'));
-          if (!wrapper || tiles.length === 0) {
-            if (wrapper) {
-              wrapper.style.maxHeight = '220px';
-              wrapper.style.overflowY = 'hidden';
-            }
-            return;
-          }
-          tiles.forEach(tile => {
-            tile.style.minHeight = '';
-            tile.style.maxHeight = '';
-          });
-          const tileEntries = tiles.map(tile => ({ tile, rect: tile.getBoundingClientRect() }));
-          // Ignore tiles that are mid pop-in animation to avoid measuring a scaled height
-          const candidateEntries = tileEntries.filter(entry =>
-            entry.tile.classList.contains('view-session-candidate') &&
-            !entry.tile.classList.contains('view-session-candidate--just-added')
-          );
-          const referenceEntry = candidateEntries.length
-            ? candidateEntries.reduce((highest, entry) => entry.rect.height > highest.rect.height ? entry : highest, candidateEntries[0])
-            : tileEntries[0];
-          const referenceHeight = Math.round(referenceEntry.rect.height);
-          const cs = getComputedStyle(grid);
-          const pTop = parseFloat(cs.paddingTop) || 0;
-          const pBottom = parseFloat(cs.paddingBottom) || 0;
-          const rowHeight = Math.round(referenceEntry.rect.height + pTop + pBottom);
-          // Avoid visible shrink by never reducing from a previously locked
-          // base row height, then expose 1.25 rows visually to hint scrolling.
-          const prevRaw = parseFloat(wrapper.dataset.lockedRowHeight || '0');
-          const stableRaw = Math.max(rowHeight, prevRaw || 0);
-          wrapper.dataset.lockedRowHeight = String(stableRaw);
-          const visibleHeight = Math.round(stableRaw * 1.25);
-          maxRowHeight = Math.max(maxRowHeight, visibleHeight);
-          wrapper.style.maxHeight = visibleHeight + 'px';
-          wrapper.style.height = visibleHeight + 'px';
-          wrapper.style.overflowY = tiles.length > 3 ? 'auto' : 'hidden';
-          const stableTileHeight = Math.max(
-            referenceHeight,
-            Math.max(0, Math.round(stableRaw - pTop - pBottom))
-          );
-          tileEntries.forEach(entry => {
-            entry.tile.style.minHeight = stableTileHeight + 'px';
-            entry.tile.style.maxHeight = stableTileHeight + 'px';
-          });
-        });
-        if (maxRowHeight === 0) {
-          wrappers.forEach(w => {
-            w.style.maxHeight = '220px';
-            w.style.overflowY = 'hidden';
-          });
-          document.querySelectorAll('.view-session-card__body').forEach(b => {
-            b.style.minHeight = '260px';
-          });
+
+        // Reset all first to get accurate measurements
+        wrappers.forEach(w => { w.style.maxHeight = ''; w.style.height = ''; /* overflow-y toggled below */ });
+
+        // Choose a sample grid with at least one tile
+        const sample = grids.find(g => g.querySelector('.tile')) || grids[0];
+        const firstTile = sample.querySelector('.tile');
+        if (!firstTile) {
+          // Nothing to measure; set safe fallback
+          wrappers.forEach(w => { w.style.maxHeight = '220px'; w.style.overflowY = 'hidden'; });
+          document.querySelectorAll('.view-session-card__body').forEach(b => { b.style.minHeight = '260px'; });
           return;
         }
+
+        // Measure one tile height + grid paddings for a single row
+        const tileRect = firstTile.getBoundingClientRect();
+        const cs = getComputedStyle(sample);
+        const pTop = parseFloat(cs.paddingTop) || 0;
+        const pBottom = parseFloat(cs.paddingBottom) || 0;
+        const oneRowHeight = Math.round(tileRect.height + pTop + pBottom);
+
+        // Apply to all wrappers; scroll if > 3 tiles (add tile counts as one)
+        grids.forEach((g, i) => {
+          const w = wrappers[i] || g.closest('.view-session-candidate-scroll');
+          if (!w) return;
+          w.style.maxHeight = oneRowHeight + 'px';
+
+          const tileCount = g.querySelectorAll('.tile').length; // includes add-tile
+          w.style.overflowY = tileCount > 3 ? 'auto' : 'hidden';
+        });
+
+        // Make each segment body the same height as well
+        const bodyExtra = 18;
+        const target = oneRowHeight + bodyExtra;
         document.querySelectorAll('.view-session-card__body').forEach(b => {
-          b.style.minHeight = (maxRowHeight + bodyExtra) + 'px';
+          b.style.minHeight = target + 'px';
         });
       }
+
       /* ========== Expand / Collapse ========== */
       function toggleExpand(btn) {
         const card = btn.closest('.view-session-card');
         if (!card) return;
+
         document.querySelectorAll('.view-session-card--expanded').forEach(other => {
           if (other !== card) collapseSegment(other, other.querySelector('.view-session-card__expand-toggle'));
         });
+
         if (card.classList.contains('view-session-card--expanded')) {
           collapseSegment(card, btn);
         } else {
@@ -1207,11 +874,14 @@
       }
       function expandSegment(card, btn) {
         if (expandedCard) collapseSegment(expandedCard, expandedCard.querySelector('.view-session-card__expand-toggle'));
+
         card.classList.add('view-session-card--expanded');
         document.body.classList.add('view-session--expanded');
+
         const icon = btn?.querySelector('i');
         if (btn) { btn.setAttribute('aria-pressed', 'true'); btn.setAttribute('title', 'Minimize'); }
         if (icon) { icon.classList.remove('fa-expand'); icon.classList.add('fa-compress'); }
+
         updateExpandedMeasurements(card);
         expandedCard = card;
       }
@@ -1222,28 +892,32 @@
         const headerH = header.getBoundingClientRect().height;
         card.style.setProperty('--expanded-header-h', `${headerH}px`);
         scrollWrap.style.maxHeight = '';
-        scrollWrap.style.minHeight = '';
-        scrollWrap.style.height = '100%';
+        scrollWrap.style.height = `calc(100vh - ${headerH}px - 16px)`;
         scrollWrap.style.overflowY = 'auto';
       }
       function collapseSegment(card, btn) {
         card.classList.remove('view-session-card--expanded');
         document.body.classList.remove('view-session--expanded');
+
         const icon = btn?.querySelector('i');
         if (btn) { btn.setAttribute('aria-pressed', 'false'); btn.setAttribute('title', 'Maximize'); }
         if (icon) { icon.classList.remove('fa-compress'); icon.classList.add('fa-expand'); }
+
         lockAllGridsToOneRowUniform();
         expandedCard = null;
       }
+
       /* ========== Add New Segment ========== */
       document.addEventListener('DOMContentLoaded', () => {
         const addBtn = document.getElementById('add-segment-btn');
         if (addBtn) addBtn.addEventListener('click', onAddSegmentClick);
       });
+
       async function onAddSegmentClick(event) {
         event.preventDefault();
         const btn = event.currentTarget;
         if (btn) btn.classList.add('is-loading');
+
         try {
           const res = await fetch(createSegmentUrl, {
             method: 'POST',
@@ -1253,13 +927,17 @@
           if (!res.ok) throw new Error('Failed to create segment');
           const data = await res.json();
           if (!data.success || !data.segment?.id) throw new Error(data.error || 'Could not create segment');
+
           const card = buildEmptySegmentCard(data.segment);
           const container = document.getElementById('sortable-segments');
           if (!container) return;
           container.insertBefore(card, container.firstChild);
+
           applySegmentColors();
+
           const addCandidateBtn = card.querySelector('.view-session-add-candidate');
           if (addCandidateBtn) addCandidateBtn.addEventListener('click', () => handleAddCandidate(addCandidateBtn));
+
           // Persist order (optional)
           const orderedIds = Array.from(container.querySelectorAll('.view-session-card')).map(el => el.dataset.id);
           fetch('/update-segment-order/', {
@@ -1267,6 +945,7 @@
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             body: JSON.stringify({ order: orderedIds })
           }).catch(() => {});
+
           lockAllGridsToOneRowUniform();
         } catch (err) {
           console.error(err);
@@ -1275,24 +954,45 @@
           if (btn) btn.classList.remove('is-loading');
         }
       }
+
       function buildEmptySegmentCard(segment) {
         const template = document.getElementById('view-session-segment-template');
         const fragment = template.content.cloneNode(true);
         const card = fragment.querySelector('.view-session-card');
         card.dataset.id = segment.id;
+
         const titleText = card.querySelector('.view-session-card__title-text');
-        const rawName = (segment.name || '').trim();
-        const initialName = rawName || 'New Segment';
-        if (titleText) {
-          titleText.textContent = initialName;
-          titleText.dataset.originalValue = rawName;
-          setupSegmentTitleEditing(titleText, segment.id);
-          focusTitleForEditing(titleText);
+        const nameInput = card.querySelector('.view-session-segment__name-input');
+        const initialName = segment.name || '';
+        if (titleText) titleText.textContent = initialName || 'New Segment';
+        if (nameInput) {
+          nameInput.value = initialName; nameInput.hidden = false; nameInput.dataset.originalValue = initialName;
+          nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); nameInput.blur(); }});
+          nameInput.addEventListener('blur', async () => {
+            const nextValue = nameInput.value.trim();
+            const original = nameInput.dataset.originalValue || '';
+            const valueToSave = nextValue || (original || 'New Segment');
+            try {
+              await updateSegmentName(segment.id, valueToSave);
+              nameInput.dataset.originalValue = valueToSave;
+              if (titleText) titleText.textContent = valueToSave;
+            } catch {
+              nameInput.value = original;
+              if (titleText) titleText.textContent = original || 'New Segment';
+              alert('Unable to update the segment name. Reverting.');
+            } finally { nameInput.hidden = true; }
+          });
+          setTimeout(() => nameInput.focus(), 0);
         }
+
         setSegmentLinks(card, segment.id);
-        initializeCandidateNameFields(card);
+
+        const expandBtn = card.querySelector('.view-session-card__expand-toggle');
+        if (expandBtn) expandBtn.addEventListener('click', (e) => { e.preventDefault(); toggleExpand(expandBtn); });
+
         return card;
       }
+
       function setSegmentLinks(card, segmentId) {
         const editLink = card.querySelector('[data-role="edit-segment-link"]');
         if (editLink && editSegmentUrlPattern) editLink.href = editSegmentUrlPattern.replace(/0(?!\d)/, String(segmentId));
@@ -1301,6 +1001,7 @@
         const addBtn = card.querySelector('.view-session-add-candidate');
         if (addBtn) addBtn.dataset.segmentId = segmentId;
       }
+
       async function updateSegmentName(segmentId, name) {
         const res = await fetch(updateSegmentNameUrl(segmentId), {
           method: 'POST',
@@ -1311,6 +1012,7 @@
         const data = await res.json().catch(() => ({}));
         if (data && data.success === false) throw new Error(data.error || 'Rename rejected');
       }
+
       /* Utilities: empty state */
       function removeEmptyState(grid) {
         const emptyState = grid ? grid.querySelector('.view-session-card__empty') : null;
@@ -1327,6 +1029,7 @@
         }
       }
       function removeEl(el){ if (el && el.parentNode) el.parentNode.removeChild(el); }
+
     })();
   </script>
 </body>

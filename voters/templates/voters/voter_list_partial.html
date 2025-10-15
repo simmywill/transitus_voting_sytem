@@ -2,7 +2,8 @@
     {% for voter in voters %}
     <tr id="voter-{{ voter.voter_id }}" class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
         <td>{{ voter.Fname }} {{ voter.Lname }}</td>
-        <td class="voter-status">
+        <td class="voter-status-cell">
+            <div class="voter-status">
             {% if voter.is_verified %}
                 <button type="button"  class = "status-verified">Verified</button>
                 {% if voter.has_finished %}
@@ -14,9 +15,10 @@
                 <button type="button" class= "status-not-verified" > Not Verified </button>
                 <button type="button" class= "status-not-verified" > Not Finished</button> 
             {% endif %}
+            </div>
         </td>
         <td>
-            <a hr ef="{% url 'edit_voter' voter.voter_id %}">Edit</a>
+            <a href="{% url 'edit_voter' voter.voter_id %}">Edit</a>
             <a href="{% url 'delete_voter' voter.voter_id %}" onclick="return confirm('Are you sure?')">Delete</a>
         </td>
     </tr>

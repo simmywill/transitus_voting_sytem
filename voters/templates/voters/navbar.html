@@ -5,7 +5,6 @@
         <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
         <li><a href="{% url 'create_voting_session' %}">Create Session</a></li>
         <li><a href="{% url 'add_voters' session.session_id %}">Add Voters</a></li> <!-- Add Voters link -->
-        <li><a href="{% url 'manage_session' session.session_id %}">Manage Session {{ session.session_id }}</a></li>
         <li><a href="{% url 'active_voting_session' session.session_id %}">View Voting Session</a></li>
     </ul>
 </nav>
