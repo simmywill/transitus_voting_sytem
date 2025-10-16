@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <title>Voting Session</title>
+  <meta name="csrf-token" content="{{ csrf_token_value|default:csrf_token }}">
   <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
@@ -309,6 +310,9 @@
   </style>
 </head>
 <body class="view-session-body">
+  <script>
+    window.csrfToken = "{{ csrf_token_value|default:csrf_token|escapejs }}";
+  </script>
   <nav class="voting_session-navbar">
     <div class="voting_session-navbar-content">
       <h1 class="voting_session-navbar-title">{{ session.title }}</h1>
@@ -513,7 +517,31 @@
     const editSegmentUrlPattern = "{% url 'edit_segment' 0 %}";
     const createSegmentUrl = `/sessions/${sessionId}/segments/`;
     const updateSegmentNameUrl = (id) => `/segment/${id}/name/`;
-    const csrfToken = '{{ csrf_token }}';
+    const resolveCsrfToken = () => {
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      if (meta && meta.content && meta.content !== 'NOTPROVIDED') {
+        return meta.content;
+      }
+      const inlineInput = document.querySelector('input[name="csrfmiddlewaretoken"]');
+      if (inlineInput && inlineInput.value) {
+        return inlineInput.value;
+      }
+      if (window.csrfToken && window.csrfToken !== 'NOTPROVIDED') {
+        return window.csrfToken;
+      }
+      const cookieMatch = document.cookie.match(/(?:^|;)\s*csrftoken=([^;]+)/);
+      return cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
+    };
+    let csrfToken = resolveCsrfToken();
+    const ensureCsrfToken = () => {
+      if (!csrfToken || csrfToken === 'NOTPROVIDED') {
+        csrfToken = resolveCsrfToken();
+      }
+      if (csrfToken && csrfToken !== 'NOTPROVIDED') {
+        window.csrfToken = csrfToken;
+      }
+      return csrfToken;
+    };
     function toggleNavbar() {
       const navbar = document.querySelector('.voting_session-navbar-links');
       if (navbar) navbar.classList.toggle('active');
@@ -570,7 +598,7 @@
             const orderedIds = Array.from(container.querySelectorAll('.view-session-card')).map(c => c.dataset.id);
             fetch('/update-segment-order/', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+              headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ensureCsrfToken() },
               body: JSON.stringify({ order: orderedIds })
             }).catch(() => {});
           }
@@ -882,7 +910,7 @@
         try {
           const res = await fetch(`/segments/${segmentId}/candidates/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ensureCsrfToken() },
             body: JSON.stringify({ name: 'Candidate Name' })
           });
           if (!res.ok) throw new Error('Failed to add candidate');
@@ -996,8 +1024,8 @@
           return;
         }
         try {
-          const res = await fetch(`/candidate/${candidateId}/photo/`, {
-            method: 'POST', headers: { 'X-CSRFToken': csrfToken }, body: formData
+        const res = await fetch(`/candidate/${candidateId}/photo/`, {
+          method: 'POST', headers: { 'X-CSRFToken': ensureCsrfToken() }, body: formData
           });
           if (!res.ok) throw new Error('Failed to update photo');
           const data = await res.json();
@@ -1014,8 +1042,8 @@
       }
       async function removeCandidatePhoto(candidateId, candidateElement) {
         try {
-          const res = await fetch(`/candidate/${candidateId}/photo/remove/`, {
-            method: 'POST', headers: { 'X-CSRFToken': csrfToken }
+        const res = await fetch(`/candidate/${candidateId}/photo/remove/`, {
+          method: 'POST', headers: { 'X-CSRFToken': ensureCsrfToken() }
           });
           if (!res.ok) throw new Error('Failed to remove photo');
           resetCandidateAvatar(candidateElement);
@@ -1025,9 +1053,9 @@
       }
       async function deleteCandidate(candidateId, candidateElement) {
         try {
-          const res = await fetch(`/delete_candidate/${candidateId}/`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        const res = await fetch(`/delete_candidate/${candidateId}/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ensureCsrfToken() }
           });
           if (!res.ok) throw new Error('Failed to delete candidate');
           const grid = candidateElement.closest('.view-session-candidate-grid');
@@ -1049,7 +1077,7 @@
         try {
           const res = await fetch(`/delete-segment/${segmentId}/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ensureCsrfToken() }
           });
           if (!res.ok) throw new Error('Failed to delete segment');
           const segmentCard = document.querySelector(`.view-session-card[data-id="${segmentId}"]`);
@@ -1086,7 +1114,7 @@
         try {
           const res = await fetch(`/candidate/${candidateId}/name/`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ensureCsrfToken() },
             body: JSON.stringify({ name: nextValue })
           });
           if (!res.ok) throw new Error('Failed to update name');
@@ -1247,7 +1275,7 @@
         try {
           const res = await fetch(createSegmentUrl, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ensureCsrfToken() },
             body: JSON.stringify({ name: '' })
           });
           if (!res.ok) throw new Error('Failed to create segment');
@@ -1264,7 +1292,7 @@
           const orderedIds = Array.from(container.querySelectorAll('.view-session-card')).map(el => el.dataset.id);
           fetch('/update-segment-order/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ensureCsrfToken() },
             body: JSON.stringify({ order: orderedIds })
           }).catch(() => {});
           lockAllGridsToOneRowUniform();
@@ -1304,7 +1332,7 @@
       async function updateSegmentName(segmentId, name) {
         const res = await fetch(updateSegmentNameUrl(segmentId), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ensureCsrfToken() },
           body: JSON.stringify({ name })
         });
         if (!res.ok) throw new Error('Failed to rename segment');

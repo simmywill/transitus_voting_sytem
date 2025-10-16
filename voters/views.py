@@ -17,6 +17,9 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.views.decorators.http import require_POST
+from django.db import transaction
+from django.db.models import Case, When, IntegerField
+from django.middleware.csrf import get_token
 
 
 
@@ -92,7 +95,12 @@ def manage_session(request, session_id=None , session_uuid=None):
         raise Http404("Session identifier not provided.")
     
     # Retrieve any existing segments and candidates associated with this session
-    segments = VotingSegmentHeader.objects.filter(session=voting_session).prefetch_related('candidate_set')
+    segments = (
+        VotingSegmentHeader.objects
+        .filter(session=voting_session)
+        .prefetch_related('candidates')
+        .order_by('order', 'id')
+    )
     
     return render(request, 'voters/manage_session.html', {
         'session': voting_session,
@@ -131,9 +139,16 @@ def add_segments(request, session_id):
                                 segment_header=header
                             )
                         candidate_index += 1
-        return redirect('add_segments', session_id=session_id)                
+        return redirect('add_segments', session_id=session_id)
+
+    segments = (
+        session.segments
+        .prefetch_related('candidates')
+        .order_by('order', 'id')
+    )
     return render(request , 'voters/manage_session.html' , {
-        'session' :  session
+        'session' :  session,
+        'segments': segments,
     })
 
 
@@ -143,13 +158,64 @@ def active_voting_session(request, session_id):
     session = get_object_or_404(VotingSession, session_id=session_id)
 
     # Retrieve all segments and their candidates associated with this session
-    segments = VotingSegmentHeader.objects.filter(session=session).prefetch_related('candidates')
+    segments = (
+        VotingSegmentHeader.objects
+        .filter(session=session)
+        .prefetch_related('candidates')
+        .order_by('order', 'id')
+    )
 
     context = {
         'session': session,
         'segments': segments,
+        'csrf_token_value': get_token(request),
     }
     return render(request, 'voters/voting_session.html', context)
+
+
+@require_POST
+def update_segment_order(request):
+    """
+    Persist the user-defined order of segments.
+
+    Expects JSON payload: { "order": [segment_id_1, segment_id_2, ...] }
+    Updates VotingSegmentHeader.order to the index in the list (0-based).
+    """
+    try:
+        payload = json.loads(request.body.decode('utf-8') or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+    order_list = payload.get('order')
+    if not isinstance(order_list, list) or not order_list:
+        return JsonResponse({'success': False, 'error': 'Missing or invalid "order" list'}, status=400)
+
+    # Deduplicate while preserving order; coerce to ints where possible
+    seen = set()
+    cleaned_ids = []
+    for sid in order_list:
+        try:
+            sid_int = int(sid)
+        except (TypeError, ValueError):
+            continue
+        if sid_int not in seen:
+            seen.add(sid_int)
+            cleaned_ids.append(sid_int)
+
+    if not cleaned_ids:
+        return JsonResponse({'success': False, 'error': 'No valid segment IDs'}, status=400)
+
+    # Build CASE expression to update in a single query
+    cases = [When(pk=sid, then=Value(idx)) for idx, sid in enumerate(cleaned_ids)]
+    try:
+        with transaction.atomic():
+            updated = VotingSegmentHeader.objects.filter(pk__in=cleaned_ids).update(
+                order=Case(*cases, output_field=IntegerField())
+            )
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+    return JsonResponse({'success': True, 'updated': int(updated)})
 
 
 @login_required
@@ -164,7 +230,11 @@ def list_voting_sessions(request):
     else:
         form = VotingSessionForm()
 
-    sessions = VotingSession.objects.filter(admin=request.user)
+    sessions = (
+        VotingSession.objects
+        .filter(admin=request.user)
+        .order_by('-created_at', '-session_id')
+    )
     return render(request, 'voters/list_sessions.html', {
         'sessions': sessions,
         'form': form
@@ -300,6 +370,7 @@ def voter_list(request, session_id=None, session_uuid=None):
                 'session_uuid': extracted_uuid,  # Pass the extracted UUID
                 'session_id': session_id,
                 'is_active': is_active,
+                'csrf_token_value': get_token(request),
             },
         )
 
@@ -331,6 +402,7 @@ def voter_list(request, session_id=None, session_uuid=None):
                 'session_uuid': session_uuid,
                 'session_id': session_id,
                 'is_active': voting_session.is_active,
+                'csrf_token_value': get_token(request),
             },
         )
 

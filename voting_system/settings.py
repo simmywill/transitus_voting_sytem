@@ -155,6 +155,17 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 # BASE_URL for QR code generation (use your own URL or localhost during development)
 BASE_URL = 'http://127.0.0.1:8000'
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.onrender.com',
+]
+
+render_external_url = os.getenv('RENDER_EXTERNAL_URL', '').strip()
+if render_external_url:
+    if not render_external_url.startswith(('http://', 'https://')):
+        render_external_url = f'https://{render_external_url}'
+    CSRF_TRUSTED_ORIGINS.append(render_external_url.rstrip('/'))
+CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
