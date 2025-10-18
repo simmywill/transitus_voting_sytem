@@ -49,13 +49,13 @@ import dj_database_url
 
 # Parse the DATABASE_URL from the environment
 default_sqlite = f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}'
+# First load without forcing SSL; enforce per-engine below to avoid sqlite errors
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL', default_sqlite),
         # Keep DB connections open to avoid reconnect churn and SSL handshakes
         conn_max_age=int(os.getenv('DB_CONN_MAX_AGE', '120')),
-        # Force TLS for managed Postgres even if the URL is missing sslmode
-        ssl_require=True,
+        ssl_require=False,
     )
 }
 # Health checks ensure persistent connections are validated before reuse
@@ -64,10 +64,22 @@ try:
 except Exception:
     pass
 
-# Safety net: if using Postgres and sslmode not present, enforce it
-if DATABASES['default'].get('ENGINE', '').endswith('postgresql'):
+# Enforce SSL only for Postgres; strip any sslmode option for sqlite
+engine = (DATABASES['default'].get('ENGINE') or '')
+if engine.endswith('postgresql'):
     DATABASES['default'].setdefault('OPTIONS', {})
     DATABASES['default']['OPTIONS'].setdefault('sslmode', 'require')
+else:
+    # Remove accidental sslmode from non-Postgres engines (e.g., sqlite)
+    try:
+        opts = DATABASES['default'].get('OPTIONS') or {}
+        opts.pop('sslmode', None)
+        if opts:
+            DATABASES['default']['OPTIONS'] = opts
+        elif 'OPTIONS' in DATABASES['default']:
+            del DATABASES['default']['OPTIONS']
+    except Exception:
+        pass
 
 #ALLOWED_HOSTS = ['transitus-voting-sytem.onrender.com']
 # Application definition

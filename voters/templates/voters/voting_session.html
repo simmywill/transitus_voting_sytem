@@ -1084,13 +1084,19 @@
             img.src = `${data.candidate.photo_url}?t=${Date.now()}`;
           }
         } catch (e) {
-          console.error(e); alert('Could not update the photo. Please try again.');
-          resetCandidateAvatar(candidateElement);
+          console.error(e);
+          alert('Could not update the photo. Please try again.');
+          // Keep the local preview so the user doesn't see a blank tile.
+          // They can retry; do not clear img or placeholder here.
         } finally {
-          safeRevokeObjectURL(previewUrl, img);
+          // Only revoke the preview blob if the image has switched to the
+          // server URL; otherwise keep the local preview visible.
+          if (img && img.src !== previewUrl) {
+            safeRevokeObjectURL(previewUrl, img);
+            delete candidateElement.dataset.previewObjectUrl;
+          }
           fileInput.value = '';
           closeAllMenus();
-          delete candidateElement.dataset.previewObjectUrl;
         }
       }
       async function removeCandidatePhoto(candidateId, candidateElement) {
