@@ -20,6 +20,7 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.db.models import Case, When, IntegerField
 from django.middleware.csrf import get_token
+from django.views.decorators.cache import never_cache
 
 
 
@@ -85,6 +86,7 @@ def create_voting_session(request):
 
 
 @login_required
+@never_cache
 def manage_session(request, session_id=None , session_uuid=None):
      # Determine the voting session
     if session_uuid:
@@ -153,9 +155,11 @@ def add_segments(request, session_id):
 
 
 
+@login_required
+@never_cache
 def active_voting_session(request, session_id):
     # Retrieve the voting session with the given ID
-    session = get_object_or_404(VotingSession, session_id=session_id)
+    session = get_object_or_404(VotingSession, session_id=session_id, admin=request.user)
 
     # Retrieve all segments and their candidates associated with this session
     segments = (
@@ -173,6 +177,7 @@ def active_voting_session(request, session_id):
     return render(request, 'voters/voting_session.html', context)
 
 
+@login_required
 @require_POST
 def update_segment_order(request):
     """
@@ -209,9 +214,9 @@ def update_segment_order(request):
     cases = [When(pk=sid, then=Value(idx)) for idx, sid in enumerate(cleaned_ids)]
     try:
         with transaction.atomic():
-            updated = VotingSegmentHeader.objects.filter(pk__in=cleaned_ids).update(
-                order=Case(*cases, output_field=IntegerField())
-            )
+            updated = (VotingSegmentHeader.objects
+                       .filter(pk__in=cleaned_ids, session__admin=request.user)
+                       .update(order=Case(*cases, output_field=IntegerField())))
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
@@ -219,6 +224,7 @@ def update_segment_order(request):
 
 
 @login_required
+@never_cache
 def list_voting_sessions(request):
     if request.method == 'POST':
         form = VotingSessionForm(request.POST)
@@ -241,8 +247,38 @@ def list_voting_sessions(request):
     })
 
 
+@login_required
+@require_POST
+def activate_session(request, session_id):
+    """Activate a voting session and ensure share link + QR are available.
+    Returns JSON consumed by the front-end activation script.
+    """
+    session = get_object_or_404(VotingSession, session_id=session_id, admin=request.user)
+
+    # Set active flag if not already
+    if not session.is_active:
+        session.is_active = True
+        session.save(update_fields=['is_active'])
+
+    # Ensure unique_url/QR exist
+    if not session.unique_url:
+        try:
+            session.generate_qr_code(request)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': f'QR generation failed: {e}'}, status=500)
+
+    payload = {
+        'success': True,
+        'session_uuid': session.get_uuid(),
+        'unique_url': session.unique_url or '',
+        'qr_code_url': (session.qr_code.url if getattr(session, 'qr_code', None) else ''),
+    }
+    return JsonResponse(payload)
+
+
+@login_required
 def delete_voting_session(request, session_id):
-    session = VotingSession.objects.get(session_id=session_id)
+    session = get_object_or_404(VotingSession, session_id=session_id, admin=request.user)
 
     if request.method == 'POST':
         if 'confirm' in request.POST:  # User confirmed deletion
@@ -293,6 +329,7 @@ def add_voters(request , session_id=None, session_uuid=None):
     )"""
 
 @login_required
+@never_cache
 def voter_list(request, session_id=None, session_uuid=None):
     # Determine the voting session
     if session_uuid:
@@ -463,6 +500,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from .models import Candidate, VotingSegmentHeader
 
+@login_required
+@never_cache
 def edit_segment(request, segment_id):
     # Retrieve the segment to be edited
     segment = get_object_or_404(VotingSegmentHeader, id=segment_id)
@@ -510,7 +549,9 @@ def edit_segment(request, segment_id):
     return render(request, 'voters/edit_segment.html', context)
 
 
-@csrf_exempt
+from django.contrib.auth.decorators import login_required
+
+@login_required
 def delete_candidate(request, candidate_id):
     if request.method == 'POST':
         candidate = get_object_or_404(Candidate, id=candidate_id)
@@ -524,7 +565,7 @@ def delete_candidate(request, candidate_id):
     return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=400)
 
 
-@csrf_exempt
+@login_required
 def create_candidate(request, segment_id):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
@@ -570,7 +611,7 @@ def create_candidate(request, segment_id):
     }, status=201)
 
 
-@csrf_exempt
+@login_required
 def update_candidate_name(request, candidate_id):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
@@ -595,7 +636,7 @@ def update_candidate_name(request, candidate_id):
     return JsonResponse({'success': True, 'candidate': {'id': candidate.id, 'name': candidate.name}})
 
 
-@csrf_exempt
+@login_required
 def update_candidate_photo(request, candidate_id):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
@@ -623,7 +664,7 @@ def update_candidate_photo(request, candidate_id):
     })
 
 
-@csrf_exempt
+@login_required
 def remove_candidate_photo(request, candidate_id):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
@@ -640,32 +681,12 @@ def remove_candidate_photo(request, candidate_id):
 
     return JsonResponse({'success': True, 'candidate': {'id': candidate.id, 'photo_url': None}})
 
-@csrf_exempt
-def update_segment_order(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        segment_order = data.get('order', [])
-        
-        # Update each segment with the new order
-        for order, segment_id in enumerate(segment_order):
-            VotingSegmentHeader.objects.filter(id=segment_id).update(order=order)
-        
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'failed'}, status=400)
+## Removed duplicate update_segment_order; the transaction-safe version earlier is used.
 
 
-@csrf_exempt
-def update_segment(request):
-    if request.method == 'POST':
-        data = json.loads(request.body)
-        segment_id = data['segment_id']
-        new_name = data['new_name']
-        segment = VotingSegment.objects.get(id=segment_id)
-        segment.name = new_name
-        segment.save()
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'failed'}, status=400)
+## Removed insecure unused update_segment endpoint
 
+@login_required
 def delete_segment(request, segment_id):
     if request.method == 'POST':
         segment = get_object_or_404(VotingSegmentHeader, id=segment_id)
@@ -674,48 +695,7 @@ def delete_segment(request, segment_id):
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
 
-@login_required
-def activate_session(request, session_id):
-    session = get_object_or_404(VotingSession, session_id=session_id)
-
-    if request.method != 'POST':
-        expects_json = 'application/json' in (request.headers.get('Accept') or '')
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or expects_json:
-            return JsonResponse({'success': False, 'error': 'Invalid request method'}, status=405)
-        next_url = request.GET.get('next')
-        if next_url:
-            return redirect(next_url)
-        return redirect('voter_list', session_id=session_id)
-
-    generated_unique_url = False
-    if not session.unique_url:
-        session.generate_qr_code(request)
-        generated_unique_url = True
-
-    if not session.is_active:
-        session.is_active = True
-        session.save(update_fields=['is_active'])
-
-    payload = {
-        'success': True,
-        'is_active': session.is_active,
-        'unique_url': session.unique_url,
-        'session_uuid': session.get_uuid(),
-        'qr_code_url': session.qr_code.url if session.qr_code else None,
-        'generated_unique_url': generated_unique_url,
-    }
-
-    expects_json = (
-        request.headers.get('x-requested-with') == 'XMLHttpRequest'
-        or 'application/json' in (request.headers.get('Accept') or '')
-    )
-    if expects_json:
-        return JsonResponse(payload)
-
-    next_url = request.POST.get('next') or request.GET.get('next')
-    if next_url:
-        return redirect(next_url)
-    return redirect('voter_list', session_id=session_id)
+## Removed duplicate activate_session definition (kept earlier, admin-checked)
 
 
 
@@ -814,9 +794,11 @@ def voter_session(request, session_uuid, voter_id):
 
 
 
-@csrf_exempt
 def submit_vote(request, session_uuid , voter_id):
     if request.method == 'POST':
+        # Disable legacy write path when anonymous handoff is enabled
+        if getattr(settings, 'ANON_HANDOFF_ENABLED', False):
+            return JsonResponse({'error': 'Anonymous handoff enabled. Use /api/cast via BBS.'}, status=400)
         print(f"Received POST request for session: {session_uuid}, voter: {voter_id}")
         voter = get_object_or_404(Voter,voter_id=voter_id)
         session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
@@ -989,6 +971,7 @@ def get_voters(request, session_id=None, session_uuid=None):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@login_required
 @require_POST
 def create_segment(request, session_id):
     try:
@@ -1008,6 +991,7 @@ def create_segment(request, session_id):
     }, status=201)
 
 
+@login_required
 @require_POST
 def update_segment_name(request, segment_id):
     try:

@@ -19,6 +19,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from voters import views as voters_views
+from voters import cis_views, bbs_views
 
 urlpatterns = [
     #path('admin/', admin.site.urls),
@@ -57,3 +58,19 @@ urlpatterns = [
 
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# New CIS/BBS endpoints
+urlpatterns += [
+    # CIS (verify.agm.local)
+    path('verify/<uuid:session_uuid>/', cis_views.verify_form, name='cis_verify_form'),
+    path('api/verify', cis_views.api_verify, name='cis_api_verify'),
+    path('api/redeem', cis_views.api_redeem, name='cis_api_redeem'),
+    path('api/mark-spent', cis_views.api_mark_spent, name='cis_api_mark_spent'),
+    path('voter_status/<uuid:session_uuid>/', cis_views.voter_status, name='cis_voter_status'),
+
+    # BBS (vote.agm.local)
+    path('ballot/<uuid:session_uuid>/', bbs_views.ballot_entry, name='bbs_ballot_entry'),
+    path('api/cast', bbs_views.api_cast, name='bbs_api_cast'),
+    path('results/<uuid:session_uuid>/', bbs_views.results, name='bbs_results'),
+    path('api/cvr/<uuid:session_uuid>/', bbs_views.export_cvr, name='bbs_export_cvr'),
+]

@@ -14,7 +14,8 @@
     /* ===== Segment grid: 3 columns (wide), 2 (medium), 1 (small) ===== */
     .view-session-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      /* Use two columns on large screens to widen segments/candidate tiles */
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 16px;
       align-items: start;
     }
@@ -173,7 +174,7 @@
         0 0 2px rgba(14,165,233,.65),
         0 0 4px rgba(14,165,233,.35);
     }
-    /* Name field */
+    /* Name field (allow soft-wrapping into a second line) */
     .name-input {
       width: 100%; max-width: 100%;
       text-align: center;
@@ -182,7 +183,14 @@
       padding: 8px 10px;
       background: #fff; box-sizing: border-box;
       font-size: 15px;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      line-height: 1.2;                 /* match candidate text metrics */
+      min-height: calc(2.4em + 16px);   /* 2 lines + vertical padding (8px top + 8px bottom) */
+      /* allow breaking to next line naturally */
+      white-space: normal;
+      overflow-wrap: anywhere; /* break even on long tokens */
+      word-break: break-word;
+      resize: none; /* keep consistent geometry */
+      position: relative; z-index: 2; /* stay interactive above any overlays */
     }
     .name-input:focus {
       outline: none; box-shadow: 0 0 0 3px rgba(14,165,233,.15);
@@ -194,6 +202,7 @@
       display: flex;
       justify-content: center;
     }
+    /* (Reverted) Keep Add tile hint visible; spacer remains hidden input used only for height parity */
     .view-session-candidate__name-wrapper.is-active .name-input {
       border-color: var(--segment-color, #0ea5e9);
       box-shadow: 0 0 0 3px rgba(14,165,233,.15);
@@ -411,12 +420,11 @@
                     <div class="avatar-hint">Add Photo</div>
                   </div>
                   <div class="view-session-candidate__name-wrapper">
-                    <input class="name-input view-session-candidate__name"
-                           type="text"
-                           value="{{ candidate.name }}"
-                           placeholder="Candidate Name"
-                           data-original-value="{{ candidate.name }}"
-                           title="{{ candidate.name }}">
+                    <textarea class="name-input view-session-candidate__name"
+                              rows="2"
+                              placeholder="Candidate&#10;Name"
+                              data-original-value="{{ candidate.name }}"
+                              title="{{ candidate.name }}">{{ candidate.name }}</textarea>
                     <div class="view-session-candidate__name-popover" aria-hidden="true"></div>
                   </div>
                 </article>
@@ -456,12 +464,11 @@
         <div class="avatar-hint">Add Photo</div>
       </div>
       <div class="view-session-candidate__name-wrapper">
-        <input class="name-input view-session-candidate__name"
-               type="text"
-               value="Candidate Name"
-               placeholder="Candidate Name"
-               data-original-value="Candidate Name"
-               title="Candidate Name">
+        <textarea class="name-input view-session-candidate__name"
+                  rows="2"
+                  placeholder="Candidate&#10;Name"
+                  data-original-value="Candidate Name"
+                  title="Candidate Name"></textarea>
         <div class="view-session-candidate__name-popover" aria-hidden="true"></div>
       </div>
     </article>
@@ -618,6 +625,22 @@
         if (!field || field.dataset.nameBound === 'true') return;
         if (field.disabled) return;
         field.dataset.nameBound = 'true';
+        // Auto-grow textarea height to fit content lines
+        const autosize = (el) => {
+          try {
+            el.style.height = 'auto';
+            el.style.overflowY = 'hidden';
+            const cs = getComputedStyle(el);
+            const lineH = parseFloat(cs.lineHeight) || 18;
+            const pTop = parseFloat(cs.paddingTop) || 0;
+            const pBot = parseFloat(cs.paddingBottom) || 0;
+            const minH = Math.round(lineH * 2 + pTop + pBot); // ensure 2-line placeholder visible
+            const target = Math.max(el.scrollHeight || el.clientHeight || 0, minH);
+            el.style.height = target + 'px';
+          } catch (_) {}
+        };
+        // Initialize size
+        autosize(field);
         updateCandidateNameMeta(field);
         field.addEventListener('focus', () => {
           showCandidateNamePopover(field);
@@ -627,9 +650,14 @@
         });
         field.addEventListener('input', () => {
           updateCandidateNameMeta(field);
+          autosize(field);
           if (document.activeElement === field) {
             showCandidateNamePopover(field);
           }
+          // Recompute row heights when name wraps
+          requestAnimationFrame(() => {
+            try { lockAllGridsToOneRowUniform(); } catch (_) {}
+          });
         });
       }
       function updateCandidateNameMeta(field) {
@@ -923,6 +951,11 @@
           // Insert new candidate AFTER the add tile (row becomes [ADD, C1, C2])
           grid.insertBefore(card, grid.children[1] || null);
           initializeCandidateNameFields(card);
+          // Focus the new name field so typing is immediate
+          const newNameField = card.querySelector('.view-session-candidate__name');
+          if (newNameField) {
+            try { newNameField.focus(); newNameField.select(); } catch (_) {}
+          }
           card.classList.add('view-session-candidate--just-added');
           const remeasure = () => {
             if (document.body.classList.contains('view-session--expanded') && expandedCard) {
@@ -954,11 +987,20 @@
         const img = card.querySelector('.view-session-candidate__avatar-image');
         const placeholderImg = card.querySelector('.avatar-placeholder-image');
         card.dataset.candidateId = candidateData.id;
-        const candidateName = candidateData.name || 'Candidate Name';
+        const defaultPlaceholder = 'Candidate Name';
+        const candidateName = (candidateData.name || '').trim() || defaultPlaceholder;
         if (nameInput) {
-          nameInput.value = candidateName;
-          nameInput.title = candidateName;
-          nameInput.dataset.originalValue = candidateName;
+          // Show placeholder if server created with default name; don't prefill value
+          nameInput.placeholder = 'Candidate\nName';
+          if (candidateName === defaultPlaceholder) {
+            nameInput.value = '';
+            nameInput.title = defaultPlaceholder;
+            nameInput.dataset.originalValue = defaultPlaceholder;
+          } else {
+            nameInput.value = candidateName;
+            nameInput.title = candidateName;
+            nameInput.dataset.originalValue = candidateName;
+          }
           setupCandidateNameField(nameInput);
         }
         if (candidateData.photo_url) {
@@ -1356,6 +1398,14 @@
       }
       function removeEl(el){ if (el && el.parentNode) el.parentNode.removeChild(el); }
     })();
+  </script>
+  <script>
+    // Force reload when page is restored from back/forward cache
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) {
+        window.location.reload();
+      }
+    });
   </script>
 </body>
 </html>

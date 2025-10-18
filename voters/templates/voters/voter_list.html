@@ -8,9 +8,8 @@
     <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <title>Voter List</title>
-    <link rel="stylesheet" href="{% static 'voting_static/style.css' %}">
     
-    <script src="{% static 'voting_static/deactivate_button.js' %}" defer></script>
+    <script src="{% static 'deactivate_button.js' %}" defer></script>
 </head>
 
 <nav class="voting_session-navbar">
@@ -325,6 +324,14 @@ function filterVoters(status) {
             updateVoterCounts();
             refreshVoterList();
             
+        });
+    </script>
+    <script>
+        // Force reload when page is restored from back/forward cache
+        window.addEventListener('pageshow', function (e) {
+            if (e.persisted) {
+                window.location.reload();
+            }
         });
     </script>
     

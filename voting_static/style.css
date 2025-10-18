@@ -2235,9 +2235,8 @@ body.view-session-body .breadcrumb .step.active a {
 
 body.view-session-body #sortable-segments.view-session-grid {
     display: grid;
-    /* Use auto-fill so empty tracks remain reserved
-       This ensures the first 1–2 segments do not stretch to all columns */
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    /* Enforce two columns on larger screens so segments become wider */
+    grid-template-columns: repeat(2, 1fr);
     gap: 2.5rem;
     padding: 0;
     background: transparent;

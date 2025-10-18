@@ -4,6 +4,8 @@ import qrcode
 from django.conf import settings
 import os
 from django.core.files.base import ContentFile
+import uuid
+from django.utils import timezone as tz
 
 # Create your models here.
 
@@ -33,6 +35,8 @@ from io import BytesIO
 
 class VotingSession(models.Model):
     session_id = models.AutoField(primary_key=True)
+    # New stable UUID for public entry and cross-host lookups
+    session_uuid = models.UUIDField(default=uuid.uuid4, unique=True, db_index=True)
     title = models.CharField(max_length=200)
     unique_url = models.URLField(unique=True, blank=True, null=True)
     is_active = models.BooleanField(default=False)
@@ -107,3 +111,67 @@ class Vote(models.Model):
     voter = models.ForeignKey(Voter, on_delete=models.CASCADE)
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
     segment = models.ForeignKey(VotingSegmentHeader, on_delete=models.CASCADE)
+
+
+# Anonymous handoff & ballot recording models
+class AnonSession(models.Model):
+    anon_id = models.CharField(max_length=64, primary_key=True)
+    session = models.ForeignKey(VotingSession, on_delete=models.CASCADE)
+    voter = models.ForeignKey('Voter', on_delete=models.SET_NULL, null=True, blank=True)
+    issued_at = models.DateTimeField(auto_now_add=True)
+    activated_at = models.DateTimeField(null=True, blank=True)
+    spent_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_spent(self):
+        return self.spent_at is not None
+
+
+class RedirectCode(models.Model):
+    code = models.CharField(max_length=64, primary_key=True)
+    anon = models.ForeignKey(AnonSession, on_delete=models.CASCADE)
+    session = models.ForeignKey(VotingSession, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    redeemed_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+
+class Ballot(models.Model):
+    ballot_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session = models.ForeignKey(VotingSession, on_delete=models.CASCADE, db_index=True)
+    segment = models.ForeignKey('VotingSegmentHeader', on_delete=models.CASCADE, db_index=True)
+    candidate = models.ForeignKey('Candidate', on_delete=models.CASCADE, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=['session', 'segment'])]
+
+
+class EventLog(models.Model):
+    session = models.ForeignKey(VotingSession, on_delete=models.CASCADE)
+    event_type = models.CharField(max_length=64)
+    payload = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    prev_hash = models.CharField(max_length=64, null=True, blank=True)
+    this_hash = models.CharField(max_length=64, db_index=True)
+
+
+def log_event(session, event_type, payload):
+    from .models import EventLog as _EventLog  # local import to avoid cycles
+    import hashlib, json
+    last = _EventLog.objects.filter(session=session).order_by('-id').first()
+    prev_hash = last.this_hash if last else ''
+    body = json.dumps({
+        'prev_hash': prev_hash,
+        'event_type': event_type,
+        'payload': payload,
+    }, sort_keys=True)
+    this_hash = hashlib.sha256(body.encode('utf-8')).hexdigest()
+    return _EventLog.objects.create(
+        session=session,
+        event_type=event_type,
+        payload=payload,
+        prev_hash=prev_hash,
+        this_hash=this_hash,
+    )

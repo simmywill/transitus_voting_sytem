@@ -117,3 +117,11 @@
         });
     });
 </script>
+<script>
+  // Force reload when page is restored from back/forward cache
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) {
+      window.location.reload();
+    }
+  });
+</script>

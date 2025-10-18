@@ -147,7 +147,11 @@
     <div class="voting_page_navigation">
         {% if current_segment > 1 %}
         <div class="arrow_tip_container">
+            {% if voter_id %}
             <a href="{% url 'voter_session' session_uuid=session_uuid voter_id=voter_id%}?segment={{ current_segment|add:-1 }}" 
+            {% else %}
+            <a href="{% url 'bbs_ballot_entry' session_uuid=session_uuid %}?segment={{ current_segment|add:-1 }}"
+            {% endif %}
                class="voting_navigation_button voting_navigation_previous">
                <i class="bi bi-caret-left-fill"></i>
             </a>
@@ -157,7 +161,11 @@
         
         {% if current_segment < total_segments %}
         <div class="arrow_tip_container">
+            {% if voter_id %}
             <a href="{% url 'voter_session' session_uuid=session_uuid voter_id=voter_id%}?segment={{ current_segment|add:1 }}" 
+            {% else %}
+            <a href="{% url 'bbs_ballot_entry' session_uuid=session_uuid %}?segment={{ current_segment|add:1 }}"
+            {% endif %}
                class="voting_navigation_button voting_navigation_next pulse">
                <i class="bi bi-caret-right-fill"></i>
             </a>
@@ -177,7 +185,7 @@
 
 <script>
     const session_uuid = "{{ session_uuid }}";
-    const voter_id = "{{ voter_id }}";
+    const voter_id = "{{ voter_id|default:'' }}";
     const voteData = JSON.parse('{{ segments_json|safe }}');
 </script>
 
@@ -261,39 +269,51 @@ function confirmVote() {
 
     // Confirm before submitting
     if (confirm("Are you sure? After this, there is no turning back.")) {
-        // Prepare the data to send
-        const voteData = {
-            csrfmiddlewaretoken: document.querySelector('[name="csrfmiddlewaretoken"]').value,
-            votes: selectedVotes,
-        };
-
-        // Send the data to the backend
-        fetch(`/submit_vote/${session_uuid}/${voter_id}/` , {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
-             },
-            body: JSON.stringify(voteData),
-        })
-        .then((response) => {
-            if (response.ok) {
-                alert("Your votes have been successfully submitted!");
-                 // Clear saved votes from localStorage
-                 localStorage.removeItem("selectedVotes");
-
-                // Remove the 'selected' class from all candidates
-                document.querySelectorAll('.voting_page_candidate').forEach((candidate) => {
-                    candidate.classList.remove('selected');
-                });
-                window.location.href = "{% url 'voter_verification' session_uuid=session_uuid  %}";
-            } else {
-                throw new Error("Failed to submit your votes. Please try again.");
-            }
-        })
-        .catch((error) => {
-            alert(error.message);
-        });
+        if (voter_id) {
+            // Legacy flow (disabled when ANON handoff enabled)
+            const voteData = {
+                csrfmiddlewaretoken: document.querySelector('[name="csrfmiddlewaretoken"]').value,
+                votes: selectedVotes,
+            };
+            fetch(`/submit_vote/${session_uuid}/${voter_id}/` , {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
+                },
+                body: JSON.stringify(voteData),
+            }).then((response) => {
+                if (response.ok) {
+                    alert("Your votes have been successfully submitted!");
+                    localStorage.removeItem("selectedVotes");
+                    document.querySelectorAll('.voting_page_candidate').forEach((candidate) => candidate.classList.remove('selected'));
+                    window.location.href = "{% url 'voter_verification' session_uuid=session_uuid  %}";
+                } else {
+                    throw new Error("Failed to submit your votes. Please try again.");
+                }
+            }).catch((error) => { alert(error.message); });
+        } else {
+            // New anonymous BBS cast
+            const pairs = Object.entries(selectedVotes).map(([seg, cand]) => [parseInt(seg), parseInt(cand)]);
+            const payload = { session_uuid: session_uuid, choices: pairs };
+            fetch(`/api/cast`, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
+                },
+                body: JSON.stringify(payload),
+            }).then(async (response) => {
+                const data = await response.json().catch(() => ({}));
+                if (response.ok && data.ok) {
+                    alert("Vote recorded. Receipt: " + (data.receipt || ""));
+                    localStorage.removeItem("selectedVotes");
+                    window.location.href = "/results/" + session_uuid + "/";
+                } else {
+                    throw new Error(data.error || "Submit failed");
+                }
+            }).catch((error) => { alert(error.message); });
+        }
 
        
 

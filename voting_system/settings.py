@@ -21,14 +21,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-!qaa!8+36s)wx5%axj3f&pv%f+@($i(6i=!t3x8n((=wojz7@g'
+# Use env var in production; dev fallback only.
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-insecure-change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1','true','yes')
 
-ALLOWED_HOSTS = ['.onrender.com', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = os.environ.get(
+    'ALLOWED_HOSTS',
+    '127.0.0.1,localhost,verify.agm.local,vote.agm.local,.onrender.com'
+).split(',')
 
-SITE_URL = os.getenv( 'https://transitus-voting-sytem.onrender.com' , 'http://127.0.0.1:8000')
+SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
 
 
 import os
@@ -89,15 +93,7 @@ WSGI_APPLICATION = 'voting_system.wsgi.application'
 
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# Database settings are already configured above via dj_database_url.
 
 
 # Password validation
@@ -153,9 +149,16 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 
 # BASE_URL for QR code generation (use your own URL or localhost during development)
-BASE_URL = 'http://127.0.0.1:8000'
+BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:8000')
 
+# Feature flags & cross-service secrets
+ANON_HANDOFF_ENABLED = True  # toggleable; keep default True
+CIS_BBS_SHARED_SECRET = os.environ.get('CIS_BBS_SHARED_SECRET', 'dev-change-me')
+
+# Security & host separation
 CSRF_TRUSTED_ORIGINS = [
+    'https://verify.agm.local',
+    'https://vote.agm.local',
     'https://*.onrender.com',
 ]
 
@@ -169,15 +172,26 @@ CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    'filters': {
+        'squelch_ballot': {
+            '()': 'django.utils.log.CallbackFilter',
+            'callback': lambda r: not (getattr(r, 'request', None) and getattr(r.request, 'path', '') and ('/ballot' in r.request.path or '/api/cast' in r.request.path)),
+        }
+    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'filters': ['squelch_ballot'],
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': 'DEBUG',
+        'level': 'INFO',
     },
 }
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Cookies
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
