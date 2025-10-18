@@ -16,6 +16,13 @@
     <form action="{% url 'login_view' %}" method="post" class="login-form">
         {% csrf_token %}
         <h3>Login Here</h3>
+        {% if messages %}
+            <div class="flash-alert">
+                {% for message in messages %}
+                    <p class="flash-message {{ message.tags }}">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
     
         <label for="username">Username</label>
         <input name="username" type="text" placeholder="Email or Phone" id="username">

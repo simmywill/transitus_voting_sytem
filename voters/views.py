@@ -45,12 +45,12 @@ def login_view(request):
         # Ensure username was submitted
         if not username:
             messages.error(request, "Must provide username")
-            return render(request, "landing_page.html")
+            return render(request, "voters/landing_page.html")
 
         # Ensure password was submitted
         if not password:
             messages.error(request, "Must provide password")
-            return render(request, "landing_page.html")
+            return render(request, "voters/landing_page.html")
 
         # Authenticate user
         user = authenticate(request, username=username, password=password)

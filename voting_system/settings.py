@@ -210,3 +210,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Cookies
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
+
+# Behind proxy (Render) — ensure Django treats proxied HTTPS as secure
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Where to send @login_required redirects
+LOGIN_URL = '/'
