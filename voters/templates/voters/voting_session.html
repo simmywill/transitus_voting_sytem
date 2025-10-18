@@ -1048,15 +1048,24 @@
         const candidateId = candidate.dataset.candidateId || null;
         uploadCandidatePhoto(candidateId, file, candidate, fileInput);
       }
+      // Safely revoke a blob URL only if it is not currently used by any
+      // candidate image, and never revoke if the current candidate img still
+      // references it (to avoid blanking a visible preview unexpectedly).
+      function safeRevokeObjectURL(url, currentImg) {
+        if (!url) return;
+        try {
+          if (currentImg && currentImg.src === url) return;
+          const othersUseIt = Array.from(document.querySelectorAll('.view-session-candidate__avatar-image'))
+            .some(img => img !== currentImg && img.src === url);
+          if (!othersUseIt) URL.revokeObjectURL(url);
+        } catch (_) {}
+      }
       async function uploadCandidatePhoto(candidateId, file, candidateElement, fileInput) {
         const formData = new FormData(); formData.append('photo', file);
         const img = candidateElement.querySelector('.view-session-candidate__avatar-image');
         const placeholderImg = candidateElement.querySelector('.avatar-placeholder-image');
         const previousPreview = candidateElement.dataset.previewObjectUrl;
-        if (previousPreview) {
-          URL.revokeObjectURL(previousPreview);
-          delete candidateElement.dataset.previewObjectUrl;
-        }
+        if (previousPreview) { safeRevokeObjectURL(previousPreview, img); delete candidateElement.dataset.previewObjectUrl; }
         const previewUrl = URL.createObjectURL(file);
         candidateElement.dataset.previewObjectUrl = previewUrl;
         if (img) { img.src = previewUrl; img.hidden = false; }
@@ -1078,7 +1087,9 @@
           console.error(e); alert('Could not update the photo. Please try again.');
           resetCandidateAvatar(candidateElement);
         } finally {
-          URL.revokeObjectURL(previewUrl); fileInput.value = ''; closeAllMenus();
+          safeRevokeObjectURL(previewUrl, img);
+          fileInput.value = '';
+          closeAllMenus();
           delete candidateElement.dataset.previewObjectUrl;
         }
       }
@@ -1172,10 +1183,7 @@
         const img = candidateElement.querySelector('.view-session-candidate__avatar-image');
         const placeholderImg = candidateElement.querySelector('.avatar-placeholder-image');
         const previewUrl = candidateElement.dataset.previewObjectUrl;
-        if (previewUrl) {
-          URL.revokeObjectURL(previewUrl);
-          delete candidateElement.dataset.previewObjectUrl;
-        }
+        if (previewUrl) { safeRevokeObjectURL(previewUrl, img); delete candidateElement.dataset.previewObjectUrl; }
         if (img) { img.hidden = true; img.removeAttribute('src'); }
         if (placeholderImg) placeholderImg.hidden = false;
         candidateElement.classList.remove('has-photo');

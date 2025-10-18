@@ -50,20 +50,19 @@ class VotingSession(models.Model):
  
 
     def generate_qr_code(self, request):
-        if self.unique_url:  # prevent regeneration if already set
-            return self.unique_url
-            
+        """
+        Ensure this session has a stable share URL tied to this record's
+        UUID, and generate a QR image for that URL.
+        - unique_url is derived from self.session_uuid (stable), not a random UUID.
+        - Always (re)generate the QR if requested by the caller.
+        """
         protocol = 'https' if request.is_secure() else 'http'
-        # Get the host dynamically from the request
         host = request.get_host()
-        
 
-        # Generate the unique URL
-        self.unique_url = f'{protocol}://{host}/voter_session/verify/{uuid.uuid4()}'
-        print(f"Generated unique URL: {self.unique_url}")
-        self.save()
-        
-
+        # Stable per-session URL using the canonical UUID for this session
+        self.unique_url = f'{protocol}://{host}/voter_session/verify/{self.session_uuid}'
+        print(f"Generated/updated unique URL: {self.unique_url}")
+        self.save(update_fields=['unique_url'])
 
         # Generate QR code for the unique URL
         qr_image = qrcode.make(self.unique_url)
@@ -74,10 +73,11 @@ class VotingSession(models.Model):
 
         # Save the QR code image
         self.qr_code.save(f'qr_code_{self.session_id}.png', ContentFile(qr_io.read()), save=False)
-        self.save()
+        self.save(update_fields=['qr_code'])
 
     def get_uuid(self):
-        return self.unique_url.split('/')[-1] if self.unique_url else None
+        # Expose the canonical UUID for this session
+        return str(self.session_uuid)
 
 
     def __str__(self):

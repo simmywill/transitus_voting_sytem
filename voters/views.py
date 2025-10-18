@@ -260,8 +260,8 @@ def activate_session(request, session_id):
         session.is_active = True
         session.save(update_fields=['is_active'])
 
-    # Ensure unique_url/QR exist
-    if not session.unique_url:
+    # Ensure unique_url/QR exist; regenerate if either is missing
+    if not session.unique_url or not getattr(session, 'qr_code', None):
         try:
             session.generate_qr_code(request)
         except Exception as e:
@@ -954,7 +954,8 @@ def get_voters(request, session_id=None, session_uuid=None):
     try:
         # Use the appropriate field based on what is provided
         if session_uuid:
-            voters = Voter.objects.filter(session__unique_url=session_uuid).values(
+            # unique_url stores a full URL; match by substring on the UUID
+            voters = Voter.objects.filter(session__unique_url__contains=f"{session_uuid}").values(
                 'voter_id', 'Fname', 'Lname', 'is_verified', 'has_finished'
             )
         elif session_id:
