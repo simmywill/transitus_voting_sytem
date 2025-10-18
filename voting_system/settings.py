@@ -39,11 +39,26 @@ import os
 import dj_database_url
 
 # Parse the DATABASE_URL from the environment
+default_sqlite = f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}'
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL', f'sqlite:///{os.path.join(BASE_DIR, "db.sqlite3")}')
+        default=os.getenv('DATABASE_URL', default_sqlite),
+        # Keep DB connections open to avoid reconnect churn and SSL handshakes
+        conn_max_age=int(os.getenv('DB_CONN_MAX_AGE', '120')),
+        # Force TLS for managed Postgres even if the URL is missing sslmode
+        ssl_require=True,
     )
 }
+# Health checks ensure persistent connections are validated before reuse
+try:
+    DATABASES['default']['CONN_HEALTH_CHECKS'] = True
+except Exception:
+    pass
+
+# Safety net: if using Postgres and sslmode not present, enforce it
+if DATABASES['default'].get('ENGINE', '').endswith('postgresql'):
+    DATABASES['default'].setdefault('OPTIONS', {})
+    DATABASES['default']['OPTIONS'].setdefault('sslmode', 'require')
 
 #ALLOWED_HOSTS = ['transitus-voting-sytem.onrender.com']
 # Application definition
