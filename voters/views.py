@@ -21,6 +21,7 @@ from django.db import transaction
 from django.db.models import Case, When, IntegerField
 from django.middleware.csrf import get_token
 from django.views.decorators.cache import never_cache
+import os
 
 
 
@@ -241,6 +242,14 @@ def list_voting_sessions(request):
         .filter(admin=request.user)
         .order_by('-created_at', '-session_id')
     )
+    # Best-effort: if a session has a unique_url but no QR file present, rebuild it.
+    for s in sessions:
+        try:
+            if s.unique_url and (not getattr(s, 'qr_code', None) or not getattr(s.qr_code, 'path', None) or not os.path.exists(s.qr_code.path)):
+                s.ensure_qr_file()
+        except Exception:
+            # Non-fatal; continue rendering list
+            pass
     return render(request, 'voters/list_sessions.html', {
         'sessions': sessions,
         'form': form

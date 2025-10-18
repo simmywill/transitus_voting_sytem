@@ -1081,7 +1081,16 @@
           if (!res.ok) throw new Error('Failed to update photo');
           const data = await res.json();
           if (data.success && data.candidate?.photo_url) {
-            img.src = `${data.candidate.photo_url}?t=${Date.now()}`;
+            const nextUrl = `${data.candidate.photo_url}?t=${Date.now()}`;
+            // Probe the new URL; only swap after it loads successfully
+            await new Promise((resolve) => {
+              const probe = new Image();
+              let settled = false;
+              const finish = () => { if (!settled) { settled = true; resolve(); } };
+              probe.onload = () => { if (img) img.src = nextUrl; finish(); };
+              probe.onerror = () => { /* keep local preview visible */ finish(); };
+              probe.src = nextUrl;
+            });
           }
         } catch (e) {
           console.error(e);

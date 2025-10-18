@@ -79,6 +79,29 @@ class VotingSession(models.Model):
         # Expose the canonical UUID for this session
         return str(self.session_uuid)
 
+    def ensure_qr_file(self):
+        """
+        If a unique_url exists but the QR image file is missing on disk or not set,
+        regenerate the QR image without touching the unique_url.
+        """
+        if not self.unique_url:
+            return
+        try:
+            # If file path exists and is present on disk, nothing to do
+            if getattr(self, 'qr_code', None) and getattr(self.qr_code, 'path', None):
+                if os.path.exists(self.qr_code.path):
+                    return
+        except Exception:
+            pass
+
+        # Recreate the QR image for the existing unique_url
+        qr_image = qrcode.make(self.unique_url)
+        qr_io = BytesIO()
+        qr_image.save(qr_io, format='PNG')
+        qr_io.seek(0)
+        self.qr_code.save(f'qr_code_{self.session_id}.png', ContentFile(qr_io.read()), save=False)
+        self.save(update_fields=['qr_code'])
+
 
     def __str__(self):
         return self.title
