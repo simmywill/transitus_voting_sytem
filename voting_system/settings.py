@@ -27,10 +27,19 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-insecure-change-me')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('1','true','yes')
 
-ALLOWED_HOSTS = os.environ.get(
+def _split_csv_env(name, default):
+    raw = os.environ.get(name, default)
+    parts = []
+    for item in raw.split(','):
+        cleaned = item.strip().strip('\'"')
+        if cleaned:
+            parts.append(cleaned)
+    return parts
+
+ALLOWED_HOSTS = _split_csv_env(
     'ALLOWED_HOSTS',
     '127.0.0.1,localhost,verify.agm.local,vote.agm.local,.onrender.com'
-).split(',')
+)
 
 SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
 
