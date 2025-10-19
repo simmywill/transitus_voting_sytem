@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.db import transaction
 from django.conf import settings
 from django.utils import timezone as tz
-import hmac, hashlib, json
+import hmac, hashlib, json, os
 
 try:
     import requests  # ensure available in requirements
@@ -16,15 +16,21 @@ from .models import VotingSession, VotingSegmentHeader, Candidate, Ballot, log_e
 
 
 def _host_ok(request, expect='vote'):
+    """Allow any host in single-host mode; enforce fragment in multi-host."""
+    if not getattr(settings, 'CIS_ENFORCE_HOST', False):
+        return True
     host = request.get_host() or ''
-    from django.conf import settings as _s
-    return (expect in host) or getattr(_s, 'DEBUG', False)
+    return (expect in host) or getattr(settings, 'DEBUG', False)
 
 
-def _cis_call(path, payload):
+def _cis_call(request, path, payload):
     if requests is None:
         return 500, {"ok": False, "error": "requests_missing"}
-    url = f"https://verify.agm.local{path}"
+    if not getattr(settings, 'CIS_ENFORCE_HOST', False):
+        base = (request.build_absolute_uri('/') or '').rstrip('/')
+    else:
+        base = getattr(settings, 'CIS_BASE_URL', None) or os.environ.get('CIS_BASE_URL') or 'https://verify.agm.local'
+    url = f"{base}{path}"
     body = json.dumps(payload).encode()
     sig = hmac.new(settings.CIS_BBS_SHARED_SECRET.encode(), body, hashlib.sha256).hexdigest()
     r = requests.post(url, data=body, headers={
@@ -47,7 +53,7 @@ def ballot_entry(request, session_uuid):
         session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
 
     if code:
-        status, data = _cis_call("/api/redeem", {"redirect_code": code, "session_uuid": str(session_uuid)})
+        status, data = _cis_call(request, "/api/redeem", {"redirect_code": code, "session_uuid": str(session_uuid)})
         if status != 200 or not data.get("ok"):
             return HttpResponseForbidden("Invalid or used handoff")
         request.session['ANON_ID'] = data['anon_id']
@@ -114,7 +120,7 @@ def api_cast(request):
         created += 1
 
     # Mark ANON spent in CIS (server-to-server)
-    status, resp = _cis_call("/api/mark-spent", {"anon_id": anon_id, "session_uuid": str(session_uuid)})
+    status, resp = _cis_call(request, "/api/mark-spent", {"anon_id": anon_id, "session_uuid": str(session_uuid)})
     if status != 200 or not resp.get("ok"):
         raise Exception("CIS mark-spent failed")
 

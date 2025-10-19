@@ -194,6 +194,11 @@ CIS_BBS_SHARED_SECRET = os.environ.get('CIS_BBS_SHARED_SECRET', 'dev-change-me')
 CIS_ENFORCE_HOST = os.environ.get('CIS_ENFORCE_HOST', 'false').lower() in ('1','true','yes')
 CIS_EXPECT_HOST_FRAGMENT = os.environ.get('CIS_EXPECT_HOST_FRAGMENT', 'verify')
 
+# Optional base URLs when running with host separation
+# If unset (recommended for single-host), views derive from request host
+CIS_BASE_URL = os.environ.get('CIS_BASE_URL')  # e.g. https://verify.agm.local
+BBS_BASE_URL = os.environ.get('BBS_BASE_URL')  # e.g. https://vote.agm.local
+
 # Security & host separation
 CSRF_TRUSTED_ORIGINS = [
     'https://verify.agm.local',

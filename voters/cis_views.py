@@ -5,7 +5,8 @@ from django.views.decorators.csrf import csrf_protect
 from django.utils import timezone as tz
 from django.conf import settings
 from django.db import transaction
-import secrets, base64, hmac, hashlib, json
+import secrets, base64, hmac, hashlib, json, os
+from django.urls import reverse
 
 from .models import VotingSession, Voter, AnonSession, RedirectCode, log_event
 
@@ -76,7 +77,15 @@ def api_verify(request):
 
     log_event(session, "VERIFY_OK", {"voter_id": voter.voter_id, "anon": anon_id})
 
-    ballot_url = f"https://vote.agm.local/ballot/{getattr(session, 'session_uuid', session_uuid)}?handoff={code}"
+    # Build ballot URL. In single-host deployments (Render), keep same host.
+    sess_uuid = getattr(session, 'session_uuid', session_uuid)
+    ballot_path = reverse('bbs_ballot_entry', args=[sess_uuid]) + f"?handoff={code}"
+    if not getattr(settings, 'CIS_ENFORCE_HOST', False):
+        ballot_url = request.build_absolute_uri(ballot_path)
+    else:
+        # Multi-host mode: allow override via env, else fallback to legacy host
+        base = getattr(settings, 'BBS_BASE_URL', None) or os.environ.get('BBS_BASE_URL') or 'https://vote.agm.local'
+        ballot_url = f"{base.rstrip('/')}{ballot_path}"
     return JsonResponse({"ok": True, "ballot_url": ballot_url})
 
 
