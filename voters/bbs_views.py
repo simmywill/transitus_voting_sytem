@@ -185,8 +185,42 @@ def results(request, session_uuid):
             'candidates': cands,
             'winner': winner,
         })
+    # Restrict results to authenticated staff (admin-only view)
+    if not request.user.is_authenticated or not getattr(request.user, 'is_staff', False):
+        return HttpResponseForbidden("Results are restricted to administrators.")
     ctx = {'session': session, 'tally': tally, 'segments_json': json.dumps(tally)}
     return render(request, 'voters/results.html', ctx)
+
+
+@require_GET
+def thanks(request, session_uuid):
+    """Neutral confirmation page after anonymous cast with optional receipt download.
+    Uses segment/candidate metadata to help client render a PNG receipt locally.
+    """
+    try:
+        session = VotingSession.objects.get(session_uuid=session_uuid)
+    except Exception:
+        session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
+
+    # Provide lightweight metadata for client-side receipt rendering
+    segments = []
+    for seg in VotingSegmentHeader.objects.filter(session=session).order_by('order', 'id'):
+        seg_entry = {
+            'id': seg.id,
+            'name': seg.name,
+            'candidates': [
+                {'id': c.id, 'name': c.name, 'photo_url': (c.photo.url if c.photo else '')}
+                for c in Candidate.objects.filter(voting_session=session, segment_header=seg)
+            ]
+        }
+        segments.append(seg_entry)
+
+    ctx = {
+        'session': session,
+        'segments_json': json.dumps(segments),
+        'session_uuid': str(session_uuid),
+    }
+    return render(request, 'voters/thanks.html', ctx)
 
 
 @require_GET

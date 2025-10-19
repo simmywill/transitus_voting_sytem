@@ -1,0 +1,103 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thank You</title>
+  <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
+  <style>
+    .thanks-container { max-width: 720px; margin: 40px auto; padding: 24px; background: #fff; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.08); }
+    .thanks-title { font-size: 1.6rem; margin-bottom: 8px; }
+    .thanks-sub { color: #555; margin-bottom: 16px; }
+    .receipt-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .actions { display: flex; gap: 12px; margin-top: 18px; }
+    .btn { border: 0; border-radius: 8px; padding: 10px 14px; cursor: pointer; font-weight: 600; }
+    .btn-primary { background: #0ea5e9; color: #fff; }
+    .btn-secondary { background: #f3f4f6; color: #111827; }
+    .hint { color: #6b7280; font-size: 0.9rem; margin-top: 8px; }
+  </style>
+  <script>
+    // Simple receipt renderer: draws a summary of selections on a canvas and triggers a PNG download
+    function downloadReceiptPNG() {
+      try {
+        const raw = localStorage.getItem('receiptSelections');
+        if (!raw) { alert('Nothing to download.'); return; }
+        const selections = JSON.parse(raw);
+        const segments = JSON.parse('{{ segments_json|escapejs }}');
+        const receipt = (localStorage.getItem('receiptCode') || '').toString();
+
+        const lines = [];
+        lines.push(`Voting Session: {{ session.title|escapejs }}`);
+        lines.push(`Session ID: {{ session_uuid }}`);
+        if (receipt) lines.push(`Receipt: ${receipt}`);
+        lines.push('');
+        lines.push('Your selections:');
+
+        for (const seg of segments) {
+          const chosenId = selections[seg.id];
+          let name = '—';
+          for (const c of seg.candidates) if (c.id === chosenId) { name = c.name; break; }
+          lines.push(`• ${seg.name}: ${name}`);
+        }
+
+        // Canvas sizing
+        const width = 1024;
+        const lineHeight = 44;
+        const padding = 48;
+        const height = padding*2 + lineHeight * (lines.length + 2);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        // background
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+        // header bar
+        ctx.fillStyle = '#0ea5e9'; ctx.fillRect(0, 0, width, 16);
+        // text
+        ctx.fillStyle = '#111827';
+        ctx.font = 'bold 28px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+        let y = padding;
+        for (let i=0; i<lines.length; i++) {
+          const text = lines[i];
+          if (i === 0) ctx.font = 'bold 28px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+          else ctx.font = '24px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+          ctx.fillText(text, padding, y);
+          y += lineHeight;
+        }
+
+        const png = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        const name = receipt ? `receipt_${receipt}.png` : `receipt.png`;
+        a.href = png; a.download = name;
+        document.body.appendChild(a); a.click(); a.remove();
+      } catch (e) {
+        console.error(e); alert('Unable to generate receipt.');
+      }
+    }
+
+    function clearReceiptState() {
+      try { localStorage.removeItem('receiptSelections'); localStorage.removeItem('receiptCode'); } catch (e) {}
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      // Optional: clear saved receipt state after some time
+      setTimeout(clearReceiptState, 60000);
+    });
+  </script>
+  </head>
+  <body>
+    <div class="thanks-container">
+      <h1 class="thanks-title">Thank you. Your vote has been recorded.</h1>
+      <p class="thanks-sub">For transparency, you may download a personal receipt with a summary of your selections.</p>
+      <div class="receipt-box">Receipt: <span id="receipt-code">{{ request.session.receipt|default:'' }}</span>
+        <span class="hint">(kept private and independent from your identity)</span>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="downloadReceiptPNG()">Download receipt (PNG)</button>
+        <a class="btn btn-secondary" href="/">Done</a>
+      </div>
+      <p class="hint">Note: This receipt is a personal record. It does not reveal your identity to the system.</p>
+    </div>
+  </body>
+  </html>
+

@@ -15,7 +15,7 @@ from django.urls import reverse
 from django.http import Http404
 from django.conf import settings
 from django.template.loader import render_to_string
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.db.models import Case, When, IntegerField
@@ -93,7 +93,11 @@ def create_voting_session(request):
 def manage_session(request, session_id=None , session_uuid=None):
      # Determine the voting session
     if session_uuid:
-        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+        # Prefer canonical UUID; fallback to legacy unique_url contains
+        try:
+            voting_session = VotingSession.objects.get(session_uuid=session_uuid)
+        except Exception:
+            voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
     elif session_id:
         voting_session = get_object_or_404(VotingSession, session_id=session_id)
     else:
@@ -370,7 +374,7 @@ def add_voters(request , session_id=None, session_uuid=None):
 def voter_list(request, session_id=None, session_uuid=None):
     # Determine the voting session
     if session_uuid:
-        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+        voting_session = get_object_or_404(VotingSession, session_uuid=session_uuid)
     elif session_id:
         voting_session = get_object_or_404(VotingSession, session_id=session_id)
     else:
@@ -387,8 +391,8 @@ def voter_list(request, session_id=None, session_uuid=None):
     total_voters_count = voters.count()
     is_active = voting_session.is_active
 
-    # Extract UUID
-    extracted_uuid = voting_session.unique_url.split('/')[-1] if voting_session.unique_url else None
+    # Extract UUID (canonical, independent of unique_url)
+    extracted_uuid = str(voting_session.session_uuid)
     print(extracted_uuid)
 
     # Handle GET request (search functionality)
@@ -473,7 +477,7 @@ def voter_list(request, session_id=None, session_uuid=None):
                 'finished_voters_count': voters.filter(has_finished=True).count(),
                 'total_voters_count': voters.count(),
                 'voting_session': voting_session,
-                'session_uuid': session_uuid,
+                'session_uuid': str(voting_session.session_uuid),
                 'session_id': session_id,
                 'is_active': voting_session.is_active,
                 'csrf_token_value': get_token(request),
@@ -490,7 +494,10 @@ def delete_voter(request, voter_id):
 
 
     if session_uuid:
-        voter = get_object_or_404(Voter, voter_id=voter_id, session__unique_url__contains=f'{session_uuid}')
+        try:
+            voter = Voter.objects.get(voter_id=voter_id, session__session_uuid=session_uuid)
+        except Exception:
+            voter = get_object_or_404(Voter, voter_id=voter_id, session__unique_url__contains=f'{session_uuid}')
     elif session_id:
         voter = get_object_or_404(Voter, voter_id=voter_id, session__session_id=session_id)
     else:
@@ -511,7 +518,10 @@ def edit_voter(request, voter_id):
     session_id = request.GET.get('session_id')
 
     if session_uuid:
-        voter = get_object_or_404(Voter, voter_id=voter_id, session__unique_url__contains=f'{session_uuid}')
+        try:
+            voter = Voter.objects.get(voter_id=voter_id, session__session_uuid=session_uuid)
+        except Exception:
+            voter = get_object_or_404(Voter, voter_id=voter_id, session__unique_url__contains=f'{session_uuid}')
     elif session_id:
         voter = get_object_or_404(Voter, voter_id=voter_id, session__session_id=session_id)
     else:
@@ -741,8 +751,11 @@ from django.http import JsonResponse
 
 
 def voter_verification(request, session_uuid):
-    # Retrieve the voting session based on the unique session UUID
-    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    # Retrieve the voting session by canonical UUID, fallback to legacy unique_url contains
+    try:
+        session = VotingSession.objects.get(session_uuid=session_uuid)
+    except Exception:
+        session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
     
     # Ensure the session is active and not closed
     if not session.is_active:
@@ -795,7 +808,10 @@ from .models import VotingSession, Voter, Vote
 
 def voter_session(request, session_uuid, voter_id):
     # Fetch the session and voter
-    session = get_object_or_404(VotingSession, unique_url__contains=session_uuid)
+    try:
+        session = VotingSession.objects.get(session_uuid=session_uuid)
+    except Exception:
+        session = get_object_or_404(VotingSession, unique_url__contains=session_uuid)
     voter = get_object_or_404(Voter, voter_id=voter_id)
 
     # Ensure the voter is associated with the session
@@ -819,7 +835,7 @@ def voter_session(request, session_uuid, voter_id):
         'segment': segment,
         'current_segment': current_segment,
         'total_segments': segments.count(),
-        'session_uuid': session.unique_url.split('/')[-1],
+        'session_uuid': str(session.session_uuid),
         'voter_id': voter_id,  # Pass the voter_id in context
         'selected_candidate_id': selected_candidate_id,  # Pass selected candidate for the current segment
     }
@@ -838,7 +854,10 @@ def submit_vote(request, session_uuid , voter_id):
             return JsonResponse({'error': 'Anonymous handoff enabled. Use /api/cast via BBS.'}, status=400)
         print(f"Received POST request for session: {session_uuid}, voter: {voter_id}")
         voter = get_object_or_404(Voter,voter_id=voter_id)
-        session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+        try:
+            session = VotingSession.objects.get(session_uuid=session_uuid)
+        except Exception:
+            session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
 
         
 
@@ -895,7 +914,13 @@ from django.core.serializers import serialize
 from django.db.models import Count, Max
 
 def segment_results(request, session_uuid):
-    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    # Admin-only: restrict to authenticated staff
+    if not request.user.is_authenticated or not getattr(request.user, 'is_staff', False):
+        return HttpResponseForbidden("Results are restricted to administrators.")
+    try:
+        session = VotingSession.objects.get(session_uuid=session_uuid)
+    except Exception:
+        session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
     segments = session.segments.all()
 
     # Calculate the vote tallies
@@ -937,8 +962,11 @@ from django.shortcuts import render, get_object_or_404
 from .models import Voter, Vote, VotingSession, VotingSegmentHeader, Candidate
 
 def review_voter_results(request, voter_id, session_uuid):
-    # Retrieve the voting session using session_uuid
-    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    # Retrieve the voting session using session_uuid (canonical), fallback legacy
+    try:
+        session = VotingSession.objects.get(session_uuid=session_uuid)
+    except Exception:
+        session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
     
     # Get the voter from the database
     voter = get_object_or_404(Voter, voter_id=voter_id, session=session)
@@ -966,7 +994,8 @@ def review_voter_results(request, voter_id, session_uuid):
 
 
 def voter_counts(request, session_uuid):
-    session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+    # Use canonical UUID field to support pre-activation fetching
+    session = get_object_or_404(VotingSession, session_uuid=session_uuid)
     verified_count = session.voters.filter(is_verified=True).count()
     finished_count = session.voters.filter(has_finished=True).count()
     total_count = session.voters.count()
@@ -980,7 +1009,7 @@ def voter_counts(request, session_uuid):
 def get_voters(request, session_id=None, session_uuid=None):
     # Determine which identifier to use
     if session_uuid:
-        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+        voting_session = get_object_or_404(VotingSession, session_uuid=session_uuid)
     
     elif session_id:
         voting_session = get_object_or_404(VotingSession, session_id=session_id)
@@ -991,8 +1020,7 @@ def get_voters(request, session_id=None, session_uuid=None):
     try:
         # Use the appropriate field based on what is provided
         if session_uuid:
-            # unique_url stores a full URL; match by substring on the UUID
-            voters = Voter.objects.filter(session__unique_url__contains=f"{session_uuid}").values(
+            voters = Voter.objects.filter(session__session_uuid=session_uuid).values(
                 'voter_id', 'Fname', 'Lname', 'is_verified', 'has_finished'
             )
         elif session_id:
@@ -1001,7 +1029,7 @@ def get_voters(request, session_id=None, session_uuid=None):
             )
         else:
             raise Http404("No valid session identifier found.")
-        
+
         return JsonResponse({'voters': list(voters)})
     except Voter.DoesNotExist:
         return JsonResponse({'error': 'No voters found for the specified session'}, status=404)
@@ -1050,8 +1078,8 @@ def update_segment_name(request, segment_id):
 
 def get_voter_status(request, session_uuid):
     try:
-        # Fetch the VotingSession object using the session_uuid
-        session = VotingSession.objects.get(unique_url__contains=session_uuid)
+        # Fetch the VotingSession object using the canonical UUID
+        session = VotingSession.objects.get(session_uuid=session_uuid)
 
 
         # Fetch the search query parameter

@@ -126,9 +126,11 @@
                 data-segment-id="{{ segment.id }}" 
                 onclick="selectCandidate('{{ candidate.id }}', '{{ segment.id }}')">
                 {% if candidate.photo %}
-                <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" />
+                <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}"
+                     loading="lazy"
+                     onerror="this.onerror=null; this.src='{% static 'placeholder.png' %}';" />
                 {% else %}
-                <img src="{% static 'placeholder.png' %}" alt="{{ candidate.name }}" />
+                <img src="{% static 'placeholder.png' %}" alt="{{ candidate.name }}" loading="lazy" />
                 {% endif %}
                 <p>{{ candidate.name }}</p>
                 <input type="radio" name="candidate" value="{{ candidate.id }}" class="hidden" />
@@ -190,7 +192,8 @@
 <script>
     const session_uuid = "{{ session_uuid }}";
     const voter_id = "{{ voter_id|default:'' }}";
-    const voteData = JSON.parse('{{ segments_json|safe }}');
+    // segments_json is not provided on this page in all flows; avoid parsing here.
+    // A dedicated thank-you page will use it for receipt rendering.
 </script>
 
 <script>
@@ -310,9 +313,16 @@ function confirmVote() {
             }).then(async (response) => {
                 const data = await response.json().catch(() => ({}));
                 if (response.ok && data.ok) {
-                    alert("Vote recorded. Receipt: " + (data.receipt || ""));
+                    const receipt = data.receipt || "";
+                    // Persist a copy of the selections for a one-time receipt download on the Thank You page
+                    try {
+                        localStorage.setItem("receiptSelections", JSON.stringify(selectedVotes));
+                        localStorage.setItem("receiptCode", receipt);
+                    } catch (e) { /* ignore storage issues */ }
+                    // Clear working selection state
                     localStorage.removeItem("selectedVotes");
-                    window.location.href = "/results/" + session_uuid + "/";
+                    // Send the voter to a neutral thank-you page instead of public results
+                    window.location.href = "/thanks/" + session_uuid + "/";
                 } else {
                     throw new Error(data.error || "Submit failed");
                 }

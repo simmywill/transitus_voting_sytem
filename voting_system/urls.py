@@ -75,6 +75,7 @@ urlpatterns += [
     path('ballot/<uuid:session_uuid>/', bbs_views.ballot_entry, name='bbs_ballot_entry'),
     path('api/cast', bbs_views.api_cast, name='bbs_api_cast'),
     path('results/<uuid:session_uuid>/', bbs_views.results, name='bbs_results'),
+    path('thanks/<uuid:session_uuid>/', bbs_views.thanks, name='bbs_thanks'),
     path('api/cvr/<uuid:session_uuid>/', bbs_views.export_cvr, name='bbs_export_cvr'),
 ]
 
