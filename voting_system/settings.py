@@ -190,6 +190,9 @@ BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:8000')
 # Feature flags & cross-service secrets
 ANON_HANDOFF_ENABLED = True  # toggleable; keep default True
 CIS_BBS_SHARED_SECRET = os.environ.get('CIS_BBS_SHARED_SECRET', 'dev-change-me')
+# Host separation for CIS; allow single-host by default for Render
+CIS_ENFORCE_HOST = os.environ.get('CIS_ENFORCE_HOST', 'false').lower() in ('1','true','yes')
+CIS_EXPECT_HOST_FRAGMENT = os.environ.get('CIS_EXPECT_HOST_FRAGMENT', 'verify')
 
 # Security & host separation
 CSRF_TRUSTED_ORIGINS = [

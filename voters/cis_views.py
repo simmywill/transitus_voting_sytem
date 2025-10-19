@@ -11,8 +11,15 @@ from .models import VotingSession, Voter, AnonSession, RedirectCode, log_event
 
 
 def _host_ok(request, expect='verify'):
+    """
+    Enforce host separation only when configured. In single-host deployments
+    (e.g., Render), allow requests on the current host.
+    """
+    if not getattr(settings, 'CIS_ENFORCE_HOST', False):
+        return True
     host = request.get_host() or ''
-    return (expect in host) or settings.DEBUG
+    fragment = getattr(settings, 'CIS_EXPECT_HOST_FRAGMENT', expect) or expect
+    return (fragment in host) or settings.DEBUG
 
 
 @require_GET
@@ -165,4 +172,3 @@ def voter_status(request, session_uuid):
     verified = Voter.objects.filter(session=session, is_verified=True).count()
     finished = Voter.objects.filter(session=session, has_finished=True).count()
     return JsonResponse({"total": total, "verified": verified, "finished": finished})
-

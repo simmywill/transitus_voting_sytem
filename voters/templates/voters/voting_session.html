@@ -1425,7 +1425,9 @@
   <script>
     // Force reload when page is restored from back/forward cache
     window.addEventListener('pageshow', function (e) {
-      if (e.persisted) {
+      const nav = (performance && performance.getEntriesByType) ? performance.getEntriesByType('navigation')[0] : null;
+      const isBack = (nav && nav.type === 'back_forward');
+      if (e.persisted || isBack) {
         window.location.reload();
       }
     });

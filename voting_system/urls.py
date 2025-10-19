@@ -15,9 +15,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.static import serve as media_serve
 from voters import views as voters_views
 from voters import cis_views, bbs_views
 
@@ -53,6 +54,8 @@ urlpatterns = [
     path('get_voter_status/<uuid:session_uuid>/', voters_views.get_voter_status, name='get_voter_status'),
     path('sessions/<int:session_id>/segments/', voters_views.create_segment, name='create_segment'),
     path('segment/<int:segment_id>/name/', voters_views.update_segment_name, name='update_segment_name'),
+    # Dynamic QR image endpoint (serves PNG without relying on MEDIA persistence)
+    path('qr/<uuid:session_uuid>.png', voters_views.qr_png, name='qr_png'),
 
 
 
@@ -73,4 +76,15 @@ urlpatterns += [
     path('api/cast', bbs_views.api_cast, name='bbs_api_cast'),
     path('results/<uuid:session_uuid>/', bbs_views.results, name='bbs_results'),
     path('api/cvr/<uuid:session_uuid>/', bbs_views.export_cvr, name='bbs_export_cvr'),
+]
+
+# Ensure MEDIA files are served even when DEBUG=False (Render). This is a
+# pragmatic fix for user-uploaded assets (QR codes, candidate photos) when
+# behind Gunicorn without a separate media host. Consider offloading to S3 in
+# production.
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', media_serve, {
+        'document_root': settings.MEDIA_ROOT,
+        'show_indexes': False,
+    }),
 ]

@@ -51,7 +51,7 @@
                         data-session-id="{{ voting_session.session_id }}"
                         data-session-uuid="{{ voting_session.get_uuid }}"
                         data-unique-url="{{ voting_session.unique_url|default_if_none:'' }}"
-                        {% if voting_session.qr_code %}data-qr-code-url="{{ voting_session.qr_code.url }}"{% endif %}
+                        data-qr-code-url="{% url 'qr_png' voting_session.session_uuid %}"
                         disabled
                     >
                         <div class="hold-progress" id="progressBar"></div>
@@ -67,9 +67,9 @@
                         data-activate-url="{% url 'activate_session' voting_session.session_id %}"
                         data-session-id="{{ voting_session.session_id }}"
                         data-session-uuid="{{ voting_session.get_uuid }}"
-                        data-unique-url="{{ voting_session.unique_url|default_if_none:'' }}"
-                        {% if voting_session.qr_code %}data-qr-code-url="{{ voting_session.qr_code.url }}"{% endif %}
-                        data-is-active="false"
+            data-unique-url="{{ voting_session.unique_url|default_if_none:'' }}"
+            data-qr-code-url="{% url 'qr_png' voting_session.session_uuid %}"
+            data-is-active="false"
                     >
                         <div class="hold-progress" id="progressBar"></div>
                         <span>Hold to Activate</span>
@@ -94,7 +94,7 @@
             data-idle-text="Activate the session to generate a shareable link and QR code."
             data-active-text="Voting session is active."
             data-unique-url="{{ voting_session.unique_url|default_if_none:'' }}"
-            data-qr-code-url="{% if voting_session.qr_code %}{{ voting_session.qr_code.url }}{% endif %}"
+            data-qr-code-url="{% url 'qr_png' voting_session.session_uuid %}"
         >
             {% if voting_session.is_active %}
                 <span class="status-dot"></span>
@@ -103,9 +103,7 @@
                     {% if voting_session.unique_url %}
                         <a class="activation-link" href="{{ voting_session.unique_url }}" target="_blank" rel="noopener">Open Share Link</a>
                     {% endif %}
-                    {% if voting_session.qr_code %}
-                        <a class="activation-link" href="{{ voting_session.qr_code.url }}" target="_blank" rel="noopener">Download QR Code</a>
-                    {% endif %}
+                    <a class="activation-link" href="{% url 'qr_png' voting_session.session_uuid %}" target="_blank" rel="noopener">Download QR Code</a>
                 </span>
             {% else %}
                 <span class="status-dot is-idle"></span>
@@ -329,7 +327,9 @@ function filterVoters(status) {
     <script>
         // Force reload when page is restored from back/forward cache
         window.addEventListener('pageshow', function (e) {
-            if (e.persisted) {
+            const nav = (performance && performance.getEntriesByType) ? performance.getEntriesByType('navigation')[0] : null;
+            const isBack = (nav && nav.type === 'back_forward');
+            if (e.persisted || isBack) {
                 window.location.reload();
             }
         });

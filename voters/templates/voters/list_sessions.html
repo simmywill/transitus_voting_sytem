@@ -61,11 +61,7 @@
                                 </button>
                             </div>
                             <div class="session-actions">
-                                {% if session.qr_code %}
-                                    <a href="{{ session.qr_code.url }}" class="qr-link" onclick="event.stopPropagation();">QR Code</a>
-                                {% else %}
-                                    <span class="no-qr">No QR Code generated</span>
-                                {% endif %}
+                                <a href="{% url 'qr_png' session.session_uuid %}" class="qr-link" onclick="event.stopPropagation();">QR Code</a>
                                 <a
                                     href="{% url 'voter_list' session.session_id %}"
                                     class="manage-voters-link"

@@ -21,6 +21,8 @@ from django.db import transaction
 from django.db.models import Case, When, IntegerField
 from django.middleware.csrf import get_token
 from django.views.decorators.cache import never_cache
+from io import BytesIO
+import qrcode
 import os
 
 
@@ -256,6 +258,31 @@ def list_voting_sessions(request):
     })
 
 
+@never_cache
+def qr_png(request, session_uuid):
+    """Serve a QR PNG for the session's unique_url without relying on MEDIA.
+    This avoids 404s in multi-instance environments with ephemeral disks.
+    """
+    try:
+        session = VotingSession.objects.get(session_uuid=session_uuid)
+    except Exception:
+        session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
+
+    if not session.unique_url:
+        protocol = 'https' if request.is_secure() else 'http'
+        host = request.get_host()
+        session.unique_url = f'{protocol}://{host}/voter_session/verify/{session.session_uuid}'
+        session.save(update_fields=['unique_url'])
+
+    img = qrcode.make(session.unique_url)
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    resp = HttpResponse(buf.getvalue(), content_type='image/png')
+    resp['Cache-Control'] = 'no-store'
+    return resp
+
+
 @login_required
 @require_POST
 def activate_session(request, session_id):
@@ -276,11 +303,12 @@ def activate_session(request, session_id):
         except Exception as e:
             return JsonResponse({'success': False, 'error': f'QR generation failed: {e}'}, status=500)
 
+    dynamic_qr_url = request.build_absolute_uri(reverse('qr_png', args=[session.session_uuid]))
     payload = {
         'success': True,
         'session_uuid': session.get_uuid(),
         'unique_url': session.unique_url or '',
-        'qr_code_url': (session.qr_code.url if getattr(session, 'qr_code', None) else ''),
+        'qr_code_url': (session.qr_code.url if getattr(session, 'qr_code', None) else dynamic_qr_url),
     }
     return JsonResponse(payload)
 
