@@ -275,7 +275,8 @@ def qr_png(request, session_uuid):
     if not session.unique_url:
         protocol = 'https' if request.is_secure() else 'http'
         host = request.get_host()
-        session.unique_url = f'{protocol}://{host}/voter_session/verify/{session.session_uuid}'
+        # Point verification to the CIS verify_form route
+        session.unique_url = f'{protocol}://{host}/verify/{session.session_uuid}'
         session.save(update_fields=['unique_url'])
 
     img = qrcode.make(session.unique_url)
@@ -1084,6 +1085,7 @@ def get_voter_status(request, session_uuid):
 
         # Fetch the search query parameter
         search_query = request.GET.get('search', '').strip()
+        filter_state = request.GET.get('filter', 'all')
 
 
         # Retrieve the associated Voters
@@ -1102,6 +1104,14 @@ def get_voter_status(request, session_uuid):
                 Q(reverse_full_name__icontains=normalized_query)
             )
 
+        # Apply filter selection if provided
+        if filter_state == 'verified':
+            voters = voters.filter(is_verified=True)
+        elif filter_state == 'not_verified':
+            voters = voters.filter(is_verified=False)
+        elif filter_state == 'verified_finished':
+            voters = voters.filter(is_verified=True, has_finished=True)
+        # 'all' -> no additional filtering
 
         # Get counts for all voters in the session
         total_voters = Voter.objects.filter(session=session).count()

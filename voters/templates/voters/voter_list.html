@@ -41,7 +41,7 @@
         <div class="voting_session-navbar-links">
             <ul>
                 {% if voting_session.is_active %}
-                <li><a class="generate-results-link" href="{% url 'segment_results' session_uuid %}">Generate Results</a></li>
+                <li><a class="generate-results-link" href="{% url 'bbs_results' session_uuid %}">Generate Results</a></li>
                 <li>
                     <button
                         class="hold-button is-complete"
@@ -220,15 +220,14 @@
     dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
 }
 
+// Persist current filter in JS and include it in refresh requests
+let currentFilter = 'all';
+
 function filterVoters(status) {
-    const rows = document.querySelectorAll('.voter-row');
-    rows.forEach(row => {
-        if (status === 'all' || row.dataset.status === status) {
-            row.style.display = ''; // Show the row
-        } else {
-            row.style.display = 'none'; // Hide the row
-        }
-    });
+    currentFilter = status || 'all';
+    // Immediately refresh from server with the selected filter so the periodic
+    // updates keep the same filter applied.
+    refreshVoterList();
 }
 
     
@@ -271,13 +270,9 @@ function filterVoters(status) {
 
             function refreshVoterList() {
                 let searchQuery = "";
-                let filterState = "";
                 const searchInput = document.querySelector('input[name="search"]');
-                const filterSelect = document.querySelector('select[name="filter"]');
-
                 if (searchInput) searchQuery = searchInput.value;
-                if (filterSelect) filterState = filterSelect.value;
-                const url = `/get_voter_status/${session_uuid}/?search=${encodeURIComponent(searchQuery)}&filter=${filterState}`;
+                const url = `/get_voter_status/${session_uuid}/?search=${encodeURIComponent(searchQuery)}&filter=${encodeURIComponent(currentFilter)}`;
 
                 fetch(url)
                     .then(response => {
@@ -297,7 +292,7 @@ function filterVoters(status) {
                             data.verified_voters === data.total_voters &&
                             data.finished_voters === data.total_voters
                         ) {
-                            console.log("All voters vvvvverified and finished. Stopping voter list updates.");
+                            console.log("All voters verified and finished. Stopping voter list updates.");
                             clearInterval(voterListInterval);
                         }
                     })

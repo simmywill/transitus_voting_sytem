@@ -94,10 +94,9 @@
       </div>
       <div class="actions">
         <button class="btn btn-primary" onclick="downloadReceiptPNG()">Download receipt (PNG)</button>
-        <a class="btn btn-secondary" href="/">Done</a>
+        <a class="btn btn-secondary" href="{% url 'voter_verification' session_uuid %}" onclick="clearReceiptState()">Done</a>
       </div>
       <p class="hint">Note: This receipt is a personal record. It does not reveal your identity to the system.</p>
     </div>
   </body>
   </html>
-

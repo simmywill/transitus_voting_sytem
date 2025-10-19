@@ -60,7 +60,8 @@ class VotingSession(models.Model):
         host = request.get_host()
 
         # Stable per-session URL using the canonical UUID for this session
-        self.unique_url = f'{protocol}://{host}/voter_session/verify/{self.session_uuid}'
+        # Route to CIS verify form for anonymous handoff flow
+        self.unique_url = f'{protocol}://{host}/verify/{self.session_uuid}'
         print(f"Generated/updated unique URL: {self.unique_url}")
         self.save(update_fields=['unique_url'])
 

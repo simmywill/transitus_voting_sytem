@@ -58,6 +58,10 @@ def api_verify(request):
     if not voter:
         return JsonResponse({'ok': False, 'error': 'Not found'}, status=404)
 
+    # Enforce one ballot per voter: if already finished, do not issue a new handoff
+    if getattr(voter, 'has_finished', False):
+        return JsonResponse({'ok': False, 'error': 'already_voted'}, status=403)
+
     # Issue AnonSession
     anon_id = base64.urlsafe_b64encode(secrets.token_bytes(16)).decode().rstrip('=')
     anon = AnonSession.objects.create(

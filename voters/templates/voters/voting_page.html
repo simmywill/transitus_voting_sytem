@@ -153,11 +153,7 @@
     <div class="voting_page_navigation">
         {% if current_segment > 1 %}
         <div class="arrow_tip_container">
-            {% if voter_id %}
-            <a href="{% url 'voter_session' session_uuid=session_uuid voter_id=voter_id%}?segment={{ current_segment|add:-1 }}" 
-            {% else %}
             <a href="{% url 'bbs_ballot_entry' session_uuid=session_uuid %}?segment={{ current_segment|add:-1 }}"
-            {% endif %}
                class="voting_navigation_button voting_navigation_previous">
                <i class="bi bi-caret-left-fill"></i>
             </a>
@@ -167,11 +163,7 @@
         
         {% if current_segment < total_segments %}
         <div class="arrow_tip_container">
-            {% if voter_id %}
-            <a href="{% url 'voter_session' session_uuid=session_uuid voter_id=voter_id%}?segment={{ current_segment|add:1 }}" 
-            {% else %}
             <a href="{% url 'bbs_ballot_entry' session_uuid=session_uuid %}?segment={{ current_segment|add:1 }}"
-            {% endif %}
                class="voting_navigation_button voting_navigation_next pulse">
                <i class="bi bi-caret-right-fill"></i>
             </a>
@@ -191,7 +183,6 @@
 
 <script>
     const session_uuid = "{{ session_uuid }}";
-    const voter_id = "{{ voter_id|default:'' }}";
     // segments_json is not provided on this page in all flows; avoid parsing here.
     // A dedicated thank-you page will use it for receipt rendering.
 </script>
@@ -267,8 +258,6 @@ window.onload = function() {
 
 function confirmVote() {
     // Check if all segments have selections
-    console.log(`Session UUID: ${session_uuid}, Voter ID: ${voter_id}`);
-
     if (Object.keys(selectedVotes).length < "{{ total_segments }}") {
         alert("Please make selections for all segments before voting.");
         return;
@@ -276,61 +265,29 @@ function confirmVote() {
 
     // Confirm before submitting
     if (confirm("Are you sure? After this, there is no turning back.")) {
-        if (voter_id) {
-            // Legacy flow (disabled when ANON handoff enabled)
-            const voteData = {
-                csrfmiddlewaretoken: document.querySelector('[name="csrfmiddlewaretoken"]').value,
-                votes: selectedVotes,
-            };
-            fetch(`/submit_vote/${session_uuid}/${voter_id}/` , {
-                method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
-                },
-                body: JSON.stringify(voteData),
-            }).then((response) => {
-                if (response.ok) {
-                    alert("Your votes have been successfully submitted!");
-                    localStorage.removeItem("selectedVotes");
-                    document.querySelectorAll('.voting_page_candidate').forEach((candidate) => candidate.classList.remove('selected'));
-                    window.location.href = "{% url 'voter_verification' session_uuid=session_uuid  %}";
-                } else {
-                    throw new Error("Failed to submit your votes. Please try again.");
-                }
-            }).catch((error) => { alert(error.message); });
-        } else {
-            // New anonymous BBS cast
-            const pairs = Object.entries(selectedVotes).map(([seg, cand]) => [parseInt(seg), parseInt(cand)]);
-            const payload = { session_uuid: session_uuid, choices: pairs };
-            fetch(`/api/cast`, {
-                method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
-                },
-                body: JSON.stringify(payload),
-            }).then(async (response) => {
-                const data = await response.json().catch(() => ({}));
-                if (response.ok && data.ok) {
-                    const receipt = data.receipt || "";
-                    // Persist a copy of the selections for a one-time receipt download on the Thank You page
-                    try {
-                        localStorage.setItem("receiptSelections", JSON.stringify(selectedVotes));
-                        localStorage.setItem("receiptCode", receipt);
-                    } catch (e) { /* ignore storage issues */ }
-                    // Clear working selection state
-                    localStorage.removeItem("selectedVotes");
-                    // Send the voter to a neutral thank-you page instead of public results
-                    window.location.href = "/thanks/" + session_uuid + "/";
-                } else {
-                    throw new Error(data.error || "Submit failed");
-                }
-            }).catch((error) => { alert(error.message); });
-        }
-
-       
-
+        const pairs = Object.entries(selectedVotes).map(([seg, cand]) => [parseInt(seg), parseInt(cand)]);
+        const payload = { session_uuid: session_uuid, choices: pairs };
+        fetch(`/api/cast`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
+            },
+            body: JSON.stringify(payload),
+        }).then(async (response) => {
+            const data = await response.json().catch(() => ({}));
+            if (response.ok && data.ok) {
+                const receipt = data.receipt || "";
+                try {
+                    localStorage.setItem("receiptSelections", JSON.stringify(selectedVotes));
+                    localStorage.setItem("receiptCode", receipt);
+                } catch (e) { /* ignore storage issues */ }
+                localStorage.removeItem("selectedVotes");
+                window.location.href = "/thanks/" + session_uuid + "/";
+            } else {
+                throw new Error(data.error || "Submit failed");
+            }
+        }).catch((error) => { alert(error.message); });
     }
 }
 
