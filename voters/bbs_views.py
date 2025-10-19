@@ -1,10 +1,11 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseForbidden
 from django.views.decorators.http import require_http_methods, require_POST, require_GET
 from django.views.decorators.csrf import csrf_protect
 from django.db import transaction
 from django.conf import settings
 from django.utils import timezone as tz
+from django.urls import reverse
 import hmac, hashlib, json, os
 
 try:
@@ -55,9 +56,19 @@ def ballot_entry(request, session_uuid):
     if code:
         status, data = _cis_call(request, "/api/redeem", {"redirect_code": code, "session_uuid": str(session_uuid)})
         if status != 200 or not data.get("ok"):
-            return HttpResponseForbidden("Invalid or used handoff")
+            error = (data.get("error") if isinstance(data, dict) else "redeem_failed") or "redeem_failed"
+            return HttpResponseForbidden({
+                "invalid_or_used": "This link has already been used or expired. Please re-verify to obtain a new code.",
+                "missing_fields": "Missing handoff details. Please try again from the verification page.",
+            }.get(error, "Handoff validation failed. Please re-verify."))
         request.session['ANON_ID'] = data['anon_id']
         request.session['ANON_SESSION_UUID'] = str(session_uuid)
+
+        # Strip single-use handoff token from the browser URL so refreshes do not re-redeem
+        clean_url = reverse('bbs_ballot_entry', args=[session_uuid])
+        if request.GET.get("segment"):
+            clean_url = f"{clean_url}?segment={seg_num}"
+        return redirect(clean_url)
     else:
         # Must already have anon session if navigating
         if request.session.get('ANON_SESSION_UUID') != str(session_uuid) or not request.session.get('ANON_ID'):

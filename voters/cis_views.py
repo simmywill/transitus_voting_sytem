@@ -5,10 +5,12 @@ from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.utils import timezone as tz
 from django.conf import settings
 from django.db import transaction
-import secrets, base64, hmac, hashlib, json, os
+import secrets, base64, hmac, hashlib, json, os, logging
 from django.urls import reverse
 
 from .models import VotingSession, Voter, AnonSession, RedirectCode, log_event
+
+logger = logging.getLogger(__name__)
 
 
 def _host_ok(request, expect='verify'):
@@ -115,10 +117,22 @@ def api_redeem(request):
         session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
 
     rc = RedirectCode.objects.select_for_update().filter(code=code, session=session).first()
-    if not rc or rc.redeemed_at or (rc.expires_at and rc.expires_at < tz.now()):
-        return JsonResponse({"ok": False, "error": "invalid_or_used"}, status=400)
+    now = tz.now()
+    failure = None
+    if not rc:
+        failure = "missing"
+    elif rc.redeemed_at:
+        failure = "already_redeemed"
+    elif rc.expires_at and rc.expires_at < now:
+        failure = "expired"
 
-    rc.redeemed_at = tz.now()
+    if failure:
+        logger.warning(
+            "CIS redeem rejected (%s) for session=%s code=%s", failure, session_uuid, code
+        )
+        return JsonResponse({"ok": False, "error": "invalid_or_used", "reason": failure}, status=400)
+
+    rc.redeemed_at = now
     rc.save(update_fields=['redeemed_at'])
 
     anon = rc.anon

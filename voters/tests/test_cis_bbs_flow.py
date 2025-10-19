@@ -2,6 +2,7 @@ from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.utils import timezone as tz
 from django.contrib.auth.models import User
+from django.core.files.base import ContentFile
 import json, hmac, hashlib
 
 from voters.models import VotingSession, Voter, VotingSegmentHeader, Candidate, AnonSession, RedirectCode
@@ -14,8 +15,19 @@ class AnonFlowTests(TestCase):
         self.admin = User.objects.create_user(username="admin", password="pw")
         self.session = VotingSession.objects.create(title="Test Session", admin=self.admin, is_active=True)
         self.segment = VotingSegmentHeader.objects.create(session=self.session, name="Chair", order=1)
-        self.cand1 = Candidate.objects.create(name="Alice", voting_session=self.session, segment_header=self.segment)
-        self.cand2 = Candidate.objects.create(name="Bob", voting_session=self.session, segment_header=self.segment)
+        blob = b"GIF87a\x01\x00\x01\x00\x80\x00\x00\xff\xff\xff\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;"
+        self.cand1 = Candidate.objects.create(
+            name="Alice",
+            voting_session=self.session,
+            segment_header=self.segment,
+            photo=ContentFile(blob, name="dot1.gif")
+        )
+        self.cand2 = Candidate.objects.create(
+            name="Bob",
+            voting_session=self.session,
+            segment_header=self.segment,
+            photo=ContentFile(blob, name="dot2.gif")
+        )
         self.voter = Voter.objects.create(session=self.session, Fname="John", Lname="Doe")
 
     def _hmac(self, body: bytes) -> str:
@@ -109,5 +121,62 @@ class AnonFlowTests(TestCase):
             self.voter.refresh_from_db()
             self.assertIsNotNone(anon.spent_at)
             self.assertTrue(self.voter.has_finished)
+        finally:
+            bbs_views.requests.post = orig_post
+
+    def test_ballot_entry_redirects_after_redeem(self):
+        # Prepare code ready for redeem via ballot_entry
+        anon = AnonSession.objects.create(
+            anon_id="anon-4",
+            session=self.session,
+            voter=self.voter,
+            expires_at=tz.now() + tz.timedelta(hours=1)
+        )
+        rc = RedirectCode.objects.create(
+            code="code-redirect",
+            anon=anon,
+            session=self.session,
+            expires_at=tz.now() + tz.timedelta(minutes=10)
+        )
+
+        from voters import bbs_views
+        orig_post = bbs_views.requests.post
+
+        def fake_requests_post(url, data, headers, timeout):
+            from urllib.parse import urlparse
+            parsed = urlparse(url)
+            path = parsed.path
+            response = self.client.post(
+                path,
+                data=data,
+                content_type='application/json',
+                HTTP_X_CIS_SIGNATURE=headers.get('X-CIS-Signature', '')
+            )
+
+            class R:
+                status_code = response.status_code
+
+                def json(self_inner):
+                    return json.loads(response.content.decode() or '{}')
+
+            return R()
+
+        bbs_views.requests.post = fake_requests_post
+        try:
+            url = f"{reverse('bbs_ballot_entry', args=[self.session.session_uuid])}?handoff={rc.code}"
+            resp = self.client.get(url)
+            self.assertEqual(resp.status_code, 302)
+            self.assertEqual(resp['Location'], reverse('bbs_ballot_entry', args=[self.session.session_uuid]))
+
+            # Session should now carry anon context and redeem should be marked
+            session_data = self.client.session
+            self.assertEqual(session_data.get('ANON_ID'), anon.anon_id)
+            self.assertEqual(session_data.get('ANON_SESSION_UUID'), str(self.session.session_uuid))
+
+            rc.refresh_from_db()
+            self.assertIsNotNone(rc.redeemed_at)
+
+            follow = self.client.get(resp['Location'])
+            self.assertEqual(follow.status_code, 200)
         finally:
             bbs_views.requests.post = orig_post
