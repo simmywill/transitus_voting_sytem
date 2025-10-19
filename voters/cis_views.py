@@ -1,7 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, HttpResponseForbidden, HttpResponseBadRequest
 from django.views.decorators.http import require_POST, require_GET
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from django.utils import timezone as tz
 from django.conf import settings
 from django.db import transaction
@@ -90,6 +90,7 @@ def api_verify(request):
 
 
 @require_POST
+@csrf_exempt  # HMAC-authenticated server-to-server endpoint; CSRF not applicable
 @transaction.atomic
 def api_redeem(request):
     # BBS -> CIS, HMAC protected
@@ -130,6 +131,7 @@ def api_redeem(request):
 
 
 @require_POST
+@csrf_exempt  # HMAC-authenticated server-to-server endpoint; CSRF not applicable
 @transaction.atomic
 def api_mark_spent(request):
     # BBS -> CIS, HMAC protected
