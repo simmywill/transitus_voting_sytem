@@ -216,16 +216,9 @@ CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'filters': {
-        'squelch_ballot': {
-            '()': 'django.utils.log.CallbackFilter',
-            'callback': lambda r: not (getattr(r, 'request', None) and getattr(r.request, 'path', '') and ('/ballot' in r.request.path or '/api/cast' in r.request.path)),
-        }
-    },
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
-            'filters': ['squelch_ballot'],
         },
     },
     'root': {

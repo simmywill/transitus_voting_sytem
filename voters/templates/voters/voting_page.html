@@ -125,7 +125,11 @@
                 data-candidate-id="{{ candidate.id }}" 
                 data-segment-id="{{ segment.id }}" 
                 onclick="selectCandidate('{{ candidate.id }}', '{{ segment.id }}')">
+                {% if candidate.photo %}
                 <img src="{{ candidate.photo.url }}" alt="{{ candidate.name }}" />
+                {% else %}
+                <img src="{% static 'placeholder.png' %}" alt="{{ candidate.name }}" />
+                {% endif %}
                 <p>{{ candidate.name }}</p>
                 <input type="radio" name="candidate" value="{{ candidate.id }}" class="hidden" />
                 <div class="voting_page_tick">
