@@ -231,32 +231,56 @@ LOGGING = {
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 if USE_S3_MEDIA:
-    INSTALLED_APPS.append('storages')
-    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
-    if not AWS_STORAGE_BUCKET_NAME:
-        raise RuntimeError('AWS_STORAGE_BUCKET_NAME must be set when USE_S3_MEDIA=1')
+    # Ensure storages is added only once
+    if "storages" not in INSTALLED_APPS:
+        INSTALLED_APPS.append("storages")
 
-    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
-    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL')
-    AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME")
+    if not AWS_STORAGE_BUCKET_NAME:
+        raise RuntimeError("AWS_STORAGE_BUCKET_NAME must be set when USE_S3_MEDIA=1")
+
+    # IMPORTANT: must be just the region code, e.g. 'us-east-2'
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME")
+
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL")
+    AWS_S3_CUSTOM_DOMAIN = os.environ.get("AWS_S3_CUSTOM_DOMAIN")
 
     if AWS_S3_ENDPOINT_URL:
-        AWS_S3_ENDPOINT_URL = AWS_S3_ENDPOINT_URL.rstrip('/')
+        AWS_S3_ENDPOINT_URL = AWS_S3_ENDPOINT_URL.rstrip("/")
 
     if not AWS_S3_CUSTOM_DOMAIN:
         if AWS_S3_ENDPOINT_URL:
-            AWS_S3_CUSTOM_DOMAIN = AWS_S3_ENDPOINT_URL.replace('https://', '').replace('http://', '')
+            AWS_S3_CUSTOM_DOMAIN = AWS_S3_ENDPOINT_URL.replace("https://", "").replace("http://", "")
         elif AWS_S3_REGION_NAME:
-            AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+            AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
         else:
-            AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+            AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
 
-    AWS_DEFAULT_ACL = os.environ.get('AWS_DEFAULT_ACL', 'public-read')
-    AWS_QUERYSTRING_AUTH = os.environ.get('AWS_QUERYSTRING_AUTH', 'false').lower() in ('1', 'true', 'yes')
-    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    AWS_DEFAULT_ACL = os.environ.get("AWS_DEFAULT_ACL", "public-read")
+    AWS_QUERYSTRING_AUTH = os.environ.get("AWS_QUERYSTRING_AUTH", "false").lower() in ("1", "true", "yes")
+    AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
 
-    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3.S3Storage'
+    MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"
+
+    # ✅ Modern Django 5 approach — overrides the default FileSystemStorage
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": AWS_STORAGE_BUCKET_NAME,
+                "region_name": AWS_S3_REGION_NAME,
+                # "endpoint_url": AWS_S3_ENDPOINT_URL,  # uncomment if needed
+                # "file_overwrite": False,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+
+    # ❌ Remove or comment out any DEFAULT_FILE_STORAGE line below
+    # DEFAULT_FILE_STORAGE = "storages.backends.s3.S3Storage"
+
 
 
 # --- S3 DIAGNOSTIC LOG (temporary; safe to remove after verification) ---
