@@ -82,12 +82,15 @@ def ballot_entry(request, session_uuid):
     seg_num = max(1, min(total, seg_num))
     segment = segments[seg_num - 1]
 
+    segment_ids = [seg.id for seg in segments]
+
     return render(request, 'voters/voting_page.html', {
         'session': session,
         'segment': segment,
         'current_segment': seg_num,
         'total_segments': total,
         'session_uuid': str(session_uuid),
+        'segment_ids_json': json.dumps(segment_ids),
         # No voter_id provided in BBS
     })
 
@@ -116,17 +119,39 @@ def api_cast(request):
 
     try:
         session = VotingSession.objects.get(session_uuid=session_uuid)
-    except Exception:
-        session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
+    except VotingSession.DoesNotExist:
+        session = VotingSession.objects.filter(unique_url__contains=f"{session_uuid}").first()
+        if not session:
+            return JsonResponse({"error": "session_not_found"}, status=404)
+
+    segments_by_id = {seg.id: seg for seg in VotingSegmentHeader.objects.filter(session=session)}
+    if not segments_by_id:
+        return JsonResponse({"error": "no_segments"}, status=400)
 
     created = 0
     now = tz.now()
     for pair in choices:
         if not isinstance(pair, (list, tuple)) or len(pair) != 2:
-            continue
-        seg_id, cand_id = pair
-        segment = get_object_or_404(VotingSegmentHeader, pk=seg_id, session=session)
-        candidate = get_object_or_404(Candidate, pk=cand_id, voting_session=session, segment_header=segment)
+            return JsonResponse({"error": "invalid_choice_format"}, status=400)
+        raw_seg_id, raw_cand_id = pair
+        try:
+            seg_id = int(raw_seg_id)
+            cand_id = int(raw_cand_id)
+        except (TypeError, ValueError):
+            return JsonResponse({"error": "invalid_choice_format"}, status=400)
+
+        segment = segments_by_id.get(seg_id)
+        if not segment:
+            return JsonResponse({"error": "invalid_segment", "segment_id": seg_id}, status=400)
+
+        try:
+            candidate = Candidate.objects.get(pk=cand_id, voting_session=session, segment_header_id=seg_id)
+        except Candidate.DoesNotExist:
+            return JsonResponse(
+                {"error": "invalid_candidate", "segment_id": seg_id, "candidate_id": cand_id},
+                status=400,
+            )
+
         Ballot.objects.create(session=session, segment=segment, candidate=candidate)
         created += 1
 

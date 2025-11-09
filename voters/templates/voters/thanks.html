@@ -71,6 +71,12 @@
         const name = receipt ? `receipt_${receipt}.png` : `receipt.png`;
         a.href = png; a.download = name;
         document.body.appendChild(a); a.click(); a.remove();
+
+        // After triggering the download, clear local state and redirect back to verification
+        // Small delay ensures the browser begins the download before navigation
+        const verifyUrl = "{% url 'voter_verification' session_uuid %}";
+        try { clearReceiptState(); } catch (e) {}
+        setTimeout(() => { window.location.href = verifyUrl; }, 900);
       } catch (e) {
         console.error(e); alert('Unable to generate receipt.');
       }

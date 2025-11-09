@@ -183,20 +183,68 @@
 
 <script>
     const session_uuid = "{{ session_uuid }}";
-    // segments_json is not provided on this page in all flows; avoid parsing here.
-    // A dedicated thank-you page will use it for receipt rendering.
+    const segmentIds = JSON.parse('{{ segment_ids_json|escapejs }}');
 </script>
 
 <script>
 
 
 
-let selectedVotes = JSON.parse(localStorage.getItem("selectedVotes")) || {};
+const legacyStorageKey = "selectedVotes";
+const storageKey = `selectedVotes_${session_uuid}`;
+const segmentIdStrings = segmentIds.map(id => id.toString());
+let selectedVotes = {};
+
+function persistSelections() {
+    try {
+        localStorage.setItem(storageKey, JSON.stringify(selectedVotes));
+    } catch (e) {
+        // ignore quota/storage errors
+    }
+}
+
+function loadSelections() {
+    let raw = null;
+    try {
+        raw = localStorage.getItem(storageKey);
+        if (!raw) {
+            const legacy = localStorage.getItem(legacyStorageKey);
+            if (legacy) {
+                raw = legacy;
+                localStorage.setItem(storageKey, legacy);
+                localStorage.removeItem(legacyStorageKey);
+            }
+        }
+        selectedVotes = raw ? JSON.parse(raw) || {} : {};
+    } catch (e) {
+        selectedVotes = {};
+    }
+
+    const allowed = new Set(segmentIdStrings);
+    let mutated = false;
+    Object.keys(selectedVotes).forEach((segId) => {
+        if (!allowed.has(segId.toString())) {
+            delete selectedVotes[segId];
+            mutated = true;
+        }
+    });
+    if (mutated) {
+        persistSelections();
+    }
+}
+
+function hasSelectionsForAllSegments() {
+    return segmentIdStrings.every((segId) =>
+        Object.prototype.hasOwnProperty.call(selectedVotes, segId)
+    );
+}
+
+loadSelections();
 
 function selectCandidate(candidateId, segmentId) {
     // Update the selected vote for the given segment
-    selectedVotes[segmentId] = candidateId; 
-    localStorage.setItem("selectedVotes", JSON.stringify(selectedVotes)); 
+    selectedVotes[segmentId.toString()] = candidateId; 
+    persistSelections();
 
     // Remove 'selected' class only for candidates in the same segment
     document.querySelectorAll(`.voting_page_candidate[data-segment-id="${segmentId}"]`)
@@ -210,16 +258,14 @@ function selectCandidate(candidateId, segmentId) {
 }
 
 window.onload = function() {
-    const savedVotes = localStorage.getItem("selectedVotes");
-    if (savedVotes) {
-        selectedVotes = JSON.parse(savedVotes);
-        // Apply the 'selected' class to previously selected candidates
-        for (const [segmentId, candidateId] of Object.entries(selectedVotes)) {
-            const candidateElement = document.getElementById(`candidate-${candidateId}`);
-            if (candidateElement) {
-                candidateElement.classList.add('selected');
-            }
+    loadSelections();
+    // Apply the 'selected' class to previously selected candidates
+    for (const [segmentId, candidateId] of Object.entries(selectedVotes)) {
+        const candidateElement = document.getElementById(`candidate-${candidateId}`);
+        if (candidateElement) {
+            candidateElement.classList.add('selected');
         }
+    }
 
         // Arrow tips fade in/out
     document.querySelectorAll('.arrow_tip').forEach((tip) => {
@@ -251,21 +297,23 @@ window.onload = function() {
         }, { once: true });
     }
 };
-    }
 
 
 
 
 function confirmVote() {
     // Check if all segments have selections
-    if (Object.keys(selectedVotes).length < "{{ total_segments }}") {
+    if (!hasSelectionsForAllSegments()) {
         alert("Please make selections for all segments before voting.");
         return;
     }
 
     // Confirm before submitting
     if (confirm("Are you sure? After this, there is no turning back.")) {
-        const pairs = Object.entries(selectedVotes).map(([seg, cand]) => [parseInt(seg), parseInt(cand)]);
+        const pairs = segmentIdStrings.map((segId) => [
+            parseInt(segId, 10),
+            parseInt(selectedVotes[segId], 10)
+        ]);
         const payload = { session_uuid: session_uuid, choices: pairs };
         fetch(`/api/cast`, {
             method: "POST",
@@ -282,7 +330,8 @@ function confirmVote() {
                     localStorage.setItem("receiptSelections", JSON.stringify(selectedVotes));
                     localStorage.setItem("receiptCode", receipt);
                 } catch (e) { /* ignore storage issues */ }
-                localStorage.removeItem("selectedVotes");
+                localStorage.removeItem(storageKey);
+                localStorage.removeItem(legacyStorageKey);
                 window.location.href = "/thanks/" + session_uuid + "/";
             } else {
                 throw new Error(data.error || "Submit failed");

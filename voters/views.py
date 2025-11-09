@@ -823,6 +823,7 @@ def voter_session(request, session_uuid, voter_id):
     current_segment = int(request.GET.get('segment', 1))
     segments = session.segments.all().order_by('order')  # Ensure ordering
     segment = segments[current_segment - 1]
+    segment_ids = list(segments.values_list('id', flat=True))
 
     # Retrieve selected votes for the voter
     votes = Vote.objects.filter(voter=voter, segment__in=segments)
@@ -839,6 +840,7 @@ def voter_session(request, session_uuid, voter_id):
         'session_uuid': str(session.session_uuid),
         'voter_id': voter_id,  # Pass the voter_id in context
         'selected_candidate_id': selected_candidate_id,  # Pass selected candidate for the current segment
+        'segment_ids_json': json.dumps(segment_ids),
     }
     return render(request, 'voters/voting_page.html', context)
 

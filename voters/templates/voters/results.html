@@ -7,7 +7,6 @@
     <title>Leaderboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,7 +25,7 @@
             display: none;
         }
 
-        .candidate_vote {
+        .candidate-row {
             font-size: 1.2em;
             margin: 10px 0;
         }
@@ -95,19 +94,6 @@
             50% { transform: translateY(-20px); }
             100% { transform: translateY(0); }
         }
-
-
-            .confetti-canvas {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 9999;
-    }
-
-
         /* Mobile responsive adjustments */
         @media (max-width: 768px) {
             .winner-image {
@@ -161,22 +147,20 @@
 
             <div class="leaderboard-container">
                 <div class="leaderboard-title">🏁 Candidate Leaderboard 🏁</div>
-                {% for segment in tally %}
-                  <div class="leaderboard" id="leaderboard-{{ segment.segment_id }}" data-segment="{{ segment.segment_id }}">
+                <div class="leaderboard" id="leaderboard-{{ segment.segment_id }}" data-segment="{{ segment.segment_id }}">
                     {% for candidate in segment.candidates %}
-                      <div class="candidate-row" 
-                           data-votes="{{ candidate.votes }}" 
-                           data-name="{{ candidate.name }}"
-                           id="candidate-{{ candidate.id }}">
-                        <div class="rank"></div>
+                    <div class="candidate-row"
+                         data-votes="{{ candidate.votes }}"
+                         data-name="{{ candidate.name }}"
+                         id="candidate-{{ candidate.id }}">
+                        <div class="rank" id="position-{{ candidate.id }}"></div>
                         <div class="avatar"><img src="{{ candidate.photo_url }}" alt="photo"></div>
                         <div class="name">{{ candidate.name }}</div>
                         <div class="votes" id="votes-{{ candidate.id }}">0</div>
-                      </div>
+                    </div>
                     {% endfor %}
-                  </div>
-                {% endfor %}
-              </div>
+                </div>
+            </div>
 
             <div class="chart-container">
                 <canvas id="chart-{{ segment.segment_id }}"></canvas>
@@ -205,7 +189,7 @@
                 const currentSegment = segments[index];
                 currentSegment.style.display = "block";
 
-                const leaderboard = currentSegment.querySelectorAll(".candidate_vote");
+                const leaderboard = currentSegment.querySelectorAll(".candidate-row");
                 gsap.fromTo(
                     leaderboard,
                     { opacity: 0, y: 50 },
@@ -283,10 +267,12 @@
 
             // Display winner's image and votes
             const winnerImage = document.getElementById(`winner-image-${segmentId}`);
+            const winnerName = document.getElementById(`winner-name-${segmentId}`);
             const winnerVotes = document.getElementById(`winner-votes-${segmentId}`);
             const winnerContainer = document.getElementById(`winner-container-${segmentId}`);
 
             winnerImage.src = winner.photo_url;
+            winnerName.textContent = winner.name;
             winnerVotes.textContent = `Votes: ${winner.votes}`;
 
             // Show the winner container
@@ -294,42 +280,13 @@
 
             // Apply bouncing and zoom effect
             winnerImage.classList.add('bouncing');
+            gsap.killTweensOf(winnerImage);
             gsap.to(winnerImage, { 
                 scale: 1.2, 
                 duration: 1, 
                 yoyo: true, 
                 repeat: -1 
             });
-
-            // Trigger confetti animation
-            const duration = 10000; // 10 seconds
-            const interval = 100; // Interval between confetti bursts (in milliseconds)
-
-            const endTime = Date.now() + duration;
-
-            // Function to trigger confetti around the image
-            const fireConfetti = () => {
-                // Randomize origin within a range around the image
-                const randomX = 0.4 + Math.random() * 0.2; // Range around 0.5 (center)
-                const randomY = 0.4 + Math.random() * 0.2; // Range around 0.5 (center)
-
-                confetti({
-                    particleCount: 50, // Adjust particle count per burst
-                    spread: 70, // Spread of the confetti
-                    origin: { x: randomX, y: randomY }, // Randomize position
-                    colors: ['#ff0000', '#00ff00', '#0000ff'], // Custom colors
-                    disableForReducedMotion: true, // Accessibility
-                });
-            };
-
-            // Trigger confetti bursts until the duration ends
-            const intervalId = setInterval(() => {
-                if (Date.now() > endTime) {
-                    clearInterval(intervalId); // Stop after 10 seconds
-                } else {
-                    fireConfetti();
-                }
-            }, interval);
         }
 
         function closeWinner(segmentId) {
@@ -338,37 +295,10 @@
 
             // You can also stop the animation here if needed, for example, by resetting the image class
             const winnerImage = document.getElementById(`winner-image-${segmentId}`);
+            gsap.killTweensOf(winnerImage);
+            winnerImage.style.transform = "";
             winnerImage.classList.remove('bouncing');
         }
-
-      /*  function confetti(options) {
-            const confettiCanvas = document.createElement('canvas');
-            document.body.appendChild(confettiCanvas);
-            confettiCanvas.classList.add('confetti-canvas');
-
-            const ctx = confettiCanvas.getContext('2d');
-            const { width, height } = window.innerWidth;
-            confettiCanvas.width = width;
-            confettiCanvas.height = height;
-
-            const particleCount = options.particleCount || 100;
-            const spread = options.spread || 60;
-            const colors = options.colors || ['#ff0000', '#00ff00', '#0000ff'];
-
-            for (let i = 0; i < particleCount; i++) {
-                const x = Math.random() * width;
-                const y = Math.random() * height;
-                const size = Math.random() * 5 + 2;
-                const speed = Math.random() * 5 + 1;
-                const angle = Math.random() * spread - spread / 2;
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                ctx.fillStyle = color;
-
-                ctx.beginPath();
-                ctx.arc(x, y, size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }*/
     </script>
 </body>
 </html>
