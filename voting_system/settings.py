@@ -277,6 +277,7 @@ if USE_S3_MEDIA:
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
+    AWS_S3_FILE_OVERWRITE = False
 
     # ❌ Remove or comment out any DEFAULT_FILE_STORAGE line below
     # DEFAULT_FILE_STORAGE = "storages.backends.s3.S3Storage"
