@@ -259,6 +259,26 @@ if USE_S3_MEDIA:
     DEFAULT_FILE_STORAGE = 'storages.backends.s3.S3Storage'
 
 
+# --- S3 DIAGNOSTIC LOG (temporary; safe to remove after verification) ---
+import logging, os
+try:
+    from django.core.files.storage import default_storage
+    from django.conf import settings as _s
+    _storages = getattr(_s, "STORAGES", {})
+    _storages_default = _storages.get("default") if isinstance(_storages, dict) else None
+    logging.getLogger("django").warning(
+        "S3 diag: USE_S3_MEDIA=%s | storage=%s | DEFAULT_FILE_STORAGE=%s | STORAGES.default=%s | bucket=%s | region=%s",
+        getattr(_s, "USE_S3_MEDIA", None),
+        default_storage.__class__,
+        getattr(_s, "DEFAULT_FILE_STORAGE", None),
+        _storages_default,
+        os.getenv("AWS_STORAGE_BUCKET_NAME"),
+        os.getenv("AWS_S3_REGION_NAME"),
+    )
+except Exception as e:
+    logging.getLogger("django").warning("S3 diag error: %r", e)
+# --- END S3 DIAGNOSTIC LOG ---
+
 # Cookies
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
