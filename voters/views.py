@@ -997,6 +997,35 @@ def review_voter_results(request, voter_id, session_uuid):
 
 
 @login_required
+@never_cache
+def manual_check_page(request, session_uuid):
+    if not request.user.is_authenticated or not getattr(request.user, 'is_staff', False):
+        return HttpResponseForbidden("Manual check is restricted to administrators.")
+    try:
+        voting_session = VotingSession.objects.get(session_uuid=session_uuid)
+    except Exception:
+        voting_session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+
+    voters = voting_session.voters.all()
+    verified_voters_count = voters.filter(is_verified=True).count()
+    finished_voters_count = voters.filter(has_finished=True).count()
+    total_voters_count = voters.count()
+
+    return render(
+        request,
+        'voters/manual_check.html',
+        {
+            'voting_session': voting_session,
+            'session_uuid': str(voting_session.session_uuid),
+            'verified_voters_count': verified_voters_count,
+            'finished_voters_count': finished_voters_count,
+            'total_voters_count': total_voters_count,
+            'csrf_token_value': get_token(request),
+        },
+    )
+
+
+@login_required
 def manual_check_card(request, session_uuid):
     if not request.user.is_authenticated or not getattr(request.user, 'is_staff', False):
         return HttpResponseForbidden("Manual check is restricted to administrators.")

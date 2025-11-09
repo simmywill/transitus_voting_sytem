@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token_value|default:csrf_token }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <title>Manual Check - {{ voting_session.title }}</title>
+    <script src="{% static 'deactivate_button.js' %}" defer></script>
+    <script src="{% static 'qr_modal.js' %}" defer></script>
+</head>
+
+<nav class="voting_session-navbar">
+    <div class="voting_session-navbar-content">
+        <div class="final-navbar">
+            <div>
+                <p>Verified Voters: {{ verified_voters_count }}/{{ total_voters_count }}</p>
+                <p>Finished Voters: {{ finished_voters_count }}/{{ total_voters_count }}</p>
+            </div>
+        </div>
+
+        <h1 class="voting_session-navbar-title">{{ voting_session.title }} - Manual Check</h1>
+
+        <div class="voting_session-navbar-toggle" onclick="toggleNavbar()">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+        <div class="voting_session-navbar-links">
+            <ul>
+                {% if voting_session.is_active %}
+                <li><a class="generate-results-link" href="{% url 'bbs_results' session_uuid %}">Generate Results</a></li>
+                <li>
+                    <button
+                        class="hold-button is-complete"
+                        id="holdBtn"
+                        type="button"
+                        data-is-active="true"
+                        data-session-id="{{ voting_session.session_id }}"
+                        data-session-uuid="{{ voting_session.get_uuid }}"
+                        data-session-title="{{ voting_session.title }}"
+                        data-unique-url="{{ voting_session.unique_url|default_if_none:'' }}"
+                        data-qr-code-url="{% url 'qr_png' voting_session.session_uuid %}"
+                        disabled
+                    >
+                        <div class="hold-progress" id="progressBar"></div>
+                        <span>Session Active</span>
+                    </button>
+                </li>
+                {% else %}
+                <li>
+                    <button
+                        class="hold-button"
+                        id="holdBtn"
+                        type="button"
+                        data-activate-url="{% url 'activate_session' voting_session.session_id %}"
+                        data-session-id="{{ voting_session.session_id }}"
+                        data-session-uuid="{{ voting_session.get_uuid }}"
+                        data-session-title="{{ voting_session.title }}"
+                        data-unique-url="{{ voting_session.unique_url|default_if_none:'' }}"
+                        data-qr-code-url="{% url 'qr_png' voting_session.session_uuid %}"
+                        data-is-active="false"
+                    >
+                        <div class="hold-progress" id="progressBar"></div>
+                        <span>Hold to Activate</span>
+                    </button>
+                </li>
+                {% endif %}
+                {% if request.user.is_staff %}
+                <li>
+                    <a href="{% url 'manual_check_page' session_uuid %}">Manual Check</a>
+                </li>
+                {% endif %}
+                <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<body>
+    <script>
+        window.csrfToken = "{{ csrf_token_value|default:csrf_token|escapejs }}";
+    </script>
+
+    <section class="session-activation-panel">
+        <div
+            id="activationMessage"
+            class="session-activation-message{% if not voting_session.is_active %} is-idle{% endif %}"
+            data-active="{{ voting_session.is_active|yesno:'true,false' }}"
+            data-idle-text="Activate the session to generate a shareable link and QR code."
+            data-active-text="Voting session is active."
+            data-unique-url="{{ voting_session.unique_url|default_if_none:'' }}"
+            data-qr-code-url="{% url 'qr_png' voting_session.session_uuid %}"
+            data-session-title="{{ voting_session.title }}"
+        >
+            {% if voting_session.is_active %}
+                <span class="status-dot"></span>
+                Voting session is active.
+                <span class="activation-links">
+                    {% if voting_session.unique_url %}
+                        <a class="activation-link" href="{{ voting_session.unique_url }}" target="_blank" rel="noopener">Open Share Link</a>
+                    {% endif %}
+                    <a
+                        class="activation-link"
+                        href="{% url 'qr_png' voting_session.session_uuid %}"
+                        target="_blank"
+                        rel="noopener"
+                        data-qr-modal="{% url 'qr_png' voting_session.session_uuid %}"
+                        data-qr-label="{{ voting_session.title }} QR Code"
+                    >View QR Code</a>
+                </span>
+            {% else %}
+                <span class="status-dot is-idle"></span>
+                Activate the session to generate a shareable link and QR code.
+            {% endif %}
+        </div>
+    </section>
+
+    <main class="manual-check-page">
+        <div class="manual-check-shell">
+            <div class="manual-check-session-meta">
+                <div>
+                    <p class="manual-check-session-title">{{ voting_session.title }}</p>
+                    <p>Session ID: {{ voting_session.session_id }}</p>
+                    <p>Session UUID: {{ voting_session.session_uuid }}</p>
+                </div>
+                <div class="manual-check-card-meta">
+                    <p>Result Card ID: <span id="manualCheckCardId">—</span></p>
+                    <p>Recorded At: <span id="manualCheckRecordedAt">—</span></p>
+                </div>
+            </div>
+            <p class="manual-check-note">
+                Each result card bundles one anonymous ballot set. Use the controls below to step through them and confirm the tallies shown on the leaderboard.
+            </p>
+            <div class="manual-check-body">
+                <p id="manualCheckEmpty" class="manual-check-empty">
+                    Loading manual check data…
+                </p>
+                <ul id="manualCheckSelections" class="manual-check-list"></ul>
+            </div>
+            <div class="manual-check-controls">
+                <button type="button" id="manualCheckPrev" class="manual-check-btn" disabled>Previous</button>
+                <span id="manualCheckProgress" class="manual-check-progress">0 / 0</span>
+                <button type="button" id="manualCheckNext" class="manual-check-btn" disabled>Next</button>
+                <button type="button" id="manualCheckRefresh" class="manual-check-btn subtle">Refresh</button>
+            </div>
+            <p id="manualCheckStatus" class="manual-check-status"></p>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sessionUuid = "{{ session_uuid }}";
+            const isStaff = "{{ request.user.is_staff|yesno:'true,false' }}" === "true";
+            const cardIdEl = document.getElementById('manualCheckCardId');
+            const recordedEl = document.getElementById('manualCheckRecordedAt');
+            const listEl = document.getElementById('manualCheckSelections');
+            const emptyEl = document.getElementById('manualCheckEmpty');
+            const statusEl = document.getElementById('manualCheckStatus');
+            const progressEl = document.getElementById('manualCheckProgress');
+            const prevBtn = document.getElementById('manualCheckPrev');
+            const nextBtn = document.getElementById('manualCheckNext');
+            const refreshBtn = document.getElementById('manualCheckRefresh');
+
+            if (!cardIdEl || !recordedEl || !listEl) {
+                return;
+            }
+
+            const state = {
+                index: 0,
+                total: 0,
+                loading: false,
+            };
+
+            function setStatus(message) {
+                if (statusEl) {
+                    statusEl.textContent = message || '';
+                }
+            }
+
+            function toggleEmpty(show, message) {
+                if (!emptyEl) {
+                    return;
+                }
+                emptyEl.style.display = show ? 'block' : 'none';
+                if (message) {
+                    emptyEl.textContent = message;
+                }
+            }
+
+            function updateProgress() {
+                if (progressEl) {
+                    progressEl.textContent = state.total ? `${state.index + 1} / ${state.total}` : '0 / 0';
+                }
+            }
+
+            function updateNavButtons() {
+                if (prevBtn) {
+                    prevBtn.disabled = !isStaff || state.loading || state.index <= 0;
+                }
+                if (nextBtn) {
+                    nextBtn.disabled = !isStaff || state.loading || state.total === 0 || state.index >= state.total - 1;
+                }
+                if (refreshBtn) {
+                    refreshBtn.disabled = !isStaff || state.loading;
+                }
+            }
+
+            function buildSelection(selection) {
+                const li = document.createElement('li');
+                li.className = 'manual-check-item';
+
+                const segmentBlock = document.createElement('div');
+                segmentBlock.className = 'manual-check-segment';
+                const segmentLabel = document.createElement('span');
+                segmentLabel.className = 'manual-check-pill-label';
+                segmentLabel.textContent = 'Segment';
+                const segmentName = document.createElement('strong');
+                segmentName.textContent = selection.segment_name || '—';
+                segmentBlock.appendChild(segmentLabel);
+                segmentBlock.appendChild(segmentName);
+
+                const choiceBlock = document.createElement('div');
+                choiceBlock.className = 'manual-check-choice';
+                const choiceLabel = document.createElement('span');
+                choiceLabel.className = 'manual-check-pill-label';
+                choiceLabel.textContent = 'Selected';
+                const preview = document.createElement('div');
+                preview.className = 'manual-check-choice-preview';
+                let avatar;
+                if (selection.candidate_photo) {
+                    avatar = document.createElement('img');
+                    avatar.className = 'manual-check-avatar';
+                    avatar.src = selection.candidate_photo;
+                    avatar.alt = selection.candidate_name || 'Candidate';
+                } else {
+                    avatar = document.createElement('div');
+                    avatar.className = 'manual-check-avatar manual-check-avatar--placeholder';
+                    avatar.textContent = (selection.candidate_name || '?').charAt(0).toUpperCase();
+                }
+                const nameEl = document.createElement('strong');
+                nameEl.textContent = selection.candidate_name || 'No selection';
+                preview.appendChild(avatar);
+                preview.appendChild(nameEl);
+
+                choiceBlock.appendChild(choiceLabel);
+                choiceBlock.appendChild(preview);
+
+                li.appendChild(segmentBlock);
+                li.appendChild(choiceBlock);
+                return li;
+            }
+
+            function renderCard(payload) {
+                state.index = payload.index || 0;
+                state.total = payload.total || 0;
+                updateProgress();
+                updateNavButtons();
+
+                const card = payload.card;
+                if (!card) {
+                    cardIdEl.textContent = '—';
+                    recordedEl.textContent = '—';
+                    listEl.innerHTML = '';
+                    toggleEmpty(true, 'No ballots have been cast yet for this session.');
+                    setStatus('');
+                    return;
+                }
+
+                cardIdEl.textContent = card.card_id || '—';
+                const recorded = new Date(card.created_at);
+                recordedEl.textContent = Number.isNaN(recorded.getTime())
+                    ? card.created_at
+                    : recorded.toLocaleString();
+
+                listEl.innerHTML = '';
+                const selections = card.selections || [];
+                if (!selections.length) {
+                    toggleEmpty(true, 'This result card does not contain any recorded segments.');
+                } else {
+                    toggleEmpty(false);
+                    selections.forEach(function (selection) {
+                        listEl.appendChild(buildSelection(selection));
+                    });
+                }
+
+                setStatus(`Displaying card ${state.index + 1} of ${state.total}`);
+            }
+
+            function handleError(error) {
+                console.error('Manual check fetch failed:', error);
+                setStatus('Unable to load manual check data. Please try again.');
+                toggleEmpty(true, 'No data is currently available.');
+                updateNavButtons();
+            }
+
+            function fetchCard(targetIndex) {
+                if (!sessionUuid) {
+                    return;
+                }
+                state.loading = true;
+                setStatus('Loading manual check data…');
+                updateNavButtons();
+                fetch(`/manual_check/${sessionUuid}/?index=${Math.max(0, targetIndex)}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(function (payload) {
+                        state.loading = false;
+                        renderCard(payload);
+                    })
+                    .catch(function (error) {
+                        state.loading = false;
+                        handleError(error);
+                    });
+            }
+
+            if (!isStaff) {
+                setStatus('Manual check is restricted to administrators.');
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+                if (refreshBtn) refreshBtn.disabled = true;
+                toggleEmpty(true, 'You do not have access to manual check data.');
+                return;
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function () {
+                    if (state.loading || state.index <= 0) {
+                        return;
+                    }
+                    fetchCard(state.index - 1);
+                });
+            }
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function () {
+                    if (state.loading || state.index >= state.total - 1) {
+                        return;
+                    }
+                    fetchCard(state.index + 1);
+                });
+            }
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function () {
+                    if (state.loading) {
+                        return;
+                    }
+                    fetchCard(state.index);
+                });
+            }
+
+            fetchCard(0);
+        });
+    </script>
+
+    <script>
+        const session_uuid = "{{ session_uuid }}";
+        document.addEventListener('DOMContentLoaded', function () {
+            function updateVoterCounts() {
+                fetch(`/voter_counts/${session_uuid}/`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        document.querySelector('.voting_session-navbar p:first-of-type').textContent = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
+                        document.querySelector('.voting_session-navbar p:last-of-type').textContent = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
+                    })
+                    .catch(error => console.error('Error updating voter counts:', error));
+            }
+
+            const voterCountsInterval = setInterval(updateVoterCounts, 5000);
+            updateVoterCounts();
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.generate-results-link').forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    const url = link.getAttribute('href');
+                    if (!url) {
+                        return;
+                    }
+                    event.preventDefault();
+                    const popup = window.open(url, '_blank', 'noopener');
+                    if (!popup) {
+                        window.location.href = url;
+                        return;
+                    }
+                    popup.focus();
+                });
+            });
+        });
+    </script>
+
+    <script>
+        window.addEventListener('pageshow', function (e) {
+            const nav = (performance && performance.getEntriesByType) ? performance.getEntriesByType('navigation')[0] : null;
+            const isBack = (nav && nav.type === 'back_forward');
+            if (e.persisted || isBack) {
+                window.location.reload();
+            }
+        });
+    </script>
+</body>
+</html>

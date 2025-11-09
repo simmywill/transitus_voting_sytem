@@ -306,23 +306,6 @@
     background-color: #555;
 }
 
-.manual-check-nav-btn {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 999px;
-    color: #fff;
-    padding: 6px 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
-}
-
-.manual-check-nav-btn:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    transform: translateY(-1px);
-}
-
 /* Mobile styling: collapsible menu only applies to screens under 768px */
 @media (max-width: 768px) {
     /* Hide the desktop nav links initially */
@@ -337,13 +320,6 @@
         left: 0;
         padding: 10px 0;
         z-index: 1;
-    }
-
-    .manual-check-nav-btn {
-        width: 100%;
-        text-align: left;
-        border-radius: 8px;
-        padding: 10px 14px;
     }
 
     /* Show the menu when toggled */

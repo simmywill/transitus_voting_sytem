@@ -256,8 +256,8 @@ if USE_S3_MEDIA:
         else:
             AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
 
-    AWS_DEFAULT_ACL = os.environ.get("AWS_DEFAULT_ACL", "public-read")
-    AWS_QUERYSTRING_AUTH = os.environ.get("AWS_QUERYSTRING_AUTH", "false").lower() in ("1", "true", "yes")
+    AWS_DEFAULT_ACL = None
+    AWS_QUERYSTRING_AUTH = True
     AWS_S3_OBJECT_PARAMETERS = {"CacheControl": "max-age=86400"}
 
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/"

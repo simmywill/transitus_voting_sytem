@@ -50,6 +50,7 @@ urlpatterns = [
     path('get_voters-uuid/<uuid:session_uuid>/', voters_views.get_voters, name = 'get_voters'),
     path('get_voters/<int:session_id>/', voters_views.get_voters, name='get_voters'),
     path('get_voter_status/<uuid:session_uuid>/', voters_views.get_voter_status, name='get_voter_status'),
+    path('manual-check/<uuid:session_uuid>/', voters_views.manual_check_page, name='manual_check_page'),
     path('manual_check/<uuid:session_uuid>/', voters_views.manual_check_card, name='manual_check_card'),
     path('sessions/<int:session_id>/segments/', voters_views.create_segment, name='create_segment'),
     path('segment/<int:segment_id>/name/', voters_views.update_segment_name, name='update_segment_name'),
