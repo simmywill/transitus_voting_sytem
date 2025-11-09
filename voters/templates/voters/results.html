@@ -8,70 +8,327 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --bg-primary: #01030b;
+            --bg-secondary: #0b1429;
+            --card: rgba(12, 21, 44, 0.92);
+            --card-border: rgba(56, 130, 255, 0.35);
+            --accent: #f5c84c;
+            --accent-strong: #4fd1ff;
+            --text-muted: #93a6c7;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Poppins', 'Segoe UI', 'Inter', sans-serif;
             margin: 0;
-            padding: 0;
+            min-height: 100vh;
+            background: radial-gradient(circle at top, #162c5b 0%, #070d1d 50%, var(--bg-primary) 100%);
+            color: #fff;
+            padding: clamp(18px, 4vw, 48px);
+        }
+
+        .results-shell {
+            width: min(1180px, 100%);
+            margin: 0 auto;
+        }
+
+        .results-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 18px;
+        }
+
+        .close-window-btn {
+            background: rgba(255, 255, 255, 0.08);
+            color: #f1f5ff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 999px;
+            padding: 10px 28px;
+            font-size: 0.95rem;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .close-window-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
         }
 
         .slideshow-container {
-            position: relative;
-            width: 80%;
-            margin: auto;
-            text-align: center;
+            width: 100%;
         }
 
         .segment-slide {
             display: none;
+            padding: clamp(24px, 4vw, 48px);
+            border-radius: 36px;
+            background: linear-gradient(145deg, rgba(9, 18, 39, 0.95), rgba(3, 6, 18, 0.92));
+            box-shadow: 0 35px 65px rgba(0, 0, 0, 0.45);
+        }
+
+        .segment-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .segment-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .segment-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.35em;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .segment-title {
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .show-winner-btn {
+            background: linear-gradient(135deg, rgba(65, 105, 225, 0.85), rgba(0, 212, 255, 0.9));
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: #fff;
+            padding: 12px 32px;
+            border-radius: 999px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(56, 189, 248, 0.35);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .show-winner-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 30px rgba(56, 189, 248, 0.45);
+        }
+
+        .leaderboard-card {
+            background: var(--card);
+            border-radius: 28px;
+            padding: clamp(20px, 4vw, 36px);
+            border: 1px solid var(--card-border);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        }
+
+        .leaderboard-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .leaderboard-head {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.95rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+
+        .leaderboard {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
         }
 
         .candidate-row {
-            font-size: 1.2em;
-            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            padding: 18px 24px;
+            background: linear-gradient(120deg, rgba(16, 31, 62, 0.9), rgba(12, 20, 42, 0.8));
+            border-radius: 24px;
+            border: 1px solid transparent;
+            transition: border-color 0.2s ease, transform 0.2s ease;
         }
 
-        .chart-container {
-            width: 80%;
-            margin: auto;
+        .candidate-row.is-leading {
+            border-color: rgba(79, 209, 255, 0.75);
+            box-shadow: 0 12px 24px rgba(56, 189, 248, 0.2);
+        }
+
+        .rank {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 1px solid var(--accent-strong);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .avatar img {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+        }
+
+        .name {
+            font-size: clamp(1.1rem, 2vw, 1.5rem);
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .votes {
+            font-size: clamp(1.5rem, 3vw, 2.4rem);
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 48px;
+            text-align: right;
+        }
+
+        .leaderboard-footer {
+            margin-top: 24px;
+            text-align: center;
+        }
+
+        .chart-tab {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 14px;
+            padding: 10px 22px;
+            font-size: 0.95rem;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+
+        .chart-tab:hover {
+            background: rgba(255, 255, 255, 0.18);
+            transform: translateY(-1px);
+        }
+
+        .chart-panel {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 5, 15, 0.78);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            z-index: 950;
+        }
+
+        .chart-panel.show {
+            display: flex;
+        }
+
+        .chart-panel__box {
+            width: min(480px, 90vw);
+            background: linear-gradient(160deg, rgba(12, 23, 52, 0.95), rgba(5, 9, 23, 0.95));
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            padding: 28px;
+            position: relative;
+            box-shadow: 0 30px 65px rgba(0, 0, 0, 0.55);
+        }
+
+        .chart-panel__box h3 {
+            margin: 0 0 6px;
+        }
+
+        .chart-panel__box p {
+            margin: 0 0 24px;
+            color: var(--text-muted);
+        }
+
+        .chart-panel__close {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            color: #fff;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .chart-panel__close:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
         }
 
         .controls {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
+            margin-top: 26px;
         }
 
         .controls button {
-            padding: 10px 20px;
-            font-size: 1em;
+            flex: 1;
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            padding: 12px 0;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
             cursor: pointer;
+            transition: background 0.2s ease;
         }
 
-        /* Show winner tab and winner display */
-        .show-winner-btn {
-            padding: 10px 20px;
-            font-size: 1em;
-            cursor: pointer;
-            margin-top: 10px;
+        .controls button + button {
+            margin-left: 12px;
+        }
+
+        .controls button:hover {
+            background: rgba(255, 255, 255, 0.2);
         }
 
         .winner-container {
             text-align: center;
-            margin-top: 20px;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            position: fixed; /* Full-screen effect */
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: rgba(0, 0, 0, 0.7);
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.75);
             z-index: 1000;
-            visibility: hidden; /* Hidden by default */
+            visibility: hidden;
             opacity: 0;
             transition: visibility 0.3s, opacity 0.3s;
+            padding: 20px;
         }
 
         .winner-container.show {
@@ -80,9 +337,27 @@
         }
 
         .winner-image {
-            width: 60%;
-            max-width: 400px;
-            transition: transform 1s ease-in-out; /* This line ensures the zoom effect */
+            width: clamp(220px, 60%, 360px);
+            border-radius: 24px;
+            object-fit: cover;
+            box-shadow: 0 18px 35px rgba(0, 0, 0, 0.45);
+            transition: transform 1s ease-in-out;
+        }
+
+        .winner-button {
+            background-color: rgba(5, 150, 105, 0.9);
+            color: white;
+            font-weight: 600;
+            padding: 12px 30px;
+            border-radius: 999px;
+            margin-bottom: 22px;
+            letter-spacing: 0.08em;
+        }
+
+        .winner-votes {
+            font-size: 1.1rem;
+            margin-top: 16px;
+            color: var(--accent);
         }
 
         .bouncing {
@@ -91,101 +366,176 @@
 
         @keyframes bounce {
             0% { transform: translateY(0); }
-            50% { transform: translateY(-20px); }
+            50% { transform: translateY(-16px); }
             100% { transform: translateY(0); }
         }
-        /* Mobile responsive adjustments */
-        @media (max-width: 768px) {
-            .winner-image {
-                width: 80%;
-                max-width: 300px;
-            }
-        }
 
-        /* Winner button style */
-        .winner-button {
-            background-color: green;
-            color: white;
-            font-weight: bold;
-            padding: 10px 20px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-
-        /* Close button style */
         .close-winner-btn {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 22px;
+            right: 22px;
             color: white;
-            background: red;
+            background: rgba(239, 68, 68, 0.9);
             border: none;
-            font-size: 20px;
+            font-size: 1rem;
+            border-radius: 50%;
+            width: 38px;
+            height: 38px;
             cursor: pointer;
         }
 
+        @media (max-width: 900px) {
+            .segment-slide {
+                padding: 28px 20px;
+            }
+
+            .candidate-row {
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+
+            .avatar img {
+                width: 54px;
+                height: 54px;
+            }
+
+            .controls button {
+                letter-spacing: 0.08em;
+                font-size: 0.95rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 16px;
+            }
+
+            .segment-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .leaderboard-card {
+                padding: 20px 16px;
+            }
+
+            .candidate-row {
+                padding: 16px;
+                gap: 12px;
+            }
+
+            .rank {
+                width: 36px;
+                height: 36px;
+            }
+
+            .votes {
+                font-size: 1.6rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .controls button + button {
+                margin-left: 0;
+                margin-top: 12px;
+            }
+        }
     </style>
     <link rel="stylesheet" href="{% static 'leaderboard.css' %}?v={% now 'U' %}">
     <!-- <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">  Link to your CSS -->
     <script src="{% static 'leaderboard.js' %}" defer></script>
 </head>
 <body>
-    <div id="slideshow-container" class="slideshow-container">
-        {% for segment in tally %}
-        <div class="segment-slide" id="segment-{{ segment.segment_id }}">
-            <h1>Results for {{ segment.name }}</h1>
-            
-            <!-- Show Winner Tab -->
-            <button class="show-winner-btn" onclick="showWinner('{{ segment.segment_id }}')">Show Winner</button>
-
-            <div class="winner-container" id="winner-container-{{ segment.segment_id }}">
-                <button class="close-winner-btn" onclick="closeWinner('{{ segment.segment_id }}')">X</button>
-                <div id="winner-name-{{ segment.segment_id }}" class="winner-name winner-button"></div>
-                <img id="winner-image-{{ segment.segment_id }}" src="" alt="Winner Image" class="winner-image" />
-                <div id="winner-votes-{{ segment.segment_id }}" class="winner-votes"></div>
-            </div>
-
-            <div class="leaderboard-container">
-                <div class="leaderboard-title">🏁 Candidate Leaderboard 🏁</div>
-                <div class="leaderboard" id="leaderboard-{{ segment.segment_id }}" data-segment="{{ segment.segment_id }}">
-                    {% for candidate in segment.candidates %}
-                    <div class="candidate-row"
-                         data-votes="{{ candidate.votes }}"
-                         data-name="{{ candidate.name }}"
-                         id="candidate-{{ candidate.id }}">
-                        <div class="rank" id="position-{{ candidate.id }}"></div>
-                        <div class="avatar"><img src="{{ candidate.photo_url }}" alt="photo"></div>
-                        <div class="name">{{ candidate.name }}</div>
-                        <div class="votes" id="votes-{{ candidate.id }}">0</div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="chart-container">
-                <canvas id="chart-{{ segment.segment_id }}"></canvas>
-            </div>
+    <div class="results-shell">
+        <div class="results-actions">
+            <button type="button" class="close-window-btn" onclick="closeResultsWindow()">Close Window</button>
         </div>
-        {% endfor %}
-        
+        <div id="slideshow-container" class="slideshow-container">
+            {% for segment in tally %}
+            <section class="segment-slide" id="segment-{{ segment.segment_id }}">
+                <div class="segment-header">
+                    <div class="segment-meta">
+                        <p class="segment-label">Results for</p>
+                        <h1 class="segment-title">{{ segment.name }}</h1>
+                    </div>
+                    <button type="button" class="show-winner-btn" onclick="showWinner('{{ segment.segment_id }}')">
+                        Show Winner
+                    </button>
+                </div>
+
+                <div class="leaderboard-card">
+                    <div class="leaderboard-title">
+                        <span aria-hidden="true">🏁</span>
+                        <span>Candidate Leaderboard</span>
+                        <span aria-hidden="true">🏁</span>
+                    </div>
+                    <div class="leaderboard-head">
+                        <span>Candidate</span>
+                        <span>Votes</span>
+                    </div>
+                    <div class="leaderboard" id="leaderboard-{{ segment.segment_id }}" data-segment="{{ segment.segment_id }}">
+                        {% for candidate in segment.candidates %}
+                        <div class="candidate-row {% if forloop.first %}is-leading{% endif %}"
+                             data-votes="{{ candidate.votes }}"
+                             data-name="{{ candidate.name }}"
+                             id="candidate-{{ candidate.id }}">
+                            <div class="rank" id="position-{{ candidate.id }}"></div>
+                            <div class="avatar"><img src="{{ candidate.photo_url }}" alt="photo of {{ candidate.name }}"></div>
+                            <div class="name">{{ candidate.name }}</div>
+                            <div class="votes" id="votes-{{ candidate.id }}">0</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="leaderboard-footer">
+                        <button type="button" class="chart-tab" data-segment="{{ segment.segment_id }}">
+                            View Vote Breakdown
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chart-panel" id="chart-panel-{{ segment.segment_id }}">
+                    <div class="chart-panel__box">
+                        <button type="button" class="chart-panel__close" data-segment="{{ segment.segment_id }}">&times;</button>
+                        <h3>Vote Breakdown</h3>
+                        <p>{{ segment.name }}</p>
+                        <canvas id="chart-{{ segment.segment_id }}"></canvas>
+                    </div>
+                </div>
+
+                <div class="winner-container" id="winner-container-{{ segment.segment_id }}">
+                    <button class="close-winner-btn" onclick="closeWinner('{{ segment.segment_id }}')">X</button>
+                    <div id="winner-name-{{ segment.segment_id }}" class="winner-name winner-button"></div>
+                    <img id="winner-image-{{ segment.segment_id }}" src="" alt="Winner Image" class="winner-image" />
+                    <div id="winner-votes-{{ segment.segment_id }}" class="winner-votes"></div>
+                </div>
+            </section>
+            {% endfor %}
+        </div>
         <div class="controls">
-            <button id="prev-button">Previous</button>
-            <button id="next-button">Next</button>
+            <button id="prev-button" type="button">Previous</button>
+            <button id="next-button" type="button">Next</button>
         </div>
     </div>
 
     <script>
         let voteData;
+        const charts = {};
+
         document.addEventListener("DOMContentLoaded", () => {
             voteData = JSON.parse('{{ segments_json|escapejs }}'); // Ensure JSON safety
             const segments = document.querySelectorAll(".segment-slide");
             const prevButton = document.getElementById("prev-button");
             const nextButton = document.getElementById("next-button");
+            const chartTabs = document.querySelectorAll(".chart-tab");
+            const chartPanels = document.querySelectorAll(".chart-panel");
+            const chartCloseButtons = document.querySelectorAll(".chart-panel__close");
             let currentSegmentIndex = 0;
-            const charts = [];
 
             function showSegment(index) {
                 segments.forEach(segment => (segment.style.display = "none"));
+                chartPanels.forEach(panel => panel.classList.remove("show"));
                 const currentSegment = segments[index];
                 currentSegment.style.display = "block";
 
@@ -199,42 +549,20 @@
                 const candidates = voteData[index].candidates;
                 candidates.forEach((candidate, i) => {
                     animateVoteCount(candidate.votes, `votes-${candidate.id}`);
-                    document.getElementById(`position-${candidate.id}`).textContent = `${i + 1}`;
+                    const position = document.getElementById(`position-${candidate.id}`);
+                    if (position) {
+                        position.textContent = `${i + 1}`;
+                    }
                 });
-
-                if (!charts[index]) {
-                    const ctx = document
-                        .getElementById(`chart-${voteData[index].segment_id}`)
-                        .getContext("2d");
-                    charts[index] = new Chart(ctx, {
-                        type: "bar",
-                        data: {
-                            labels: candidates.map(c => c.name),
-                            datasets: [
-                                {
-                                    label: "Votes",
-                                    data: candidates.map(c => c.votes),
-                                    backgroundColor: ["#ff6384", "#36a2eb", "#ffce56", "#4bc0c0", "#9966ff"]
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: {
-                                legend: { display: false }
-                            }
-                        }
-                    });
-                } else {
-                    charts[index].data.datasets[0].data = candidates.map(c => c.votes);
-                    charts[index].update();
-                }
             }
 
             function animateVoteCount(target, elementId) {
                 let current = 0;
-                const increment = Math.ceil(target / 100);
+                const increment = Math.max(1, Math.ceil(target / 100));
                 const element = document.getElementById(elementId);
+                if (!element) {
+                    return;
+                }
                 const timer = setInterval(() => {
                     current += increment;
                     if (current >= target) {
@@ -244,6 +572,22 @@
                     element.textContent = current;
                 }, 20);
             }
+
+            chartTabs.forEach(tab => {
+                tab.addEventListener("click", () => openChartPanel(tab.dataset.segment));
+            });
+
+            chartCloseButtons.forEach(button => {
+                button.addEventListener("click", () => closeChartPanel(button.dataset.segment));
+            });
+
+            chartPanels.forEach(panel => {
+                panel.addEventListener("click", event => {
+                    if (event.target === panel) {
+                        panel.classList.remove("show");
+                    }
+                });
+            });
 
             prevButton.addEventListener("click", () => {
                 currentSegmentIndex = (currentSegmentIndex - 1 + segments.length) % segments.length;
@@ -257,6 +601,57 @@
 
             showSegment(0);
         });
+
+        function openChartPanel(segmentId) {
+            const panel = document.getElementById(`chart-panel-${segmentId}`);
+            if (!panel) {
+                return;
+            }
+            panel.classList.add("show");
+
+            if (!charts[segmentId]) {
+                const ctx = document.getElementById(`chart-${segmentId}`).getContext("2d");
+                const segmentData = voteData.find(segment => segment.segment_id === parseInt(segmentId, 10));
+                if (!segmentData) {
+                    return;
+                }
+                charts[segmentId] = new Chart(ctx, {
+                    type: "pie",
+                    data: {
+                        labels: segmentData.candidates.map(c => c.name),
+                        datasets: [
+                            {
+                                data: segmentData.candidates.map(c => c.votes),
+                                backgroundColor: ["#38bdf8", "#f43f5e", "#a855f7", "#f97316", "#22d3ee", "#facc15"],
+                                borderWidth: 0
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: "bottom",
+                                labels: {
+                                    color: "#e5edff",
+                                    usePointStyle: true
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                charts[segmentId].update();
+            }
+        }
+
+        function closeChartPanel(segmentId) {
+            const panel = document.getElementById(`chart-panel-${segmentId}`);
+            if (panel) {
+                panel.classList.remove("show");
+            }
+        }
+
         function showWinner(segmentId) {
             const segmentData = voteData.find(segment => segment.segment_id === parseInt(segmentId, 10));
             if (!segmentData || !segmentData.winner) {
@@ -298,6 +693,18 @@
             gsap.killTweensOf(winnerImage);
             winnerImage.style.transform = "";
             winnerImage.classList.remove('bouncing');
+        }
+
+        function closeResultsWindow() {
+            if (window.opener && !window.opener.closed) {
+                window.close();
+                return;
+            }
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.close();
+            }
         }
     </script>
 </body>

@@ -6,6 +6,13 @@
   const HOLD_DURATION = 5000;
   let holdTimer = null;
 
+  const escapeAttr = (value = '') =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
   const getCsrfToken = () => {
     const meta = document.querySelector('meta[name="csrf-token"]');
     if (meta && meta.content && meta.content !== 'NOTPROVIDED') {
@@ -22,6 +29,12 @@
     return match ? decodeURIComponent(match[1]) : '';
   };
 
+  const getSessionTitle = (source = {}) =>
+    source.session_title ||
+    holdBtn?.dataset?.sessionTitle ||
+    activationMessage?.dataset?.sessionTitle ||
+    'Session QR Code';
+
   const buildActivationLinksMarkup = (source = {}) => {
     const shareUrl =
       source.unique_url ||
@@ -35,13 +48,16 @@
       '';
     const anchors = [];
     if (shareUrl) {
+      const safeShareUrl = escapeAttr(shareUrl);
       anchors.push(
-        `<a class="activation-link" href="${shareUrl}" target="_blank" rel="noopener">Open Share Link</a>`
+        `<a class="activation-link" href="${safeShareUrl}" target="_blank" rel="noopener">Open Share Link</a>`
       );
     }
     if (qrUrl) {
+      const safeQrUrl = escapeAttr(qrUrl);
+      const label = escapeAttr(getSessionTitle(source));
       anchors.push(
-        `<a class="activation-link" href="${qrUrl}" target="_blank" rel="noopener">Download QR Code</a>`
+        `<a class="activation-link" href="${safeQrUrl}" target="_blank" rel="noopener" data-qr-modal="${safeQrUrl}" data-qr-label="${label}">View QR Code</a>`
       );
     }
     return anchors.length ? `<span class="activation-links">${anchors.join('')}</span>` : '';
@@ -86,6 +102,9 @@
     if (payload?.qr_code_url) {
       holdBtn.dataset.qrCodeUrl = payload.qr_code_url;
     }
+    if (payload?.session_title) {
+      holdBtn.dataset.sessionTitle = payload.session_title;
+    }
 
     if (activationMessage) {
       activationMessage.dataset.active = 'true';
@@ -96,6 +115,9 @@
       }
       if (payload?.qr_code_url) {
         activationMessage.dataset.qrCodeUrl = payload.qr_code_url;
+      }
+      if (payload?.session_title) {
+        activationMessage.dataset.sessionTitle = payload.session_title;
       }
       const activeText =
         activationMessage.dataset.activeText || 'Voting session is active.';

@@ -42,6 +42,7 @@ ALLOWED_HOSTS = _split_csv_env(
 )
 
 SITE_URL = os.getenv('SITE_URL', 'http://127.0.0.1:8000')
+USE_S3_MEDIA = os.getenv('USE_S3_MEDIA', 'false').lower() in ('1', 'true', 'yes')
 
 
 import os
@@ -228,6 +229,34 @@ LOGGING = {
 }
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+if USE_S3_MEDIA:
+    INSTALLED_APPS.append('storages')
+    AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
+    if not AWS_STORAGE_BUCKET_NAME:
+        raise RuntimeError('AWS_STORAGE_BUCKET_NAME must be set when USE_S3_MEDIA=1')
+
+    AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME')
+    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_S3_ENDPOINT_URL')
+    AWS_S3_CUSTOM_DOMAIN = os.environ.get('AWS_S3_CUSTOM_DOMAIN')
+
+    if AWS_S3_ENDPOINT_URL:
+        AWS_S3_ENDPOINT_URL = AWS_S3_ENDPOINT_URL.rstrip('/')
+
+    if not AWS_S3_CUSTOM_DOMAIN:
+        if AWS_S3_ENDPOINT_URL:
+            AWS_S3_CUSTOM_DOMAIN = AWS_S3_ENDPOINT_URL.replace('https://', '').replace('http://', '')
+        elif AWS_S3_REGION_NAME:
+            AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com'
+        else:
+            AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+
+    AWS_DEFAULT_ACL = os.environ.get('AWS_DEFAULT_ACL', 'public-read')
+    AWS_QUERYSTRING_AUTH = os.environ.get('AWS_QUERYSTRING_AUTH', 'false').lower() in ('1', 'true', 'yes')
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 # Cookies
 SESSION_COOKIE_SECURE = True

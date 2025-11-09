@@ -3199,3 +3199,84 @@ body{
 
   .voter-table tbody tr.voter-row td:last-child a{ margin:0 0 6px 0; }
 }
+
+/* QR modal */
+.qr-modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 5, 5, 0.65);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 12000;
+  padding: 20px;
+}
+
+.qr-modal.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.qr-modal__dialog {
+  position: relative;
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 28px 32px;
+  box-shadow: 0 24px 40px rgba(15, 23, 42, 0.25);
+  text-align: center;
+}
+
+.qr-modal__title {
+  margin: 0 0 16px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.qr-modal__image {
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto 18px;
+  display: block;
+}
+
+.qr-modal__download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 8px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.qr-modal__download:hover {
+  background: #1e3a8a;
+}
+
+.qr-modal__close {
+  position: absolute;
+  right: 12px;
+  top: 10px;
+  border: 0;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #475569;
+}
+
+.qr-modal__close:hover {
+  color: #111827;
+}
+
+body.qr-modal-open {
+  overflow: hidden;
+}

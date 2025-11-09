@@ -314,6 +314,7 @@ def activate_session(request, session_id):
         'session_uuid': session.get_uuid(),
         'unique_url': session.unique_url or '',
         'qr_code_url': (session.qr_code.url if getattr(session, 'qr_code', None) else dynamic_qr_url),
+        'session_title': session.title,
     }
     return JsonResponse(payload)
 

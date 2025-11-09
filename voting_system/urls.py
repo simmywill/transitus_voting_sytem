@@ -58,7 +58,7 @@ urlpatterns = [
 
 
 
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
 
 # New CIS/BBS endpoints
 urlpatterns += [
@@ -77,13 +77,14 @@ urlpatterns += [
     path('api/cvr/<uuid:session_uuid>/', bbs_views.export_cvr, name='bbs_export_cvr'),
 ]
 
-# Ensure MEDIA files are served even when DEBUG=False (Render). This is a
-# pragmatic fix for user-uploaded assets (QR codes, candidate photos) when
-# behind Gunicorn without a separate media host. Consider offloading to S3 in
-# production.
-urlpatterns += [
-    re_path(r'^media/(?P<path>.*)$', media_serve, {
-        'document_root': settings.MEDIA_ROOT,
-        'show_indexes': False,
-    }),
-]
+
+if not settings.USE_S3_MEDIA:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    # Ensure MEDIA files are served even when DEBUG=False (Render). This is a
+    # pragmatic fix for local/dev uploads when not using S3.
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', media_serve, {
+            'document_root': settings.MEDIA_ROOT,
+            'show_indexes': False,
+        }),
+    ]
