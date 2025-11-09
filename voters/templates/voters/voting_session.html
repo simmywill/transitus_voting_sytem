@@ -1081,7 +1081,16 @@
           if (!res.ok) throw new Error('Failed to update photo');
           const data = await res.json();
           if (data.success && data.candidate?.photo_url) {
-            const nextUrl = `${data.candidate.photo_url}?t=${Date.now()}`;
+            const nextUrl = (() => {
+              try {
+                const signed = new URL(data.candidate.photo_url, window.location.origin);
+                signed.searchParams.set('t', Date.now().toString());
+                return signed.toString();
+              } catch (_) {
+                const separator = data.candidate.photo_url.includes('?') ? '&' : '?';
+                return `${data.candidate.photo_url}${separator}t=${Date.now()}`;
+              }
+            })();
             // Probe the new URL; only swap after it loads successfully
             await new Promise((resolve) => {
               const probe = new Image();
