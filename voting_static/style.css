@@ -306,6 +306,23 @@
     background-color: #555;
 }
 
+.manual-check-nav-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    color: #fff;
+    padding: 6px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.manual-check-nav-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
 /* Mobile styling: collapsible menu only applies to screens under 768px */
 @media (max-width: 768px) {
     /* Hide the desktop nav links initially */
@@ -320,6 +337,13 @@
         left: 0;
         padding: 10px 0;
         z-index: 1;
+    }
+
+    .manual-check-nav-btn {
+        width: 100%;
+        text-align: left;
+        border-radius: 8px;
+        padding: 10px 14px;
     }
 
     /* Show the menu when toggled */
@@ -3279,4 +3303,223 @@ body{
 
 body.qr-modal-open {
   overflow: hidden;
+}
+
+/* Manual check + management tabs */
+.voter-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin: 24px auto 12px;
+}
+
+.tab-trigger {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(11, 19, 40, 0.9);
+  color: #f5f8ff;
+  padding: 0.55rem 1.8rem;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+}
+
+.tab-trigger.is-active {
+  background: linear-gradient(135deg, #1f3b73, #2f5fb6);
+  box-shadow: 0 12px 28px rgba(2, 6, 23, 0.35);
+}
+
+[data-tab-panel] {
+  display: none;
+}
+
+[data-tab-panel].is-active {
+  display: block;
+  animation: voterTabFade 0.25s ease;
+}
+
+@keyframes voterTabFade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.manual-check-shell {
+  margin-top: 18px;
+  background: linear-gradient(135deg, rgba(4, 8, 20, 0.95), rgba(10, 24, 55, 0.9));
+  border: 1px solid rgba(79, 209, 255, 0.25);
+  border-radius: 28px;
+  padding: clamp(18px, 4vw, 32px);
+  box-shadow: 0 30px 45px rgba(2, 6, 23, 0.45);
+}
+
+.manual-check-session-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.manual-check-session-title {
+  font-size: clamp(1.2rem, 3vw, 1.6rem);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.manual-check-session-meta p {
+  margin: 0;
+  color: #cfdbff;
+  font-size: 0.95rem;
+}
+
+.manual-check-card-meta span {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.95rem;
+}
+
+.manual-check-note {
+  margin: 18px 0 12px;
+  color: #9fb4d6;
+  font-size: 0.95rem;
+}
+
+.manual-check-body {
+  min-height: 200px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 20px;
+  padding: 18px;
+}
+
+.manual-check-empty {
+  margin: 0;
+  text-align: center;
+  color: #7c8db6;
+  font-size: 0.95rem;
+  padding: 28px 10px;
+}
+
+.manual-check-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.manual-check-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  background: rgba(14, 22, 46, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 16px 20px;
+  align-items: center;
+}
+
+.manual-check-segment {
+  min-width: 180px;
+}
+
+.manual-check-pill-label {
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  font-size: 0.68rem;
+  color: #7e8fb5;
+  margin-bottom: 6px;
+  display: inline-block;
+}
+
+.manual-check-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.manual-check-choice-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.manual-check-avatar,
+.manual-check-avatar--placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f5f8ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.manual-check-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.manual-check-btn {
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(13, 24, 56, 0.9);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.manual-check-btn:hover:not(:disabled) {
+  background: rgba(48, 76, 140, 0.9);
+}
+
+.manual-check-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.manual-check-btn.subtle {
+  border-style: dashed;
+  background: transparent;
+}
+
+.manual-check-progress {
+  font-weight: 600;
+  color: #dfe7ff;
+}
+
+.manual-check-status {
+  text-align: center;
+  color: #8ea4d3;
+  margin-top: 12px;
+  min-height: 1.5em;
+  font-size: 0.92rem;
+}
+
+@media (max-width: 768px) {
+  .manual-check-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .manual-check-choice {
+    width: 100%;
+  }
 }

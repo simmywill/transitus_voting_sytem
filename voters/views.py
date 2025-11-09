@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .models import VotingSession, Voter, Candidate, VotingSegmentHeader  # Import the Voter model
+from .models import VotingSession, Voter, Candidate, VotingSegmentHeader, ManualCheckCard  # Import the Voter model
 from .forms import VoterForm , VotingSessionForm
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.decorators import login_required
@@ -995,6 +995,82 @@ def review_voter_results(request, voter_id, session_uuid):
         'session': session,
     })
 
+
+@login_required
+def manual_check_card(request, session_uuid):
+    if not request.user.is_authenticated or not getattr(request.user, 'is_staff', False):
+        return HttpResponseForbidden("Manual check is restricted to administrators.")
+    try:
+        session = VotingSession.objects.get(session_uuid=session_uuid)
+    except Exception:
+        session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+
+    try:
+        index = int(request.GET.get('index', 0))
+    except (TypeError, ValueError):
+        index = 0
+    index = max(0, index)
+
+    cards_qs = (
+        ManualCheckCard.objects
+        .filter(session=session)
+        .order_by('created_at', 'id')
+        .prefetch_related('ballots__segment', 'ballots__candidate')
+    )
+    total = cards_qs.count()
+    if total == 0:
+        return JsonResponse({
+            'ok': True,
+            'total': 0,
+            'card': None,
+            'index': 0,
+            'session': {
+                'title': session.title,
+                'session_id': session.session_id,
+                'session_uuid': str(session.session_uuid),
+            },
+        })
+
+    if index >= total:
+        index = total - 1
+
+    card = cards_qs[index]
+    ballots = card.ballots.all()
+
+    sorted_ballots = sorted(
+        ballots,
+        key=lambda b: (
+            getattr(b.segment, 'order', 0) or 0,
+            b.segment_id or 0,
+            getattr(b.candidate, 'name', '')
+        )
+    )
+    selections = []
+    for ballot in sorted_ballots:
+        selections.append({
+            'segment_id': ballot.segment_id,
+            'segment_name': ballot.segment.name,
+            'candidate_id': ballot.candidate_id,
+            'candidate_name': ballot.candidate.name,
+            'candidate_photo': ballot.candidate.photo.url if ballot.candidate.photo else '',
+        })
+
+    return JsonResponse({
+        'ok': True,
+        'index': index,
+        'total': total,
+        'card': {
+            'card_id': str(card.card_uuid),
+            'created_at': card.created_at.isoformat(),
+            'selections': selections,
+            'sequence': index + 1,
+        },
+        'session': {
+            'title': session.title,
+            'session_id': session.session_id,
+            'session_uuid': str(session.session_uuid),
+        },
+    })
 
 
 def voter_counts(request, session_uuid):

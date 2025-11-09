@@ -79,6 +79,17 @@
                     </button>
                 </li>
                 {% endif %}
+                {% if request.user.is_staff %}
+                <li>
+                    <button
+                        type="button"
+                        class="manual-check-nav-btn"
+                        data-tab-jump="manualCheckTab"
+                    >
+                        Manual Check
+                    </button>
+                </li>
+                {% endif %}
                 <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
             </ul>
         </div>
@@ -122,99 +133,409 @@
             {% endif %}
         </div>
     </section>
-   
+    <section class="voter-tabs">
+        <button type="button" class="tab-trigger is-active" data-tab-target="manageTab">
+            Manage Voters
+        </button>
+        <button type="button" class="tab-trigger" data-tab-target="manualCheckTab">
+            Manual Check
+        </button>
+    </section>
 
-
-   <!-- Parent Container for Flexbox Layout -->
-<div class="voter-management-container">
-    <!-- Create Voter Form -->
-    <div class="voter-form-column">
-        <h2>Create Voter</h2>
-        <form id="add-voter-form" method="POST" 
-            action="{% if session_id %}{% url 'voter_list' session_id %}{% elif session_uuid %}{% url 'voter_list' session_uuid=voting_session.get_uuid %}{% endif %}">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" id="add-voter-button">Add Voter</button>
-        </form>
-    </div>
-
-    <!-- Search Bar -->
-    <div class="search-bar-column">
-        <form method="GET" action="" class="search-form">
-            <div class="search-input-container">
-                <input type="text" name="search" placeholder="Search by first or last name" value="{{ request.GET.search }}" class="search-input">
-                {% if request.GET.search %}
-                    <!-- Clear "X" Button Inside Search Bar -->
-                    <button type="button" class="clear-search" onclick="clearSearch()">&#x2715;</button>
-                {% endif %}
+    <div id="manageTab" class="tab-panel is-active" data-tab-panel>
+        <!-- Parent Container for Flexbox Layout -->
+        <div class="voter-management-container">
+            <!-- Create Voter Form -->
+            <div class="voter-form-column">
+                <h2>Create Voter</h2>
+                <form id="add-voter-form" method="POST" 
+                    action="{% if session_id %}{% url 'voter_list' session_id %}{% elif session_uuid %}{% url 'voter_list' session_uuid=voting_session.get_uuid %}{% endif %}">
+                    {% csrf_token %}
+                    {{ form.as_p }}
+                    <button type="submit" id="add-voter-button">Add Voter</button>
+                </form>
             </div>
-            <button type="submit" class="search-button">Search</button>
-        </form>
-    </div>
 
-    <!-- Filter Buttons -->
-    <div class="filter-buttons-column">
-        <div class="filter-header">
-            <!-- Filter icon triggers dropdown on click -->
-            <i class="bi bi-funnel-fill" onclick="toggleDropdown()"></i>
-            <h3>Filters</h3>
+            <!-- Search Bar -->
+            <div class="search-bar-column">
+                <form method="GET" action="" class="search-form">
+                    <div class="search-input-container">
+                        <input type="text" name="search" placeholder="Search by first or last name" value="{{ request.GET.search }}" class="search-input">
+                        {% if request.GET.search %}
+                            <!-- Clear "X" Button Inside Search Bar -->
+                            <button type="button" class="clear-search" onclick="clearSearch()">&#x2715;</button>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="search-button">Search</button>
+                </form>
+            </div>
+
+            <!-- Filter Buttons -->
+            <div class="filter-buttons-column">
+                <div class="filter-header">
+                    <!-- Filter icon triggers dropdown on click -->
+                    <i class="bi bi-funnel-fill" onclick="toggleDropdown()"></i>
+                    <h3>Filters</h3>
+                </div>
+            
+            <!-- Dropdown menu for filter options -->
+            <div class="dropdown">
+                <!-- Removed the "Select Filter" button -->
+                <div class="dropdown-content">
+                    <button class="filter-btn" data-filter="verified" onclick="filterVoters('all')">Show All Voters</button>
+                    <button class="filter-btn" data-filter="verified" onclick="filterVoters('verified')">Verified Voters</button>
+                    <button class="filter-btn" data-filter="not_verified" onclick="filterVoters('not_verified')">Non-Verified Voters</button>
+                    <button class="filter-btn" data-filter="verified_finished" onclick="filterVoters('verified_finished')">Verified and Finished Voters</button>
+
+                </div>
+            </div>
         </div>
-    
-    <!-- Dropdown menu for filter options -->
-    <div class="dropdown">
-        <!-- Removed the "Select Filter" button -->
-        <div class="dropdown-content">
-            <button class="filter-btn" data-filter="verified" onclick="filterVoters('all')">Show All Voters</button>
-            <button class="filter-btn" data-filter="verified" onclick="filterVoters('verified')">Verified Voters</button>
-            <button class="filter-btn" data-filter="not_verified" onclick="filterVoters('not_verified')">Non-Verified Voters</button>
-            <button class="filter-btn" data-filter="verified_finished" onclick="filterVoters('verified_finished')">Verified and Finished Voters</button>
 
+            
+
+            
         </div>
-    </div>
-</div>
 
-    
-
-    
-</div>
-
-    <!-- Voter List -->
-    <table class="voter-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="voter-list">
-            {% for voter in voters %}
-            <tr id="voter-{{ voter.voter_id }}" class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
-                <td style="font-weight: bold;">{{ voter.Fname }} {{ voter.Lname }}</td>
-                <td class="voter-status-cell">
-                    <div class="voter-status">
-                    {% if voter.is_verified %}
-                        <button type="button"  class = "status-verified">Verified</button>
-                        {% if voter.has_finished %}
-                            <button type="button"  class = "status-verified"> Finished </button>
+        <!-- Voter List -->
+        <table class="voter-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="voter-list">
+                {% for voter in voters %}
+                <tr id="voter-{{ voter.voter_id }}" class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
+                    <td style="font-weight: bold;">{{ voter.Fname }} {{ voter.Lname }}</td>
+                    <td class="voter-status-cell">
+                        <div class="voter-status">
+                        {% if voter.is_verified %}
+                            <button type="button"  class = "status-verified">Verified</button>
+                            {% if voter.has_finished %}
+                                <button type="button"  class = "status-verified"> Finished </button>
+                            {% else %}
+                                <button type="button" class= "status-not-verified" > Not Finished</button> 
+                            {% endif %}
                         {% else %}
+                            <button type="button" class= "status-not-verified" > Not Verified </button>
                             <button type="button" class= "status-not-verified" > Not Finished</button> 
                         {% endif %}
-                    {% else %}
-                        <button type="button" class= "status-not-verified" > Not Verified </button>
-                        <button type="button" class= "status-not-verified" > Not Finished</button> 
-                    {% endif %}
-                    </div>
-                </td>
-                <td>
-                    <a href="{% url 'edit_voter' voter.voter_id %}">Edit</a>
-                    <a href="{% url 'delete_voter' voter.voter_id %}" onclick="return confirm('Are you sure?')">Delete</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-        
-    </table>
+                        </div>
+                    </td>
+                    <td>
+                        <a href="{% url 'edit_voter' voter.voter_id %}">Edit</a>
+                        <a href="{% url 'delete_voter' voter.voter_id %}" onclick="return confirm('Are you sure?')">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            
+        </table>
+    </div>
+
+    <div id="manualCheckTab" class="tab-panel" data-tab-panel>
+        <div class="manual-check-shell">
+            <div class="manual-check-session-meta">
+                <div>
+                    <p class="manual-check-session-title">{{ voting_session.title }}</p>
+                    <p>Session ID: {{ voting_session.session_id }}</p>
+                    <p>Session UUID: {{ voting_session.session_uuid }}</p>
+                </div>
+                <div class="manual-check-card-meta">
+                    <p>Result Card ID: <span id="manualCheckCardId">—</span></p>
+                    <p>Recorded At: <span id="manualCheckRecordedAt">—</span></p>
+                </div>
+            </div>
+            <p class="manual-check-note">
+                Each result card bundles one anonymous ballot set. Use the controls below to step through them and confirm the tallies shown on the leaderboard.
+            </p>
+            <div class="manual-check-body">
+                <p id="manualCheckEmpty" class="manual-check-empty">
+                    Open the Manual Check tab to load anonymous result cards for this session.
+                </p>
+                <ul id="manualCheckSelections" class="manual-check-list"></ul>
+            </div>
+            <div class="manual-check-controls">
+                <button type="button" id="manualCheckPrev" class="manual-check-btn" disabled>Previous</button>
+                <span id="manualCheckProgress" class="manual-check-progress">0 / 0</span>
+                <button type="button" id="manualCheckNext" class="manual-check-btn" disabled>Next</button>
+                <button type="button" id="manualCheckRefresh" class="manual-check-btn subtle">Refresh</button>
+            </div>
+            <p id="manualCheckStatus" class="manual-check-status"></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabButtons = document.querySelectorAll('.tab-trigger');
+            const tabPanels = document.querySelectorAll('[data-tab-panel]');
+            tabButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    if (button.classList.contains('is-active')) {
+                        return;
+                    }
+                    tabButtons.forEach(function (btn) {
+                        btn.classList.remove('is-active');
+                    });
+                    tabPanels.forEach(function (panel) {
+                        panel.classList.remove('is-active');
+                    });
+                    button.classList.add('is-active');
+                    const target = button.getAttribute('data-tab-target');
+                    const panel = document.getElementById(target);
+                    if (panel) {
+                        panel.classList.add('is-active');
+                    }
+                    document.dispatchEvent(new CustomEvent('tab:changed', { detail: { target } }));
+                });
+            });
+
+            document.querySelectorAll('[data-tab-jump]').forEach(function (trigger) {
+                trigger.addEventListener('click', function () {
+                    const target = trigger.getAttribute('data-tab-jump');
+                    if (!target) {
+                        return;
+                    }
+                    const tabButton = document.querySelector('.tab-trigger[data-tab-target="' + target + '"]');
+                    if (tabButton) {
+                        tabButton.click();
+                    }
+                    const targetPanel = document.getElementById(target);
+                    if (targetPanel && targetPanel.scrollIntoView) {
+                        targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            });
+        });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const isStaff = "{{ request.user.is_staff|yesno:'true,false' }}" === "true";
+            const cardIdEl = document.getElementById('manualCheckCardId');
+            const recordedEl = document.getElementById('manualCheckRecordedAt');
+            const listEl = document.getElementById('manualCheckSelections');
+            const emptyEl = document.getElementById('manualCheckEmpty');
+            const statusEl = document.getElementById('manualCheckStatus');
+            const progressEl = document.getElementById('manualCheckProgress');
+            const prevBtn = document.getElementById('manualCheckPrev');
+            const nextBtn = document.getElementById('manualCheckNext');
+            const refreshBtn = document.getElementById('manualCheckRefresh');
+
+            if (!cardIdEl || !recordedEl || !listEl) {
+                return;
+            }
+
+            const state = {
+                index: 0,
+                total: 0,
+                initialized: false,
+                loading: false,
+            };
+
+            function setStatus(message) {
+                if (statusEl) {
+                    statusEl.textContent = message || '';
+                }
+            }
+
+            function toggleEmpty(show, message) {
+                if (!emptyEl) {
+                    return;
+                }
+                emptyEl.style.display = show ? 'block' : 'none';
+                if (message) {
+                    emptyEl.textContent = message;
+                }
+            }
+
+            function updateProgress() {
+                if (progressEl) {
+                    progressEl.textContent = state.total ? `${state.index + 1} / ${state.total}` : '0 / 0';
+                }
+            }
+
+            function updateNavButtons() {
+                if (prevBtn) {
+                    prevBtn.disabled = !isStaff || state.loading || state.index <= 0;
+                }
+                if (nextBtn) {
+                    nextBtn.disabled = !isStaff || state.loading || state.total === 0 || state.index >= state.total - 1;
+                }
+                if (refreshBtn) {
+                    refreshBtn.disabled = !isStaff || state.loading;
+                }
+            }
+
+            function buildSelection(selection) {
+                const li = document.createElement('li');
+                li.className = 'manual-check-item';
+
+                const segmentBlock = document.createElement('div');
+                segmentBlock.className = 'manual-check-segment';
+                const segmentLabel = document.createElement('span');
+                segmentLabel.className = 'manual-check-pill-label';
+                segmentLabel.textContent = 'Segment';
+                const segmentName = document.createElement('strong');
+                segmentName.textContent = selection.segment_name || '—';
+                segmentBlock.appendChild(segmentLabel);
+                segmentBlock.appendChild(segmentName);
+
+                const choiceBlock = document.createElement('div');
+                choiceBlock.className = 'manual-check-choice';
+                const choiceLabel = document.createElement('span');
+                choiceLabel.className = 'manual-check-pill-label';
+                choiceLabel.textContent = 'Selected';
+                const preview = document.createElement('div');
+                preview.className = 'manual-check-choice-preview';
+                let avatar;
+                if (selection.candidate_photo) {
+                    avatar = document.createElement('img');
+                    avatar.className = 'manual-check-avatar';
+                    avatar.src = selection.candidate_photo;
+                    avatar.alt = selection.candidate_name || 'Candidate';
+                } else {
+                    avatar = document.createElement('div');
+                    avatar.className = 'manual-check-avatar manual-check-avatar--placeholder';
+                    avatar.textContent = (selection.candidate_name || '?').charAt(0).toUpperCase();
+                }
+                const nameEl = document.createElement('strong');
+                nameEl.textContent = selection.candidate_name || 'No selection';
+                preview.appendChild(avatar);
+                preview.appendChild(nameEl);
+
+                choiceBlock.appendChild(choiceLabel);
+                choiceBlock.appendChild(preview);
+
+                li.appendChild(segmentBlock);
+                li.appendChild(choiceBlock);
+                return li;
+            }
+
+            function renderCard(payload) {
+                state.index = payload.index || 0;
+                state.total = payload.total || 0;
+                updateProgress();
+                updateNavButtons();
+
+                const card = payload.card;
+                if (!card) {
+                    cardIdEl.textContent = '—';
+                    recordedEl.textContent = '—';
+                    listEl.innerHTML = '';
+                    toggleEmpty(true, 'No ballots have been cast yet for this session.');
+                    setStatus('');
+                    return;
+                }
+
+                cardIdEl.textContent = card.card_id || '—';
+                const recorded = new Date(card.created_at);
+                recordedEl.textContent = Number.isNaN(recorded.getTime())
+                    ? card.created_at
+                    : recorded.toLocaleString();
+
+                listEl.innerHTML = '';
+                const selections = card.selections || [];
+                if (!selections.length) {
+                    toggleEmpty(true, 'This result card does not contain any recorded segments.');
+                } else {
+                    toggleEmpty(false);
+                    selections.forEach(function (selection) {
+                        listEl.appendChild(buildSelection(selection));
+                    });
+                }
+
+                setStatus(`Displaying card ${state.index + 1} of ${state.total}`);
+            }
+
+            function handleError(error) {
+                console.error('Manual check fetch failed:', error);
+                setStatus('Unable to load manual check data. Please try again.');
+                toggleEmpty(true, 'No data is currently available.');
+                updateNavButtons();
+            }
+
+            function fetchCard(targetIndex) {
+                if (!session_uuid) {
+                    return;
+                }
+                state.loading = true;
+                setStatus('Loading manual check data…');
+                updateNavButtons();
+                fetch(`/manual_check/${session_uuid}/?index=${Math.max(0, targetIndex)}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                    .then(function (response) {
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(function (payload) {
+                        state.loading = false;
+                        renderCard(payload);
+                    })
+                    .catch(function (error) {
+                        state.loading = false;
+                        handleError(error);
+                    });
+            }
+
+            function ensureInitialized() {
+                if (state.initialized || !isStaff) {
+                    return;
+                }
+                state.initialized = true;
+                fetchCard(0);
+            }
+
+            if (!isStaff) {
+                setStatus('Manual check is restricted to administrators.');
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+                if (refreshBtn) refreshBtn.disabled = true;
+                return;
+            }
+
+            if (prevBtn) {
+                prevBtn.addEventListener('click', function () {
+                    if (state.loading || state.index <= 0) {
+                        return;
+                    }
+                    fetchCard(state.index - 1);
+                });
+            }
+            if (nextBtn) {
+                nextBtn.addEventListener('click', function () {
+                    if (state.loading || state.index >= state.total - 1) {
+                        return;
+                    }
+                    fetchCard(state.index + 1);
+                });
+            }
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', function () {
+                    if (state.loading) {
+                        return;
+                    }
+                    fetchCard(state.index);
+                });
+            }
+
+            document.addEventListener('tab:changed', function (event) {
+                if (event.detail && event.detail.target === 'manualCheckTab') {
+                    ensureInitialized();
+                }
+            });
+
+            const manualTab = document.getElementById('manualCheckTab');
+            if (manualTab && manualTab.classList.contains('is-active')) {
+                ensureInitialized();
+            }
+        });
+    </script>
 
     <script>
 

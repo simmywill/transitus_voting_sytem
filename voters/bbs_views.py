@@ -13,7 +13,7 @@ try:
 except Exception:  # pragma: no cover
     requests = None
 
-from .models import VotingSession, VotingSegmentHeader, Candidate, Ballot, log_event
+from .models import VotingSession, VotingSegmentHeader, Candidate, Ballot, ManualCheckCard, log_event
 
 
 def _host_ok(request, expect='vote'):
@@ -129,6 +129,7 @@ def api_cast(request):
         return JsonResponse({"error": "no_segments"}, status=400)
 
     created = 0
+    manual_card = None
     now = tz.now()
     for pair in choices:
         if not isinstance(pair, (list, tuple)) or len(pair) != 2:
@@ -152,7 +153,9 @@ def api_cast(request):
                 status=400,
             )
 
-        Ballot.objects.create(session=session, segment=segment, candidate=candidate)
+        if manual_card is None:
+            manual_card = ManualCheckCard.objects.create(session=session)
+        Ballot.objects.create(session=session, segment=segment, candidate=candidate, bundle=manual_card)
         created += 1
 
     # Mark ANON spent in CIS (server-to-server)

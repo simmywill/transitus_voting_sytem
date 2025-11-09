@@ -5,7 +5,15 @@ from django.contrib.auth.models import User
 from django.core.files.base import ContentFile
 import json, hmac, hashlib
 
-from voters.models import VotingSession, Voter, VotingSegmentHeader, Candidate, AnonSession, RedirectCode
+from voters.models import (
+    VotingSession,
+    Voter,
+    VotingSegmentHeader,
+    Candidate,
+    AnonSession,
+    RedirectCode,
+    ManualCheckCard,
+)
 
 
 @override_settings(CIS_ENFORCE_HOST=False)
@@ -115,6 +123,10 @@ class AnonFlowTests(TestCase):
             self.assertEqual(resp.status_code, 200, resp.content)
             data = resp.json()
             self.assertTrue(data.get('ok'))
+            cards = ManualCheckCard.objects.filter(session=self.session)
+            self.assertEqual(cards.count(), 1)
+            card = cards.first()
+            self.assertEqual(card.ballots.count(), len(payload['choices']))
 
             # Verify anon marked spent and voter flag flipped
             anon.refresh_from_db()

@@ -93,6 +93,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'storages'
     
 ]
 
@@ -256,7 +257,8 @@ if USE_S3_MEDIA:
     AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
 
     MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/'
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3.S3Storage'
+
 
 # Cookies
 SESSION_COOKIE_SECURE = True

@@ -161,11 +161,38 @@ class RedirectCode(models.Model):
     expires_at = models.DateTimeField(null=True, blank=True)
 
 
+class ManualCheckCard(models.Model):
+    """
+    Stores an anonymous bundle of selections produced by a single cast event.
+    Exposed to admins for manual verification without revealing voter identity.
+    """
+    session = models.ForeignKey(
+        VotingSession,
+        on_delete=models.CASCADE,
+        related_name='manual_cards',
+    )
+    card_uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'id']
+
+    def __str__(self):
+        return f"ManualCheckCard({self.card_uuid})"
+
+
 class Ballot(models.Model):
     ballot_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     session = models.ForeignKey(VotingSession, on_delete=models.CASCADE, db_index=True)
     segment = models.ForeignKey('VotingSegmentHeader', on_delete=models.CASCADE, db_index=True)
     candidate = models.ForeignKey('Candidate', on_delete=models.CASCADE, db_index=True)
+    bundle = models.ForeignKey(
+        'ManualCheckCard',
+        on_delete=models.CASCADE,
+        related_name='ballots',
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
