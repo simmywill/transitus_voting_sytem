@@ -106,9 +106,19 @@
 </head>
 <div class="voting_page_container">
     <h2 class="voting_page_header">{{ segment.name }}</h2>
-    <div class="voting_instruction">
-        <p>Tip: Click on a candidate to select them. Use the arrows below to move to the next section. 
-        If you change your mind, simply click another candidate. When finished, press the green “Vote” button.</p>
+    {% if current_segment and total_segments %}
+    <div class="step-indicator">Step {{ current_segment }} of {{ total_segments }}</div>
+    {% else %}
+    <div class="step-indicator">Step 1 of 4</div>
+    {% endif %}
+    <div class="voting_instruction tip-box">
+        <div class="tip-icon">💡</div>
+        <ul class="tip-list">
+            <li>Tap a candidate to select.</li>
+            <li>Swipe left/right to see more candidates.</li>
+            <li>Use the arrows below to move between sections.</li>
+            <li>Press VOTE when all sections are complete.</li>
+        </ul>
     </div>
     {% if segment.candidates.count > 4 %}
         <!-- Swipe overlay tip -->
@@ -147,8 +157,16 @@
         </div>
         {%endif%}
     </div>
-    
-    
+
+    {% if segment.candidates.count > 4 %}
+    <div class="scroll-hint">Swipe left/right to see more candidates →</div>
+    {% endif %}
+
+    {% if completed_segments or completed_segments == 0 %}
+    <div class="progress-summary">Sections completed: {{ completed_segments }} of {{ total_segments|default:"?" }}</div>
+    {% else %}
+    <div class="progress-summary">Make a selection in each section before you press VOTE</div>
+    {% endif %}
 
     <div class="voting_page_navigation">
         {% if current_segment > 1 %}

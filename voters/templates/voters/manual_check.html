@@ -121,6 +121,14 @@
 
     <main class="manual-check-page">
         <div class="manual-check-shell">
+            <a
+                class="manual-check-close"
+                href="{% url 'voter_list' session_uuid=session_uuid %}"
+                aria-label="Close manual check"
+                title="Close"
+            >
+                &times;
+            </a>
             <div class="manual-check-session-meta">
                 <div>
                     <p class="manual-check-session-title">{{ voting_session.title }}</p>

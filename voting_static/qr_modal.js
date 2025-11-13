@@ -72,22 +72,24 @@
     }
   };
 
+  // Expose a safe global for programmatic opens (optional use)
+  try { window.openQrModal = openModal; } catch (_) {}
+
   document.addEventListener('DOMContentLoaded', () => {
     createModal();
 
-    document.body.addEventListener('click', (event) => {
-      const closeTrigger = event.target.closest('[data-qr-dismiss]');
+    const clickHandler = (event) => {
+      const rawTarget = event.target || event.srcElement;
+      const baseEl = (rawTarget && rawTarget.nodeType === 1) ? rawTarget : (rawTarget && rawTarget.parentElement) || null;
+      const closeTrigger = baseEl && baseEl.closest ? baseEl.closest('[data-qr-dismiss]') : null;
       if (closeTrigger) {
         event.preventDefault();
         closeModal();
         return;
       }
 
-      const trigger = event.target.closest('[data-qr-modal]');
-      if (!trigger) {
-        return;
-      }
-
+      const trigger = baseEl && baseEl.closest ? baseEl.closest('[data-qr-modal]') : null;
+      if (!trigger) { return; }
       const url = trigger.getAttribute('data-qr-modal') || trigger.getAttribute('href');
       const label = trigger.getAttribute('data-qr-label') || trigger.textContent || 'QR Code';
       if (!url) {
@@ -96,7 +98,11 @@
 
       event.preventDefault();
       openModal(url, label);
-    });
+    };
+
+    // Delegate on body and document to be resilient to dynamic DOM changes
+    document.body.addEventListener('click', clickHandler);
+    document.addEventListener('click', clickHandler);
   });
 
   document.addEventListener('keydown', (event) => {

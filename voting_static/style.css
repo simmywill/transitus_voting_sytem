@@ -1235,26 +1235,54 @@ body:has(.session-list) .flash-alert {
 
 /* Header */
 .voting_page_header {
-    font-size: 1.8rem;
-    font-weight: bold;
-    margin-bottom: 1.5rem;
-    color: #222;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 0.5rem;
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+    color: #1a1a1a;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.35rem;
+}
+
+/* Step indicator below the title */
+.step-indicator {
+    font-size: 0.95rem;
+    color: #4a5568;
+    margin: 0.25rem 0 0.75rem 0;
+    text-align: center;
 }
 
 /* Instructional Tips */
+/* Disable legacy long-tip for this page in favor of tip-box */
 .voting_page_container::before {
-    content: "Tip: Click on a candidate to select them. Use the arrows below to move to the next section. If you change your mind, simply click another candidate.";
-    display: block;
-    font-size: 0.95rem;
-    color: #555;
-    background: #f9f9f9;
-    border: 1px solid #ddd;
-    padding: 0.8rem;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
+    content: none !important;
+    display: none !important;
+}
+
+/* Tip box: compact, readable bullets */
+.tip-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: #f4f8ff;
+    border: 1px solid #d8e6ff;
+    color: #1f3b5b;
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     text-align: left;
+    margin-bottom: 1rem;
+}
+.tip-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    margin-top: 0.15rem;
+}
+.tip-list {
+    margin: 0;
+    padding-left: 1rem;
+    list-style: disc;
+    font-size: 0.95rem;
     line-height: 1.4;
 }
 
@@ -1266,6 +1294,25 @@ body:has(.session-list) .flash-alert {
     overflow-x: auto;
     scroll-behavior: smooth;
     padding: 1rem 0;
+}
+
+/* Subtle gradient fades at edges to hint horizontal scroll */
+.voting_page_candidates::before,
+.voting_page_candidates::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    pointer-events: none;
+}
+.voting_page_candidates::before {
+    left: 0;
+    background: linear-gradient(90deg, rgba(255,255,255,1), rgba(255,255,255,0));
+}
+.voting_page_candidates::after {
+    right: 0;
+    background: linear-gradient(270deg, rgba(255,255,255,1), rgba(255,255,255,0));
 }
 
 /* Hide scrollbar on modern browsers 
@@ -1296,6 +1343,7 @@ body:has(.session-list) .flash-alert {
 .voting_page_candidate.selected {
     border-color: #007bff;
     background: #f0f8ff;
+    box-shadow: 0 0 0 3px rgba(0,123,255,0.15), 0 8px 18px rgba(0,123,255,0.18);
 }
 
 /* Candidate Image */
@@ -1309,10 +1357,13 @@ body:has(.session-list) .flash-alert {
 
 /* Candidate Name */
 .voting_page_candidate p {
-    font-weight: 600;
-    color: #333;
-    margin: 0.5rem 0;
-    font-size: 1rem;
+    font-weight: 700;
+    color: #111;
+    margin: 0.5rem 0 0.25rem;
+    font-size: 1.1rem;
+    line-height: 1.25;
+    white-space: normal;
+    word-break: break-word;
 }
 
 /* Checkmark when selected */
@@ -1334,19 +1385,36 @@ body:has(.session-list) .flash-alert {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 2rem;
-    gap: 1.5rem;
+    margin-top: 1rem;
+    gap: 1.25rem;
+    position: sticky;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: saturate(180%) blur(6px);
+    padding: 0.5rem 0.25rem;
+    border-top: 1px solid #eee;
+    z-index: 5;
 }
 
 .voting_navigation_button {
-    font-size: 2rem;
-    color: #007bff;
+    font-size: 1.35rem;
+    color: #0a58ca;
     text-decoration: none;
-    transition: transform 0.2s ease, color 0.2s ease;
+    transition: transform 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 9999px;
+    background: #eef5ff;
+    border: 1px solid #cfe0ff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
 }
 .voting_navigation_button:hover {
-    transform: scale(1.2);
-    color: #0056b3;
+    transform: scale(1.05);
+    color: #084298;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.15);
 }
 
 /* Vote Button */
@@ -1365,6 +1433,22 @@ body:has(.session-list) .flash-alert {
     background: #218838;
 }
 
+/* Scroll hint below candidates */
+.scroll-hint {
+    text-align: center;
+    font-size: 0.95rem;
+    color: #6b7280;
+    margin: 0.25rem 0 0.5rem;
+}
+
+/* Progress summary */
+.progress-summary {
+    text-align: center;
+    font-size: 0.95rem;
+    color: #374151;
+    margin: 0.5rem 0 0.25rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .voting_page_candidate {
@@ -1375,7 +1459,7 @@ body:has(.session-list) .flash-alert {
         height: 140px;
     }
     .voting_page_header {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
     }
 }
 
@@ -3220,31 +3304,42 @@ body{
   visibility: visible;
 }
 
+
+/* Full-screen QR viewer */
 .qr-modal__dialog {
   position: relative;
-  width: min(420px, 100%);
-  background: #fff;
-  border-radius: 16px;
-  padding: 28px 28px 32px;
-  box-shadow: 0 24px 40px rgba(15, 23, 42, 0.25);
+  width: 100vw;
+  height: 100vh;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.qr-modal__title {
-  margin: 0 0 16px;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #0f172a;
-}
+.qr-modal__title { display: none; }
 
 .qr-modal__image {
-  width: 100%;
-  max-width: 280px;
-  margin: 0 auto 18px;
+  width: 90vmin;
+  height: 90vmin;
+  max-width: 95vw;
+  max-height: 95vh;
+  object-fit: contain;
+  margin: 0 auto;
   display: block;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
 }
 
 .qr-modal__download {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -3252,30 +3347,34 @@ body{
   padding: 10px 18px;
   background: #2563eb;
   color: #fff;
-  border-radius: 8px;
+  border-radius: 999px;
   font-weight: 600;
   text-decoration: none;
+  box-shadow: 0 8px 20px rgba(37,99,235,0.35);
 }
 
-.qr-modal__download:hover {
-  background: #1e3a8a;
-}
+.qr-modal__download:hover { background: #1e3a8a; }
 
 .qr-modal__close {
   position: absolute;
-  right: 12px;
-  top: 10px;
+  right: 18px;
+  top: 16px;
   border: 0;
-  background: transparent;
-  font-size: 1.5rem;
-  line-height: 1;
+  background: rgba(15,23,42,0.55);
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  font-size: 1.25rem;
+  line-height: 40px;
   cursor: pointer;
-  color: #475569;
+  color: #f8fafc;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(2,6,23,0.5);
 }
 
-.qr-modal__close:hover {
-  color: #111827;
-}
+.qr-modal__close:hover { background: rgba(15,23,42,0.75); }
 
 body.qr-modal-open {
   overflow: hidden;
@@ -3334,6 +3433,7 @@ body.qr-modal-open {
   border-radius: 28px;
   padding: clamp(18px, 4vw, 32px);
   box-shadow: 0 30px 45px rgba(2, 6, 23, 0.45);
+  position: relative; /* for close button positioning */
 }
 
 .manual-check-session-meta {
@@ -3497,5 +3597,49 @@ body.qr-modal-open {
 
   .manual-check-choice {
     width: 100%;
+  }
+}
+
+/* Elegant close (×) button for manual check */
+.manual-check-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #e5efff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.manual-check-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.35);
+}
+
+.manual-check-close:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 480px) {
+  .manual-check-close {
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    font-size: 1.4rem;
   }
 }
