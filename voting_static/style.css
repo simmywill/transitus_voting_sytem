@@ -1395,6 +1395,10 @@ body:has(.session-list) .flash-alert {
     border-top: 1px solid #eee;
     z-index: 5;
 }
+/* When only one arrow is present (first/last segment), align container to edge */
+.voting_page_navigation > .arrow_tip_container:only-child {
+    margin-left: auto; /* push next arrow to the right on first segment */
+}
 
 .voting_navigation_button {
     font-size: 1.35rem;
@@ -1471,7 +1475,9 @@ body:has(.session-list) .flash-alert {
         height: 120px;
     }
     .vote-button {
-        width: 100%;
+        width: auto; /* keep vote button compact on small screens */
+        min-width: 140px;
+        padding: 0.7rem 1.25rem;
     }
 }
 

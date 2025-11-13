@@ -6,25 +6,27 @@
     .arrow_tip_container {
         position: relative;
         display: inline-flex;
+        flex-direction: column;
         align-items: center;
+        gap: 6px;
     }
     .arrow_tip {
-        position: absolute;
-        top: -35px;
-        background: #333;
-        color: #fff;
-        padding: 5px 10px;
-        border-radius: 8px;
+        position: static;
+        background: transparent;
+        color: #6b7280; /* muted gray */
+        padding: 0;
+        border-radius: 0;
         font-size: 0.9rem;
+        line-height: 1.2;
         white-space: nowrap;
-        opacity: 0;
-        transform: translateY(-10px);
-        transition: opacity 0.5s ease, transform 0.5s ease;
-        pointer-events: none;
+        opacity: 1; /* always visible */
+        transform: none;
+        transition: none;
+        pointer-events: auto;
     }
-    .arrow_tip.show {
+    .arrow_tip.show { /* class toggled by JS, kept for compatibility */
         opacity: 1;
-        transform: translateY(0);
+        transform: none;
     }
 
     /* Pulse effect for arrow */
@@ -107,7 +109,7 @@
 <div class="voting_page_container">
     <h2 class="voting_page_header">{{ segment.name }}</h2>
     {% if current_segment and total_segments %}
-    <div class="step-indicator">Step {{ current_segment }} of {{ total_segments }}</div>
+    <div class="step-indicator">Segment {{ current_segment }} of {{ total_segments }}</div>
     {% else %}
     <div class="step-indicator">Step 1 of 4</div>
     {% endif %}
@@ -163,9 +165,8 @@
     {% endif %}
 
     {% if completed_segments or completed_segments == 0 %}
-    <div class="progress-summary">Sections completed: {{ completed_segments }} of {{ total_segments|default:"?" }}</div>
+    <div class="progress-summary">Segments completed: {{ completed_segments }} of {{ total_segments|default:"?" }}</div>
     {% else %}
-    <div class="progress-summary">Make a selection in each section before you press VOTE</div>
     {% endif %}
 
     <div class="voting_page_navigation">
