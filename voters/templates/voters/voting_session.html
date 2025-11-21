@@ -316,6 +316,17 @@
       text-align: center; color: #6b7280;
       margin: 6px 0 2px;
     }
+    /* Top bar containing breadcrumbs (left) and Add Segment (right) */
+    .view-session-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 0 20px; /* align horizontally with breadcrumb spacing */
+      flex-wrap: wrap;
+    }
+    .view-session-topbar .breadcrumb { margin: 20px 0; }
+    .breadcrumb__button--add-segment { white-space: nowrap; }
   </style>
 </head>
 <body class="view-session-body">
@@ -332,22 +343,27 @@
         <ul>
           <li><a href="{% url 'list_voting_sessions' %}">List Sessions</a></li>
           <li><a href="{% url 'voter_list' session.session_id %}">Manage Voters</a></li>
-          <li><a href="#" id="add-segment-btn"><i class="fas fa-plus-circle"></i> Add Segment</a></li>
         </ul>
       </div>
     </div>
   </nav>
   <div class="view-session-wrapper">
-    <nav class="breadcrumb">
-      <a class="breadcrumb__button breadcrumb__button--home" href="{% url 'list_voting_sessions' %}">
-        <span class="breadcrumb__icon"><i class="fas fa-arrow-left"></i></span>
-        <span class="breadcrumb__label">Home</span>
+    <div class="view-session-topbar">
+      <nav class="breadcrumb">
+        <a class="breadcrumb__button breadcrumb__button--home" href="{% url 'list_voting_sessions' %}">
+          <span class="breadcrumb__icon"><i class="fas fa-arrow-left"></i></span>
+          <span class="breadcrumb__label">Home</span>
+        </a>
+        <a class="breadcrumb__button breadcrumb__button--voters" href="{% url 'voter_list' session.session_id %}">
+          <span class="breadcrumb__label">Add Voters</span>
+          <span class="breadcrumb__icon"><i class="fas fa-arrow-right"></i></span>
+        </a>
+      </nav>
+      <a href="#" id="add-segment-btn" class="breadcrumb__button breadcrumb__button--add-segment" title="Add Segment">
+        <span class="breadcrumb__icon"><i class="fas fa-plus-circle"></i></span>
+        <span class="breadcrumb__label">Add Segment</span>
       </a>
-      <a class="breadcrumb__button breadcrumb__button--voters" href="{% url 'voter_list' session.session_id %}">
-        <span class="breadcrumb__label">Add Voters</span>
-        <span class="breadcrumb__icon"><i class="fas fa-arrow-right"></i></span>
-      </a>
-    </nav>
+    </div>
     <div class="view-session-content">
       <div id="sortable-segments" class="view-session-grid">
         {% for segment in segments %}
@@ -420,11 +436,19 @@
                     <div class="avatar-hint">Add Photo</div>
                   </div>
                   <div class="view-session-candidate__name-wrapper">
-                    <textarea class="name-input view-session-candidate__name"
-                              rows="2"
-                              placeholder="Candidate&#10;Name"
-                              data-original-value="{{ candidate.name }}"
-                              title="{{ candidate.name }}">{{ candidate.name }}</textarea>
+                    {% if candidate.name|trim == "Candidate Name" %}
+                      <textarea class="name-input view-session-candidate__name"
+                                rows="2"
+                                placeholder="Candidate&#10;Name"
+                                data-original-value="Candidate Name"
+                                title="Candidate Name"></textarea>
+                    {% else %}
+                      <textarea class="name-input view-session-candidate__name"
+                                rows="2"
+                                placeholder="Candidate&#10;Name"
+                                data-original-value="{{ candidate.name }}"
+                                title="{{ candidate.name }}">{{ candidate.name }}</textarea>
+                    {% endif %}
                     <div class="view-session-candidate__name-popover" aria-hidden="true"></div>
                   </div>
                 </article>

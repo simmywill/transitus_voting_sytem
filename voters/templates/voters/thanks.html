@@ -27,56 +27,143 @@
         const segments = JSON.parse('{{ segments_json|escapejs }}');
         const receipt = (localStorage.getItem('receiptCode') || '').toString();
 
-        const lines = [];
-        lines.push(`Voting Session: {{ session.title|escapejs }}`);
-        lines.push(`Session ID: {{ session_uuid }}`);
-        if (receipt) lines.push(`Receipt: ${receipt}`);
-        lines.push('');
-        lines.push('Your selections:');
-
+        // Build selection entries including candidate photos
+        const entries = [];
         for (const seg of segments) {
           const chosenId = selections[seg.id];
-          let name = '—';
-          for (const c of seg.candidates) if (c.id === chosenId) { name = c.name; break; }
-          lines.push(`• ${seg.name}: ${name}`);
+          let candName = '—';
+          let photo = '';
+          for (const c of seg.candidates) {
+            if (c.id === chosenId) { candName = c.name; photo = c.photo_url || ''; break; }
+          }
+          entries.push({ segment: seg.name, name: candName, photo });
         }
 
-        // Canvas sizing
-        const width = 1024;
-        const lineHeight = 44;
-        const padding = 48;
-        const height = padding*2 + lineHeight * (lines.length + 2);
+        // Preload images (same-origin only) and then render
+        const sameOrigin = (url) => {
+          try { const u = new URL(url, window.location.origin); return u.origin === window.location.origin; }
+          catch { return false; }
+        };
+        const loadImage = (src) => new Promise((resolve) => {
+          if (!src || !sameOrigin(src)) { resolve(null); return; }
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = () => resolve(null);
+          img.src = src;
+        });
 
-        const canvas = document.createElement('canvas');
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        // background
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
-        // header bar
-        ctx.fillStyle = '#0ea5e9'; ctx.fillRect(0, 0, width, 16);
-        // text
-        ctx.fillStyle = '#111827';
-        ctx.font = 'bold 28px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-        let y = padding;
-        for (let i=0; i<lines.length; i++) {
-          const text = lines[i];
-          if (i === 0) ctx.font = 'bold 28px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-          else ctx.font = '24px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
-          ctx.fillText(text, padding, y);
-          y += lineHeight;
-        }
+        Promise.all(entries.map(e => loadImage(e.photo))).then((images) => {
+          // Canvas layout constants
+          const width = 1024;
+          const padding = 48;
+          const headerLine = 40;
+          const rowHeight = 120; // generous row for clear visibility
+          const rows = entries.length;
+          const height = padding*2 + headerLine*3 + rows*rowHeight + 24;
 
-        const png = canvas.toDataURL('image/png');
-        const a = document.createElement('a');
-        const name = receipt ? `receipt_${receipt}.png` : `receipt.png`;
-        a.href = png; a.download = name;
-        document.body.appendChild(a); a.click(); a.remove();
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
 
-        // After triggering the download, clear local state and redirect back to verification
-        // Small delay ensures the browser begins the download before navigation
-        const verifyUrl = "{% url 'voter_verification' session_uuid %}";
-        try { clearReceiptState(); } catch (e) {}
-        setTimeout(() => { window.location.href = verifyUrl; }, 900);
+          const draw = (withImages) => {
+            // background
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+            // header bar
+            ctx.fillStyle = '#0ea5e9'; ctx.fillRect(0, 0, width, 16);
+            // titles
+            let y = padding;
+            ctx.fillStyle = '#111827';
+            ctx.font = '700 30px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+            ctx.fillText('Voting Session: {{ session.title|escapejs }}', padding, y);
+            y += headerLine;
+            ctx.font = '600 24px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+            ctx.fillText('Session ID: {{ session_uuid }}', padding, y);
+            y += headerLine;
+            if (receipt) {
+              ctx.font = '600 24px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+              ctx.fillText(`Receipt: ${receipt}`, padding, y);
+              y += headerLine;
+            }
+
+            // Section header
+            ctx.font = '700 26px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+            ctx.fillText('Your selections', padding, y);
+            y += 24;
+
+            // Draw each selection row as a card with photo and name
+            const imgSize = 96; const imgRadius = imgSize/2;
+            const cardX = padding; const textGap = 20;
+            for (let i=0; i<entries.length; i++) {
+              const e = entries[i];
+              const top = y + i*rowHeight + 16;
+              // card background
+              ctx.fillStyle = '#f3f4f6';
+              ctx.strokeStyle = '#e5e7eb';
+              const cardH = imgSize + 24;
+              ctx.beginPath();
+              if (ctx.roundRect) {
+                ctx.roundRect(cardX-8, top-12, width - padding*2 + 16, cardH + 24, 14);
+              } else {
+                ctx.rect(cardX-8, top-12, width - padding*2 + 16, cardH + 24);
+              }
+              ctx.fill(); ctx.stroke();
+
+              // avatar or placeholder
+              const cx = cardX + imgRadius; const cy = top + imgRadius;
+              const img = images[i];
+              if (withImages && img) {
+                // draw clipped circle
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(cx, cy, imgRadius, 0, Math.PI*2);
+                ctx.closePath();
+                ctx.clip();
+                ctx.drawImage(img, cardX, top, imgSize, imgSize);
+                ctx.restore();
+              } else {
+                // placeholder circle with initial
+                ctx.fillStyle = '#d1d5db';
+                ctx.beginPath(); ctx.arc(cx, cy, imgRadius, 0, Math.PI*2); ctx.fill();
+                const initial = (e.name || '?').charAt(0).toUpperCase();
+                ctx.fillStyle = '#374151';
+                ctx.font = '700 40px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(initial, cx, cy);
+                ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+              }
+
+              // text labels
+              const textX = cardX + imgSize + textGap;
+              ctx.fillStyle = '#374151';
+              ctx.font = '600 20px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+              ctx.fillText(e.segment + ':', textX, top + 28);
+              ctx.fillStyle = '#111827';
+              ctx.font = '800 28px system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+              ctx.fillText(e.name, textX, top + 70);
+            }
+          };
+
+          // Draw attempt with images; if canvas is tainted (cross-origin), fall back without images
+          draw(true);
+          let png;
+          try {
+            png = canvas.toDataURL('image/png');
+          } catch (err) {
+            try { draw(false); png = canvas.toDataURL('image/png'); }
+            catch (e2) { alert('Unable to generate receipt image.'); return; }
+          }
+
+          const a = document.createElement('a');
+          const filename = receipt ? `receipt_${receipt}.png` : `receipt.png`;
+          a.href = png; a.download = filename;
+          document.body.appendChild(a); a.click(); a.remove();
+
+          // After triggering the download, clear local state and redirect back to verification
+          const verifyUrl = "{% url 'voter_verification' session_uuid %}";
+          try { clearReceiptState(); } catch (e) {}
+          setTimeout(() => { window.location.href = verifyUrl; }, 900);
+        });
       } catch (e) {
         console.error(e); alert('Unable to generate receipt.');
       }

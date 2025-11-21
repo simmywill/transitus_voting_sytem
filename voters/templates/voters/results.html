@@ -88,6 +88,39 @@
         let voteData;
         const charts = {};
 
+        // Chart.js plugin to draw percentage + name inside each pie slice
+        const percentLabelPlugin = {
+            id: 'percentLabelPlugin',
+            afterDatasetsDraw(chart, args, pluginOptions) {
+                const { ctx, data } = chart;
+                if (!data || !data.datasets || !data.datasets.length) return;
+                const dataset = data.datasets[0];
+                const meta = chart.getDatasetMeta(0);
+                const total = (dataset.data || []).reduce((a, b) => a + (Number(b) || 0), 0);
+                if (!total || !meta || !meta.data) return;
+                ctx.save();
+                meta.data.forEach((arc, index) => {
+                    const value = Number(dataset.data[index]) || 0;
+                    if (value <= 0) return;
+                    const pct = Math.round((value / total) * 100);
+                    const name = (data.labels && data.labels[index]) ? String(data.labels[index]) : '';
+                    const pos = arc.tooltipPosition();
+                    const color = (pluginOptions && pluginOptions.color) || '#e5edff';
+                    const font = (pluginOptions && pluginOptions.font) || '600 11px "Segoe UI", Tahoma, sans-serif';
+                    const text = `${pct}% voted for ${name}`;
+                    ctx.fillStyle = color;
+                    ctx.font = font;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(text, pos.x, pos.y);
+                });
+                ctx.restore();
+            }
+        };
+        if (window.Chart && Chart.register) {
+            Chart.register(percentLabelPlugin);
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             voteData = JSON.parse('{{ segments_json|escapejs }}'); // Ensure JSON safety
             const segments = document.querySelectorAll(".segment-slide");
@@ -201,6 +234,11 @@
                                     color: "#e5edff",
                                     usePointStyle: true
                                 }
+                            },
+                            // Options for our custom labels plugin
+                            percentLabelPlugin: {
+                                color: '#e5edff',
+                                font: '600 11px "Segoe UI", Tahoma, sans-serif'
                             }
                         }
                     }

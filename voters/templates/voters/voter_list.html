@@ -32,14 +32,14 @@
         
 
         <!-- Hamburger menu icon for mobile view -->
-        <div class="voting_session-navbar-toggle" onclick="toggleNavbar()">
+        <div class="voting_session-navbar-toggle" onclick="toggleNavbar()" aria-controls="voting-session-links" aria-expanded="false" role="button" tabindex="0">
             <span></span>
             <span></span>
             <span></span>
         </div>
 
         <!-- Navbar links -->
-        <div class="voting_session-navbar-links">
+        <div class="voting_session-navbar-links" id="voting-session-links">
             <ul>
                 {% if voting_session.is_active %}
                 <li><a class="generate-results-link" href="{% url 'bbs_results' session_uuid %}">Generate Results</a></li>
@@ -92,6 +92,15 @@
 
 <body>
     <script>
+        // Mobile navbar toggle (hamburger)
+        function toggleNavbar() {
+            const links = document.querySelector('.voting_session-navbar-links');
+            const toggle = document.querySelector('.voting_session-navbar-toggle');
+            if (!links) return;
+            const isOpen = links.classList.toggle('active');
+            if (toggle) toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+
         window.csrfToken = "{{ csrf_token_value|default:csrf_token|escapejs }}";
     </script>
     <section class="session-activation-panel">

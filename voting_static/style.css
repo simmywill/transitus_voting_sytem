@@ -265,6 +265,7 @@
 /* General styling for desktop */
 .voting_session-navbar {
     width: auto;
+    position: relative; /* anchor mobile dropdown */
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -308,6 +309,19 @@
 
 /* Mobile styling: collapsible menu only applies to screens under 768px */
 @media (max-width: 768px) {
+    /* Use grid for clean left (stats) / center (title) / right (hamburger) */
+    .voting_session-navbar-content {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+
+    /* Compact stats, keep to the left */
+    .final-navbar { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+    .final-navbar p { font-size: 0.875rem; white-space: nowrap; }
+
     /* Hide the desktop nav links initially */
     .voting_session-navbar-links ul {
         display: none;
@@ -316,10 +330,10 @@
         background-color: #333;
         width: 100%;
         position: absolute;
-        top: 60px; /* Adjust based on navbar height */
+        top: 100%; /* sit directly beneath the navbar */
         left: 0;
         padding: 10px 0;
-        z-index: 1;
+        z-index: 5;
     }
 
     /* Show the menu when toggled */
@@ -333,6 +347,7 @@
         flex-direction: column;
         gap: 5px;
         cursor: pointer;
+        justify-self: end;
     }
 
     .voting_session-navbar-toggle span {
@@ -343,10 +358,17 @@
         border-radius: 3px;
     }
 
-    /* Position the title at the end */
+    /* Title: center column, clamp size and allow 2-line wrap */
     .voting_session-navbar-title {
-        order: 1;
-        font-size: 1.2em;
+        justify-self: center;
+        text-align: center;
+        font-size: clamp(1rem, 4.5vw, 1.25rem);
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
     }
 }
 
