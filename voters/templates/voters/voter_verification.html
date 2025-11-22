@@ -7,46 +7,48 @@
     {% load static %}
     <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
 </head>
-<body>
-    <nav class="voter_verification_navbar">
-        <h2>{{ session.title }} - Verification</h2>
-    </nav>
+<body class="voter-verification-page">
+    <div class="voter_verification_card">
+        <nav class="voter_verification_navbar">
+            <h2>{{ session.title }} - Verification</h2>
+        </nav>
 
-    <div class="voter_verification_container">
-        <h3 class="voter_verification_heading">Please enter your name to verify your identity:</h3>
+        <div class="voter_verification_container">
+            <h3 class="voter_verification_heading">Please enter your name to verify your identity:</h3>
 
-        {% if error_message %}
-            <p class="voter_verification_error_message">{{ error_message }}</p>
-        {% endif %}
+            {% if error_message %}
+                <p class="voter_verification_error_message">{{ error_message }}</p>
+            {% endif %}
 
-        <form method="POST" class="voter_verification_form" onsubmit="return verifySubmit(event)">
-            {% csrf_token %}
-            <input type="hidden" name="session_uuid" value="{{ session.session_uuid|default:session.get_uuid }}">
-            <div class="voter_verification_input_card">
-                <label for="Fname">First Name:</label>
-                <input type="text" name="Fname" id="Fname" placeholder="Enter First Name" value="{{ submitted_first_name|default:'' }}" required>
-            </div>
-            <div class="voter_verification_input_card">
-                <label for="Lname">Last Name:</label>
-                <input type="text" name="Lname" id="Lname" placeholder="Enter Last Name" value="{{ submitted_last_name|default:'' }}" required>
-            </div>
-            <button type="submit" class="voter_verification_button">Verify and Enter Session</button>
-        </form>
-
-        <script>
-        async function verifySubmit(e){
-          e.preventDefault();
-          const form = e.target;
-          const fd = new FormData(form);
-          try{
-            const resp = await fetch("/api/verify", { method:"POST", body: fd, headers: { "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value } });
-            const data = await resp.json();
-            if(data.ok && data.ballot_url){ window.location = data.ballot_url; }
-            else { alert(data.error || "Verification failed"); }
-          }catch(err){ alert("Network error. Please try again."); }
-          return false;
-        }
-        </script>
+            <form method="POST" class="voter_verification_form" onsubmit="return verifySubmit(event)">
+                {% csrf_token %}
+                <input type="hidden" name="session_uuid" value="{{ session.session_uuid|default:session.get_uuid }}">
+                <div class="voter_verification_input_card">
+                    <label for="Fname">First Name:</label>
+                    <input type="text" name="Fname" id="Fname" placeholder="Enter First Name" value="{{ submitted_first_name|default:'' }}" required>
+                </div>
+                <div class="voter_verification_input_card">
+                    <label for="Lname">Last Name:</label>
+                    <input type="text" name="Lname" id="Lname" placeholder="Enter Last Name" value="{{ submitted_last_name|default:'' }}" required>
+                </div>
+                <button type="submit" class="voter_verification_button">Verify and Enter Session</button>
+            </form>
+        </div>
     </div>
+
+    <script>
+    async function verifySubmit(e){
+      e.preventDefault();
+      const form = e.target;
+      const fd = new FormData(form);
+      try{
+        const resp = await fetch("/api/verify", { method:"POST", body: fd, headers: { "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value } });
+        const data = await resp.json();
+        if(data.ok && data.ballot_url){ window.location = data.ballot_url; }
+        else { alert(data.error || "Verification failed"); }
+      }catch(err){ alert("Network error. Please try again."); }
+      return false;
+    }
+    </script>
 </body>
 </html>
