@@ -906,6 +906,7 @@ body:has(.session-list) .flash-alert {
 
     .session-uuid-row {
         width: 100%;
+        margin-left: 0;
         justify-content: space-between;
     }
 
@@ -2240,6 +2241,7 @@ body.view-session-body .breadcrumb {
     align-items: center;
     gap: 0.65rem;
     margin-top: 10px;
+    margin-left: auto;
     padding: 0.35rem 0.65rem;
     border-radius: 999px;
     background: rgba(5, 12, 32, 0.65);
@@ -2279,11 +2281,14 @@ body.view-session-body .breadcrumb {
   .session-actions {
     flex-wrap: nowrap;
   }
+  .session-actions {
+    margin-left: auto;
+  }
   .session-uuid-row {
     flex: 0 0 auto;
   }
   .session-uuid-display {
-    width: 340px; /* width inside UUID column; leaves room for copy icon */
+    width: 220px; /* narrower UUID column to free more title space */
   }
 }
 
