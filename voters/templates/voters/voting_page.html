@@ -65,30 +65,31 @@
 /* Swipe hand animation */
 .swipe-hint {
     position: absolute;
-    bottom: 0.0%;       /* Use percentage of container height */
-    left: 50%;         /* Center horizontally */
-    transform: translateX(-50%);
+    inset: auto 0 0 0;       /* stretch full width along the row */
+    display: flex;
+    justify-content: flex-end; /* start on the right edge */
+    pointer-events: none;
     font-size: clamp(2rem, 5vw, 3rem); /* Responsive size */
     opacity: 0;
     animation: swipeFade 6s ease forwards;
     z-index: 1000;
-    pointer-events: none;
 }
 
 /* Hand emoji pointing finger with wider motion */
 .hand {
-    display: inline-block;
-    animation: swipeMotion 2s infinite;
-    font-size: 2.5rem; /* Adjust size */
+    display: block;
+    width: 100%;            /* use full row width for motion */
+    text-align: right;      /* start from the rightmost edge */
+    font-size: 2.5rem;      /* Adjust size */
+    animation: swipeMotion 2.4s ease-in-out 3; /* sweep across 3 times */
 }
 
 /* Widened horizontal swipe */
 @keyframes swipeMotion {
-    0%   { transform: translateX(-50%) translateX(0); }
-    25%  { transform: translateX(-50%) translateX(-30px); }
-    50%  { transform: translateX(-50%) translateX(30px); }
-    75%  { transform: translateX(-50%) translateX(-30px); }
-    100% { transform: translateX(-50%) translateX(0); }
+    0%   { transform: translateX(0);     opacity: 1; }
+    10%  { opacity: 1; }
+    85%  { transform: translateX(-100%); opacity: 1; }  /* sweep to left edge */
+    100% { transform: translateX(-100%); opacity: 0; }  /* fade out at end */
 }
 
 /* Fade in/out animation for hand */

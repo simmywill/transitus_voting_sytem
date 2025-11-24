@@ -23,7 +23,7 @@
       try {
         const raw = localStorage.getItem('receiptSelections');
         if (!raw) { alert('Nothing to download.'); return; }
-        const selections = JSON.parse(raw);
+        const selections = normalizeSelections(JSON.parse(raw));
         const segments = JSON.parse('{{ segments_json|escapejs }}');
         const receipt = (localStorage.getItem('receiptCode') || '').toString();
 
@@ -167,6 +167,19 @@
       } catch (e) {
         console.error(e); alert('Unable to generate receipt.');
       }
+    }
+
+    function normalizeSelections(rawSelections) {
+      const normalized = {};
+      if (!rawSelections || typeof rawSelections !== 'object') return normalized;
+      for (const [segId, candId] of Object.entries(rawSelections)) {
+        const sid = Number(segId);
+        const cid = Number(candId);
+        if (!Number.isNaN(sid) && !Number.isNaN(cid)) {
+          normalized[sid] = cid;
+        }
+      }
+      return normalized;
     }
 
     function clearReceiptState() {
