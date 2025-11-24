@@ -143,6 +143,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 14px;
+    max-height: 420px;
+    overflow-y: auto;
+    padding-right: 6px;
 }
 
 .candidate-row {

@@ -81,15 +81,16 @@
     width: 100%;            /* use full row width for motion */
     text-align: right;      /* start from the rightmost edge */
     font-size: 2.5rem;      /* Adjust size */
-    animation: swipeMotion 2.4s ease-in-out 3; /* sweep across 3 times */
+    animation: swipeMotion 3.2s ease-in-out 3; /* sweep across 3 times, slower */
 }
 
 /* Widened horizontal swipe */
 @keyframes swipeMotion {
-    0%   { transform: translateX(0);     opacity: 1; }
+    0%   { transform: translateX(0); opacity: 1; }
     10%  { opacity: 1; }
-    85%  { transform: translateX(-100%); opacity: 1; }  /* sweep to left edge */
-    100% { transform: translateX(-100%); opacity: 0; }  /* fade out at end */
+    50%  { transform: translateX(-100%); opacity: 1; }  /* sweep to left edge */
+    90%  { transform: translateX(0); opacity: 1; }      /* glide back to right edge */
+    100% { transform: translateX(0); opacity: 0; }      /* fade before restart */
 }
 
 /* Fade in/out animation for hand */
@@ -97,6 +98,80 @@
     0%, 90%, 100% { opacity: 0; }
     10%, 70% { opacity: 1; }
 }
+
+/* Vote confirmation overlay */
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 2000;
+}
+
+.confirm-overlay.show {
+    display: flex;
+}
+
+.confirm-card {
+    width: min(520px, 92vw);
+    background: linear-gradient(135deg, #f8fff9, #eefcf3);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    border-radius: 18px;
+    box-shadow:
+        0 18px 42px rgba(12, 18, 32, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    color: #0f172a;
+    padding: 22px 24px;
+}
+
+.confirm-card h2 {
+    margin: 0 0 8px;
+    color: #0f172a;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.confirm-card p {
+    margin: 0 0 18px;
+    color: #1f2937;
+    line-height: 1.5;
+}
+
+.confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.confirm-btn {
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.15s ease;
+}
+
+.confirm-yes {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #f8fafc;
+    box-shadow: 0 12px 26px rgba(22, 163, 74, 0.25);
+}
+
+.confirm-yes:hover { filter: brightness(1.05); transform: translateY(-1px); }
+
+.confirm-no {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid rgba(15, 23, 42, 0.15);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+}
+
+.confirm-no:hover { filter: brightness(0.98); transform: translateY(-1px); }
 
     
 </style>
@@ -156,7 +231,7 @@
         {% if segment.candidates.count > 4 %}
          <!-- Swipe hand hint -->
          <div class="swipe-hint" id="swipeHint">
-            <span class="hand">☝️</span>
+            <span class="hand">👈</span>
         </div>
         {%endif%}
     </div>
@@ -199,6 +274,18 @@
     
 </div>
 
+<!-- Vote confirmation overlay -->
+<div class="confirm-overlay" id="vote-confirm-overlay" aria-hidden="true">
+  <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirm-vote-title">
+    <h2 id="confirm-vote-title">Confirm your vote</h2>
+    <p>Are you sure you want to submit your selections?</p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-btn confirm-yes" id="confirm-yes-btn">Yes</button>
+      <button type="button" class="confirm-btn confirm-no" id="confirm-no-btn">No, I want to change my votes</button>
+    </div>
+  </div>
+</div>
+
 
 
 <script>
@@ -214,6 +301,7 @@ const legacyStorageKey = "selectedVotes";
 const storageKey = `selectedVotes_${session_uuid}`;
 const segmentIdStrings = segmentIds.map(id => id.toString());
 let selectedVotes = {};
+let isSubmitting = false;
 
 function persistSelections() {
     try {
@@ -257,6 +345,22 @@ function hasSelectionsForAllSegments() {
     return segmentIdStrings.every((segId) =>
         Object.prototype.hasOwnProperty.call(selectedVotes, segId)
     );
+}
+
+function openConfirmOverlay() {
+    const overlay = document.getElementById('vote-confirm-overlay');
+    if (overlay) {
+        overlay.classList.add('show');
+        overlay.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function closeConfirmOverlay() {
+    const overlay = document.getElementById('vote-confirm-overlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+    }
 }
 
 loadSelections();
@@ -316,6 +420,11 @@ window.onload = function() {
             if (handHint) handHint.style.opacity = "0";
         }, { once: true });
     }
+
+    const yesBtn = document.getElementById('confirm-yes-btn');
+    const noBtn = document.getElementById('confirm-no-btn');
+    if (yesBtn) yesBtn.addEventListener('click', submitVotes);
+    if (noBtn) noBtn.addEventListener('click', closeConfirmOverlay);
 };
 
 
@@ -327,37 +436,45 @@ function confirmVote() {
         alert("Please make selections for all segments before voting.");
         return;
     }
+    openConfirmOverlay();
+}
 
-    // Confirm before submitting
-    if (confirm("Are you sure? After this, there is no turning back.")) {
-        const pairs = segmentIdStrings.map((segId) => [
-            parseInt(segId, 10),
-            parseInt(selectedVotes[segId], 10)
-        ]);
-        const payload = { session_uuid: session_uuid, choices: pairs };
-        fetch(`/api/cast`, {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
-            },
-            body: JSON.stringify(payload),
-        }).then(async (response) => {
-            const data = await response.json().catch(() => ({}));
-            if (response.ok && data.ok) {
-                const receipt = data.receipt || "";
-                try {
-                    localStorage.setItem("receiptSelections", JSON.stringify(selectedVotes));
-                    localStorage.setItem("receiptCode", receipt);
-                } catch (e) { /* ignore storage issues */ }
-                localStorage.removeItem(storageKey);
-                localStorage.removeItem(legacyStorageKey);
-                window.location.href = "/thanks/" + session_uuid + "/";
-            } else {
-                throw new Error(data.error || "Submit failed");
-            }
-        }).catch((error) => { alert(error.message); });
+function submitVotes() {
+    if (isSubmitting) return;
+    if (!hasSelectionsForAllSegments()) {
+        alert("Please make selections for all segments before voting.");
+        return;
     }
+    const pairs = segmentIdStrings.map((segId) => [
+        parseInt(segId, 10),
+        parseInt(selectedVotes[segId], 10)
+    ]);
+    const payload = { session_uuid: session_uuid, choices: pairs };
+    closeConfirmOverlay();
+    isSubmitting = true;
+    fetch(`/api/cast`, {
+        method: "POST",
+        headers: { 
+            "Content-Type": "application/json",
+            "X-CSRFToken": document.querySelector('[name="csrfmiddlewaretoken"]').value
+        },
+        body: JSON.stringify(payload),
+    }).then(async (response) => {
+        const data = await response.json().catch(() => ({}));
+        if (response.ok && data.ok) {
+            const receipt = data.receipt || "";
+            try {
+                localStorage.setItem("receiptSelections", JSON.stringify(selectedVotes));
+                localStorage.setItem("receiptCode", receipt);
+            } catch (e) { /* ignore storage issues */ }
+            localStorage.removeItem(storageKey);
+            localStorage.removeItem(legacyStorageKey);
+            window.location.href = "/thanks/" + session_uuid + "/";
+        } else {
+            throw new Error(data.error || "Submit failed");
+        }
+    }).catch((error) => { alert(error.message); })
+    .finally(() => { isSubmitting = false; });
 }
 
 </script>

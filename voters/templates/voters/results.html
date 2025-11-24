@@ -32,9 +32,9 @@
 
                 <div class="leaderboard-card">
                     <div class="leaderboard-title">
-                        <span aria-hidden="true">🏁</span>
+                        
                         <span>Candidate Leaderboard</span>
-                        <span aria-hidden="true">🏁</span>
+                        
                     </div>
                     <div class="leaderboard-head">
                         <span>Candidate</span>
@@ -107,12 +107,13 @@
                     const pos = arc.tooltipPosition();
                     const color = (pluginOptions && pluginOptions.color) || '#e5edff';
                     const font = (pluginOptions && pluginOptions.font) || '600 11px "Segoe UI", Tahoma, sans-serif';
-                    const text = `${pct}% voted for ${name}`;
                     ctx.fillStyle = color;
                     ctx.font = font;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(text, pos.x, pos.y);
+                    const lineHeight = 14;
+                    ctx.fillText(`${pct}%`, pos.x, pos.y - 6);
+                    ctx.fillText(name, pos.x, pos.y + lineHeight / 2);
                 });
                 ctx.restore();
             }
