@@ -1246,12 +1246,14 @@
         const wrappers = Array.from(document.querySelectorAll('.view-session-candidate-scroll'));
         const grids = Array.from(document.querySelectorAll('.view-session-candidate-grid'));
         if (grids.length === 0) return;
-          wrappers.forEach(w => {
-            w.style.maxHeight = '';
-            w.style.height = '';
-            w.style.overflowY = 'hidden';
-            // Preserve w.dataset.lockedRowHeight so we don't shrink after add/delete
-          });
+        const scrollStates = new Map();
+        wrappers.forEach(w => {
+          scrollStates.set(w, { top: w.scrollTop || 0 });
+          w.style.maxHeight = '';
+          w.style.height = '';
+          // Preserve w.dataset.lockedRowHeight so we don't shrink after add/delete
+          w.style.overflowY = '';
+        });
         document.querySelectorAll('.view-session-card__body').forEach(b => {
           b.style.minHeight = '';
         });
@@ -1316,6 +1318,13 @@
         }
         document.querySelectorAll('.view-session-card__body').forEach(b => {
           b.style.minHeight = (maxRowHeight + bodyExtra) + 'px';
+        });
+        wrappers.forEach(w => {
+          const saved = scrollStates.get(w);
+          if (!saved) return;
+          const maxScrollable = Math.max(0, w.scrollHeight - w.clientHeight);
+          const target = Math.min(saved.top, maxScrollable);
+          w.scrollTop = target;
         });
       }
       /* ========== Expand / Collapse ========== */
