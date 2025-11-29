@@ -931,7 +931,11 @@ def segment_results(request, session_uuid):
     tally = []
     for segment in segments:
         # Annotate candidates with vote counts
-        candidates = segment.candidates.annotate(vote_count=Count('vote__id'))
+        candidates = (
+            segment.candidates
+            .annotate(vote_count=Count('vote__id'))
+            .order_by('-vote_count', 'name')
+        )
         
         # Determine the winner
         winner = candidates.order_by('-vote_count').first() if candidates else None
