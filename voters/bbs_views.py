@@ -161,6 +161,19 @@ def api_cast(request):
     # Mark ANON spent in CIS (server-to-server)
     status, resp = _cis_call(request, "/api/mark-spent", {"anon_id": anon_id, "session_uuid": str(session_uuid)})
     if status != 200 or not resp.get("ok"):
+        error_code = (resp or {}).get("error") if isinstance(resp, dict) else None
+        if error_code == "already_voted":
+            return JsonResponse({
+                "ok": False,
+                "error": "already_voted",
+                "message": "You have already voted in this session.",
+            }, status=403)
+        if error_code in {"invalid_or_spent", "already_spent", "expired"}:
+            return JsonResponse({
+                "ok": False,
+                "error": error_code,
+                "message": "This ballot link is no longer valid. Please re-verify.",
+            }, status=400)
         raise Exception("CIS mark-spent failed")
 
     # Clear anon from session so it can't be reused

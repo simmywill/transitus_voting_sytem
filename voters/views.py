@@ -315,6 +315,7 @@ def activate_session(request, session_id):
         'unique_url': session.unique_url or '',
         'qr_code_url': (session.qr_code.url if getattr(session, 'qr_code', None) else dynamic_qr_url),
         'session_title': session.title,
+        'results_url': request.build_absolute_uri(reverse('bbs_results', args=[session.session_uuid])),
     }
     return JsonResponse(payload)
 

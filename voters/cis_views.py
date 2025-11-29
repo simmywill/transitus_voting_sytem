@@ -175,16 +175,33 @@ def api_mark_spent(request):
 
     from .models import AnonSession as _Anon
     anon = _Anon.objects.select_for_update().filter(anon_id=anon_id, session=session).first()
-    if not anon or anon.spent_at:
+    now = tz.now()
+    if not anon:
         return JsonResponse({"ok": False, "error": "invalid_or_spent"}, status=400)
+    if anon.spent_at:
+        return JsonResponse({"ok": False, "error": "already_spent"}, status=400)
+    if anon.expires_at and anon.expires_at < now:
+        return JsonResponse({"ok": False, "error": "expired"}, status=400)
 
-    anon.spent_at = tz.now()
+    voter = None
+    if anon.voter_id:
+        voter = Voter.objects.select_for_update().filter(pk=anon.voter_id).first()
+        if voter and voter.has_finished:
+            return JsonResponse({"ok": False, "error": "already_voted"}, status=400)
+
+    anon.spent_at = now
     anon.save(update_fields=['spent_at'])
 
     # Flip ops flag by name if present
-    if anon.voter and not anon.voter.has_finished:
-        anon.voter.has_finished = True
-        anon.voter.save(update_fields=['has_finished'])
+    if voter and not voter.has_finished:
+        voter.has_finished = True
+        voter.save(update_fields=['has_finished'])
+
+        # Expire any other unspent anon sessions for this voter
+        _Anon.objects.filter(
+            voter=voter,
+            spent_at__isnull=True,
+        ).exclude(pk=anon.pk).update(expires_at=now)
 
     log_event(session, "CAST_OK", {"anon": anon_id})
     return JsonResponse({"ok": True})

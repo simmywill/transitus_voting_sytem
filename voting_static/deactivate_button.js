@@ -2,6 +2,8 @@
   const holdBtn = document.getElementById('holdBtn');
   const progressBar = document.getElementById('progressBar');
   const activationMessage = document.getElementById('activationMessage');
+  const resultsNav = document.getElementById('generate-results-nav');
+  const resultsLink = document.getElementById('generate-results-link');
 
   const HOLD_DURATION = 5000;
   let holdTimer = null;
@@ -61,6 +63,30 @@
       );
     }
     return anchors.length ? `<span class="activation-links">${anchors.join('')}</span>` : '';
+  };
+
+  const revealResultsLink = (payload = {}) => {
+    if (resultsNav) {
+      resultsNav.hidden = false;
+    }
+    if (!resultsLink) {
+      return;
+    }
+    const explicitUrl = payload.results_url;
+    if (explicitUrl) {
+      resultsLink.href = explicitUrl;
+      resultsLink.dataset.resultsUrl = explicitUrl;
+      return;
+    }
+    if (resultsLink.dataset.resultsUrl) {
+      resultsLink.href = resultsLink.dataset.resultsUrl;
+      return;
+    }
+    if (payload.session_uuid) {
+      const derived = `/results/${payload.session_uuid}/`;
+      resultsLink.href = derived;
+      resultsLink.dataset.resultsUrl = derived;
+    }
   };
 
   const resetProgress = (animate = true) => {
@@ -124,6 +150,8 @@
       const linksMarkup = buildActivationLinksMarkup(payload);
       activationMessage.innerHTML = `<span class="status-dot"></span>${activeText}${linksMarkup}`;
     }
+
+    revealResultsLink(payload);
 
   };
 

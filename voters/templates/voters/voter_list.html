@@ -41,8 +41,15 @@
         <!-- Navbar links -->
         <div class="voting_session-navbar-links" id="voting-session-links">
             <ul>
+                <li id="generate-results-nav" {% if not voting_session.is_active %}hidden{% endif %}>
+                    <a
+                        class="generate-results-link"
+                        id="generate-results-link"
+                        href="{% url 'bbs_results' session_uuid %}"
+                        data-results-url="{% url 'bbs_results' session_uuid %}"
+                    >Generate Results</a>
+                </li>
                 {% if voting_session.is_active %}
-                <li><a class="generate-results-link" href="{% url 'bbs_results' session_uuid %}">Generate Results</a></li>
                 <li>
                     <button
                         class="hold-button is-complete"

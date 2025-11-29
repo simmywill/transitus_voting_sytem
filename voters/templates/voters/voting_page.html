@@ -2,6 +2,19 @@
     
     .hidden { display: none; }
 
+    #vote-flash {
+        display: none;
+        opacity: 0;
+        transform: translateY(-12px);
+        transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    #vote-flash.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+    }
+
     /* Arrow tips */
     .arrow_tip_container {
         position: relative;
@@ -189,6 +202,9 @@
     {% else %}
     <div class="step-indicator">Step 1 of 4</div>
     {% endif %}
+    <div id="vote-flash" class="flash-alert error" role="alert" aria-live="assertive">
+        <p class="flash-message" id="vote-flash-message"></p>
+    </div>
     <div class="voting_instruction tip-box">
         <div class="tip-icon">💡</div>
         <ul class="tip-list">
@@ -302,6 +318,56 @@ const storageKey = `selectedVotes_${session_uuid}`;
 const segmentIdStrings = segmentIds.map(id => id.toString());
 let selectedVotes = {};
 let isSubmitting = false;
+let flashTimer = null;
+let flashHideTimer = null;
+
+function showFlashMessage(message, level = 'error') {
+    const alertBox = document.getElementById('vote-flash');
+    const alertText = document.getElementById('vote-flash-message');
+    if (!alertBox || !alertText) {
+        alert(message);
+        return;
+    }
+    if (flashTimer) {
+        clearTimeout(flashTimer);
+        flashTimer = null;
+    }
+    if (flashHideTimer) {
+        clearTimeout(flashHideTimer);
+        flashHideTimer = null;
+    }
+    alertBox.classList.remove('success', 'info', 'warning', 'error');
+    if (level) {
+        alertBox.classList.add(level);
+    }
+    alertText.textContent = message;
+    alertBox.classList.add('show');
+    flashTimer = setTimeout(() => {
+        alertBox.classList.remove('show');
+        flashTimer = null;
+        flashHideTimer = setTimeout(() => {
+            alertBox.style.display = 'none';
+            flashHideTimer = null;
+        }, 400);
+    }, 6000);
+    alertBox.style.display = 'block';
+}
+
+function getCastErrorMessage(data) {
+    if (!data || typeof data !== 'object') {
+        return "Submit failed. Please try again.";
+    }
+    if (data.message) {
+        return data.message;
+    }
+    const dictionary = {
+        already_voted: "Our records show you have already voted in this session.",
+        invalid_or_spent: "This ballot link is no longer valid. Please re-verify.",
+        already_spent: "This ballot link has already been used. Please re-verify.",
+        expired: "This ballot link has expired. Please re-verify.",
+    };
+    return dictionary[data.error] || "Submit failed. Please try again.";
+}
 
 function persistSelections() {
     try {
@@ -471,9 +537,10 @@ function submitVotes() {
             localStorage.removeItem(legacyStorageKey);
             window.location.href = "/thanks/" + session_uuid + "/";
         } else {
-            throw new Error(data.error || "Submit failed");
+            const friendlyMessage = getCastErrorMessage(data);
+            throw new Error(friendlyMessage);
         }
-    }).catch((error) => { alert(error.message); })
+    }).catch((error) => { showFlashMessage(error.message || "Submit failed."); })
     .finally(() => { isSubmitting = false; });
 }
 
