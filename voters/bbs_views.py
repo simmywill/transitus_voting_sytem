@@ -211,9 +211,11 @@ def results(request, session_uuid):
                 'votes': votes,
                 'photo_url': cand.photo.url if cand.photo else '',
             })
+        # Sort candidates by votes (desc), then name to keep ordering stable for equal votes
+        cands.sort(key=lambda x: (-x['votes'], x['name']))
         winner = None
         if cands:
-            winner_obj = max(cands, key=lambda x: x['votes'])
+            winner_obj = cands[0]
             winner = {
                 'id': winner_obj['id'],
                 'name': winner_obj['name'],
