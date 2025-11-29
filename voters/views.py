@@ -1120,6 +1120,7 @@ def voter_counts(request, session_uuid):
     })
 
 
+@login_required
 def get_voters(request, session_id=None, session_uuid=None):
     # Determine which identifier to use
     if session_uuid:
@@ -1190,6 +1191,7 @@ def update_segment_name(request, segment_id):
     return JsonResponse({'success': True, 'segment': {'id': seg.id, 'name': seg.name}})
 
 
+@login_required
 def get_voter_status(request, session_uuid):
     try:
         # Fetch the VotingSession object using the canonical UUID

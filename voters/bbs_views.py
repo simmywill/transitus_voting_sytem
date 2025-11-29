@@ -128,9 +128,8 @@ def api_cast(request):
     if not segments_by_id:
         return JsonResponse({"error": "no_segments"}, status=400)
 
-    created = 0
-    manual_card = None
-    now = tz.now()
+    # Build a single, validated selection per segment; reject duplicates explicitly
+    selection_by_segment = {}
     for pair in choices:
         if not isinstance(pair, (list, tuple)) or len(pair) != 2:
             return JsonResponse({"error": "invalid_choice_format"}, status=400)
@@ -140,6 +139,13 @@ def api_cast(request):
             cand_id = int(raw_cand_id)
         except (TypeError, ValueError):
             return JsonResponse({"error": "invalid_choice_format"}, status=400)
+
+        if seg_id in selection_by_segment:
+            return JsonResponse({
+                "ok": False,
+                "error": "duplicate_segment",
+                "message": "Multiple choices for the same segment are not allowed."
+            }, status=400)
 
         segment = segments_by_id.get(seg_id)
         if not segment:
@@ -153,6 +159,12 @@ def api_cast(request):
                 status=400,
             )
 
+        selection_by_segment[seg_id] = (segment, candidate)
+
+    created = 0
+    manual_card = None
+    now = tz.now()
+    for seg_id, (segment, candidate) in selection_by_segment.items():
         if manual_card is None:
             manual_card = ManualCheckCard.objects.create(session=session)
         Ballot.objects.create(session=session, segment=segment, candidate=candidate, bundle=manual_card)
