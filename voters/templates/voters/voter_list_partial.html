@@ -17,10 +17,19 @@
             {% endif %}
             </div>
         </td>
-        <td>
-            <a href="{% url 'edit_voter' voter.voter_id %}">Edit</a>
-            <a href="{% url 'delete_voter' voter.voter_id %}" onclick="return confirm('Are you sure?')">Delete</a>
+        <td class="voter-actions">
+            {% if not voter.is_verified or not voter.has_finished %}
+            <button
+                type="button"
+                class="delete-voter-btn"
+                data-voter-id="{{ voter.voter_id }}"
+                data-voter-name="{{ voter.Fname }} {{ voter.Lname }}"
+                data-delete-url="{% url 'delete_voter' voter.voter_id %}?session_uuid={{ session.session_uuid }}"
+                aria-label="Delete {{ voter.Fname }} {{ voter.Lname }}"
+            >
+                <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
         </td>
     </tr>
     {% endfor %}
-

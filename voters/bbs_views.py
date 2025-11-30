@@ -34,11 +34,34 @@ def _cis_call(request, path, payload):
     url = f"{base}{path}"
     body = json.dumps(payload).encode()
     sig = hmac.new(settings.CIS_BBS_SHARED_SECRET.encode(), body, hashlib.sha256).hexdigest()
-    r = requests.post(url, data=body, headers={
-        "Content-Type": "application/json",
-        "X-CIS-Signature": sig
-    }, timeout=5)
-    return r.status_code, r.json()
+    try:
+        r = requests.post(url, data=body, headers={
+            "Content-Type": "application/json",
+            "X-CIS-Signature": sig
+        }, timeout=5)
+    except Exception as exc:  # network or connectivity failure
+        return 502, {"ok": False, "error": "cis_request_failed", "message": str(exc)}
+
+    try:
+        data = r.json()
+    except ValueError:
+        data = {
+            "ok": False,
+            "error": "non_json_response",
+            "status": r.status_code,
+        }
+    return r.status_code, data
+
+
+def _render_session_expired(request, session, session_uuid):
+    verify_uuid = getattr(session, 'session_uuid', None) or session_uuid
+    verification_url = reverse('cis_verify_form', args=[str(verify_uuid)])
+    ctx = {
+        "session": session,
+        "verification_url": verification_url,
+        "expired_message": "Session expired. You voted already. Please re-verify.",
+    }
+    return render(request, 'voters/session_expired.html', ctx, status=403)
 
 
 @require_GET
@@ -72,7 +95,7 @@ def ballot_entry(request, session_uuid):
     else:
         # Must already have anon session if navigating
         if request.session.get('ANON_SESSION_UUID') != str(session_uuid) or not request.session.get('ANON_ID'):
-            return HttpResponseForbidden("Session expired. Please re-verify.")
+            return _render_session_expired(request, session, session_uuid)
 
     # Render the existing voting page template (one segment at a time)
     segments = list(VotingSegmentHeader.objects.filter(session=session).order_by('order', 'id'))
@@ -90,6 +113,7 @@ def ballot_entry(request, session_uuid):
         'current_segment': seg_num,
         'total_segments': total,
         'session_uuid': str(session_uuid),
+        'anon_id': str(request.session.get('ANON_ID') or ''),
         'segment_ids_json': json.dumps(segment_ids),
         # No voter_id provided in BBS
     })
@@ -171,9 +195,16 @@ def api_cast(request):
         created += 1
 
     # Mark ANON spent in CIS (server-to-server)
-    status, resp = _cis_call(request, "/api/mark-spent", {"anon_id": anon_id, "session_uuid": str(session_uuid)})
-    if status != 200 or not resp.get("ok"):
-        error_code = (resp or {}).get("error") if isinstance(resp, dict) else None
+    # Prefer in-process mark-spent in single-host mode to avoid nested HTTP/DB churn
+    if not getattr(settings, 'CIS_ENFORCE_HOST', False):
+        from . import cis_views  # local import to avoid cycles
+        status, resp = cis_views._mark_spent(session_uuid, anon_id)
+    else:
+        status, resp = _cis_call(request, "/api/mark-spent", {"anon_id": anon_id, "session_uuid": str(session_uuid)})
+
+    ok = isinstance(resp, dict) and resp.get("ok")
+    if status != 200 or not ok:
+        error_code = resp.get("error") if isinstance(resp, dict) else None
         if error_code == "already_voted":
             return JsonResponse({
                 "ok": False,
@@ -186,7 +217,8 @@ def api_cast(request):
                 "error": error_code,
                 "message": "This ballot link is no longer valid. Please re-verify.",
             }, status=400)
-        raise Exception("CIS mark-spent failed")
+        message = resp.get("message") if isinstance(resp, dict) else "CIS mark-spent failed"
+        raise Exception(message)
 
     # Clear anon from session so it can't be reused
     request.session.pop('ANON_ID', None)

@@ -382,15 +382,12 @@
               <button type="button" class="view-session-card__expand-toggle" title="Maximize" aria-pressed="false">
                 <i class="fas fa-expand"></i>
               </button>
-              <button type="button" class="view-session-card__menu-toggle" aria-haspopup="true" aria-expanded="false">
+              <button type="button" class="view-session-card__menu-toggle no-drag" aria-haspopup="true" aria-expanded="false">
                 <i class="fas fa-ellipsis-h"></i>
               </button>
-              <div class="view-session-card__menu" role="menu">
-                <a href="{% url 'edit_segment' segment.id %}" class="view-session-card__menu-item">
-                  <i class="fas fa-pen"></i> Edit Segment
-                </a>
+              <div class="view-session-card__menu" role="menu" draggable="false">
                 <button type="button" class="view-session-card__menu-item view-session-card__menu-item--danger"
-                        data-action="delete-segment" data-segment-id="{{ segment.id }}">
+                        data-action="delete-segment" data-segment-id="{{ segment.id }}" draggable="false">
                   <i class="fas fa-trash-alt"></i> Delete Segment
                 </button>
               </div>
@@ -463,6 +460,15 @@
       </div>
     </div>
   </div>
+  <div id="segment-delete-card" class="delete-confirm-card" aria-hidden="true">
+    <div class="delete-confirm-card__content">
+      <p id="segment-delete-message"></p>
+      <div class="delete-confirm-card__actions">
+        <button type="button" id="segment-delete-confirm" class="delete-card-confirm">Delete</button>
+        <button type="button" id="segment-delete-cancel" class="delete-card-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
   <!-- Candidate template -->
   <template id="view-session-candidate-template">
     <article class="view-session-candidate tile" data-candidate-id="">
@@ -514,15 +520,12 @@
           <button type="button" class="view-session-card__expand-toggle" title="Maximize" aria-pressed="false">
             <i class="fas fa-expand"></i>
           </button>
-          <button type="button" class="view-session-card__menu-toggle" aria-haspopup="true" aria-expanded="false">
+          <button type="button" class="view-session-card__menu-toggle no-drag" aria-haspopup="true" aria-expanded="false">
             <i class="fas fa-ellipsis-h"></i>
           </button>
           <div class="view-session-card__menu" role="menu">
-            <a href="#" data-role="edit-segment-link" class="view-session-card__menu-item">
-              <i class="fas fa-pen"></i> Edit Segment
-            </a>
             <button type="button" class="view-session-card__menu-item view-session-card__menu-item--danger"
-                    data-action="delete-segment" data-segment-id="">
+                    data-action="delete-segment" data-segment-id="" draggable="false">
               <i class="fas fa-trash-alt"></i> Delete Segment
             </button>
           </div>
@@ -585,6 +588,11 @@
         { base: '#14b8a6', light: '#5eead4' },
         { base: '#0ea5e9', light: '#38bdf8' }
       ];
+      const segmentDeleteCard = document.getElementById('segment-delete-card');
+      const segmentDeleteMessage = document.getElementById('segment-delete-message');
+      const segmentDeleteConfirm = document.getElementById('segment-delete-confirm');
+      const segmentDeleteCancel = document.getElementById('segment-delete-cancel');
+      let pendingSegmentDelete = null;
       let expandedCard = null;
       document.addEventListener('DOMContentLoaded', () => {
         applySegmentColors();
@@ -608,6 +616,15 @@
         // Close candidate menus on scroll/resize to avoid odd anchoring
         window.addEventListener('scroll', closeAllMenus, { passive: true });
         window.addEventListener('resize', closeAllMenus);
+        if (segmentDeleteConfirm) segmentDeleteConfirm.addEventListener('click', confirmSegmentDeletion);
+        if (segmentDeleteCancel) segmentDeleteCancel.addEventListener('click', hideSegmentDeleteCard);
+        if (segmentDeleteCard) {
+          segmentDeleteCard.addEventListener('click', (e) => {
+            if (e.target === segmentDeleteCard) {
+              hideSegmentDeleteCard();
+            }
+          });
+        }
       });
       /* ========== Colors & Sortable ========== */
       function applySegmentColors() {
@@ -625,6 +642,8 @@
         new Sortable(container, {
           animation: 200,
           forceFallback: true,
+          filter: '.view-session-card__actions, .view-session-card__menu, .view-session-card__menu *, .view-session-card__menu-toggle, .view-session-card__menu-item, .no-drag',
+          preventOnFilter: false,
           onEnd() {
             const orderedIds = Array.from(container.querySelectorAll('.view-session-card')).map(c => c.dataset.id);
             fetch('/update-segment-order/', {
@@ -729,6 +748,9 @@
         document.addEventListener('keydown', e => {
           const input = e.target.closest('.view-session-candidate__name');
           if (input && e.key === 'Enter') { e.preventDefault(); input.blur(); }
+          if (e.key === 'Escape' && pendingSegmentDelete) {
+            hideSegmentDeleteCard();
+          }
         });
         document.addEventListener('blur', e => {
           const input = e.target.closest('.view-session-candidate__name');
@@ -750,6 +772,37 @@
           if (fileInput) fileInput.click();
         });
       }
+      function showSegmentDeleteCard(segmentId, segmentName, segmentCard) {
+        pendingSegmentDelete = { segmentId, segmentCard };
+        if (segmentDeleteMessage) {
+          segmentDeleteMessage.textContent = `Are you sure you want to delete the "${segmentName}" segment? All candidates will be deleted with it.`;
+        }
+        if (segmentDeleteCard) {
+          segmentDeleteCard.classList.add('is-visible');
+          segmentDeleteCard.setAttribute('aria-hidden', 'false');
+          if (segmentDeleteConfirm) {
+            segmentDeleteConfirm.focus();
+          }
+        }
+      }
+      function hideSegmentDeleteCard() {
+        pendingSegmentDelete = null;
+        if (segmentDeleteCard) {
+          segmentDeleteCard.classList.remove('is-visible');
+          segmentDeleteCard.setAttribute('aria-hidden', 'true');
+        }
+      }
+      async function confirmSegmentDeletion() {
+        if (!pendingSegmentDelete || !pendingSegmentDelete.segmentId) {
+          hideSegmentDeleteCard();
+          return;
+        }
+        const { segmentId, segmentCard } = pendingSegmentDelete;
+        const success = await deleteSegment(segmentId, segmentCard);
+        if (success) {
+          hideSegmentDeleteCard();
+        }
+      }
       function handleDocumentClick(event) {
         // Expand/Collapse
         const expandToggle = event.target.closest('.view-session-card__expand-toggle');
@@ -767,8 +820,11 @@
         if (deleteSegmentBtn) {
           event.preventDefault();
           const segmentId = deleteSegmentBtn.dataset.segmentId;
-          if (segmentId && confirm('Are you sure you want to delete this segment?')) {
-            deleteSegment(segmentId);
+          const segmentCard = deleteSegmentBtn.closest('.view-session-card');
+          const titleEl = segmentCard ? segmentCard.querySelector('.view-session-card__title-text') : null;
+          const segmentName = (titleEl && titleEl.textContent ? titleEl.textContent.trim() : '') || 'this segment';
+          if (segmentId) {
+            showSegmentDeleteCard(segmentId, segmentName, segmentCard);
           }
           closeAllMenus();
           return;
@@ -804,24 +860,38 @@
         const rect   = toggle.getBoundingClientRect();
         const width  = menu.offsetWidth  || 200;
         const height = menu.offsetHeight || 140;
-        // Default: below-right of toggle
-        let top  = rect.bottom + 6;
-        let left = rect.right - width;
-        // Flip to fit viewport with small margins
-        if (left < 8) left = 8;
-        if (top + height > window.innerHeight - 8) {
-          top = Math.max(8, rect.top - 6 - height);
+        const isSegmentMenu = menu.classList.contains('view-session-card__menu');
+        let top;
+        let left;
+        if (isSegmentMenu) {
+          const actions = toggle.closest('.view-session-card__actions');
+          const actionsRect = actions ? actions.getBoundingClientRect() : { top: 0, left: 0, bottom: 0, right: 0 };
+          // Position relative to the actions container to avoid transform quirks
+          top = rect.bottom - actionsRect.top + 6;
+          left = rect.right - actionsRect.left - width;
+          // Clamp to actions container width if needed
+          if (left < 0) left = 0;
+        } else {
+          // Candidate menu: viewport positioning
+          top  = rect.bottom + 6;
+          left = rect.right - width;
+          if (left < 8) left = 8;
+          if (top + height > window.innerHeight - 8) {
+            top = Math.max(8, rect.top - 6 - height);
+          }
         }
         // Apply & show
         menu.style.left = `${left}px`;
         menu.style.top  = `${top}px`;
         menu.classList.add('is-open');
         menu.style.visibility = 'visible';
+        const card = toggle.closest('.view-session-card');
+        if (card) {
+          card.classList.add('view-session-card--menu-open');
+        }
         const candidate = toggle.closest('.view-session-candidate');
         if (candidate) {
           candidate.classList.add('view-session-candidate--menu-open');
-          const card = candidate.closest('.view-session-card');
-          if (card) card.classList.add('view-session-card--menu-open');
         }
         if (toggle) toggle.setAttribute('aria-expanded', 'true');
       }
@@ -849,6 +919,12 @@
           menu.classList.remove('is-open');
           const t = menu.previousElementSibling;
           if (t) t.setAttribute('aria-expanded', 'false');
+          const card = menu.closest('.view-session-card');
+          if (card) card.classList.remove('view-session-card--menu-open');
+          menu.style.display = '';
+          menu.style.visibility = '';
+          menu.style.left = '';
+          menu.style.top = '';
         });
         document.querySelectorAll('.view-session-candidate__menu').forEach(menu => {
           closeCandidateMenu(menu);
@@ -1174,24 +1250,32 @@
         }
       }
       /* ========== Delete segment ========== */
-      async function deleteSegment(segmentId) {
+      async function deleteSegment(segmentId, segmentCard) {
+        if (!segmentId) return false;
+        const card = segmentCard || document.querySelector(`.view-session-card[data-id="${segmentId}"]`);
         try {
           const res = await fetch(`/delete-segment/${segmentId}/`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ensureCsrfToken() }
           });
-          if (!res.ok) throw new Error('Failed to delete segment');
-          const segmentCard = document.querySelector(`.view-session-card[data-id="${segmentId}"]`);
-          if (segmentCard) {
-            if (segmentCard.classList.contains('view-session-card--expanded')) {
-              collapseSegment(segmentCard, segmentCard.querySelector('.view-session-card__expand-toggle'));
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || (data && data.success === false)) {
+            const message = (data && (data.error || data.detail)) ? (data.error || data.detail) : 'Failed to delete segment';
+            throw new Error(message);
+          }
+          if (card) {
+            if (card.classList.contains('view-session-card--expanded')) {
+              collapseSegment(card, card.querySelector('.view-session-card__expand-toggle'));
             }
-            segmentCard.remove();
+            card.remove();
             applySegmentColors();
             lockAllGridsToOneRowUniform();
           }
+          return true;
         } catch (e) {
-          console.error(e); alert('Unable to delete the segment right now.');
+          console.error(e);
+          alert((e && e.message) ? e.message : 'Unable to delete the segment right now.');
+          return false;
         }
       }
       /* ========== Candidate name inline updates ========== */

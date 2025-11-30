@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Expired</title>
+    {% load static %}
+    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
+</head>
+<body class="session-expired-screen">
+    <div class="session-expired-wrapper">
+        <div class="flash-card session-expired-card" role="alert" aria-live="assertive">
+            <div class="session-expired-pill">Session expired</div>
+            <h3>{{ session.title|default:"Voting session" }}</h3>
+            <p class="session-expired-message">{{ expired_message }}</p>
+            <p class="session-expired-subtext">
+                Redirecting you back to verification in
+                <span id="redirect-countdown">5</span>s
+            </p>
+            <div class="flash-card-actions session-expired-actions">
+                <a href="{{ verification_url }}" class="session-expired-button">Re-verify now</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const targetUrl = "{{ verification_url }}";
+            const counterEl = document.getElementById("redirect-countdown");
+            let remaining = 5;
+
+            const tick = () => {
+                remaining -= 1;
+                if (counterEl && remaining >= 0) {
+                    counterEl.textContent = remaining.toString();
+                }
+                if (remaining <= 0) {
+                    window.location.href = targetUrl;
+                }
+            };
+
+            setInterval(tick, 1000);
+            setTimeout(() => { window.location.href = targetUrl; }, remaining * 1000);
+        })();
+    </script>
+</body>
+</html>

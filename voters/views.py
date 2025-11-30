@@ -495,6 +495,7 @@ def delete_voter(request, voter_id):
     session_uuid = request.GET.get('session_uuid')
     session_id = request.GET.get('session_id')
 
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest'
 
     if session_uuid:
         try:
@@ -506,13 +507,28 @@ def delete_voter(request, voter_id):
     else:
         raise Http404("Session identifier not provided.")
 
-    if request.method == 'POST':
-        voter.delete()
+    if request.method != 'POST':
+        if is_ajax:
+            return JsonResponse({'ok': False, 'error': 'Invalid request method'}, status=405)
+        return render(request, 'voters/delete_voter.html', {'voter': voter})
+
+    if voter.is_verified and voter.has_finished:
+        error_message = "Cannot delete a voter who is verified and finished."
+        if is_ajax:
+            return JsonResponse({'ok': False, 'error': error_message}, status=400)
+        messages.error(request, error_message)
         if session_uuid:
             return redirect('voter_list', session_uuid=session_uuid)
         return redirect('voter_list', session_id=session_id)
 
-    return render(request, 'voters/delete_voter.html', {'voter': voter})
+    voter.delete()
+
+    if is_ajax:
+        return JsonResponse({'ok': True})
+
+    if session_uuid:
+        return redirect('voter_list', session_uuid=session_uuid)
+    return redirect('voter_list', session_id=session_id)
 
 @login_required
 def edit_voter(request, voter_id):
@@ -737,12 +753,14 @@ def remove_candidate_photo(request, candidate_id):
 ## Removed insecure unused update_segment endpoint
 
 @login_required
+@require_POST
 def delete_segment(request, segment_id):
-    if request.method == 'POST':
-        segment = get_object_or_404(VotingSegmentHeader, id=segment_id)
-        segment.delete()
-        return JsonResponse({'success': True})
-    return JsonResponse({'error': 'Invalid request'}, status=400)
+    segment = get_object_or_404(VotingSegmentHeader, id=segment_id)
+    if segment.session.admin != request.user:
+        return JsonResponse({'success': False, 'error': 'Forbidden'}, status=403)
+
+    segment.delete()
+    return JsonResponse({'success': True})
 
 
 ## Removed duplicate activate_session definition (kept earlier, admin-checked)

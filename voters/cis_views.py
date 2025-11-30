@@ -148,6 +148,46 @@ def api_redeem(request):
     return JsonResponse({"ok": True, "anon_id": anon.anon_id})
 
 
+@transaction.atomic
+def _mark_spent(session_uuid, anon_id):
+    try:
+        session = VotingSession.objects.get(session_uuid=session_uuid)
+    except VotingSession.DoesNotExist:
+        session = VotingSession.objects.filter(unique_url__contains=f"{session_uuid}").first()
+        if not session:
+            return 404, {"ok": False, "error": "session_not_found"}
+
+    anon = AnonSession.objects.select_for_update().filter(anon_id=anon_id, session=session).first()
+    now = tz.now()
+    if not anon:
+        return 400, {"ok": False, "error": "invalid_or_spent"}
+    if anon.spent_at:
+        return 400, {"ok": False, "error": "already_spent"}
+    if anon.expires_at and anon.expires_at < now:
+        return 400, {"ok": False, "error": "expired"}
+
+    voter = None
+    if anon.voter_id:
+        voter = Voter.objects.select_for_update().filter(pk=anon.voter_id).first()
+        if voter and voter.has_finished:
+            return 400, {"ok": False, "error": "already_voted"}
+
+    anon.spent_at = now
+    anon.save(update_fields=['spent_at'])
+
+    if voter and not voter.has_finished:
+        voter.has_finished = True
+        voter.save(update_fields=['has_finished'])
+
+        AnonSession.objects.filter(
+            voter=voter,
+            spent_at__isnull=True,
+        ).exclude(pk=anon.pk).update(expires_at=now)
+
+    log_event(session, "CAST_OK", {"anon": anon_id})
+    return 200, {"ok": True}
+
+
 @require_POST
 @csrf_exempt  # HMAC-authenticated server-to-server endpoint; CSRF not applicable
 @transaction.atomic
@@ -168,43 +208,8 @@ def api_mark_spent(request):
     if not anon_id or not session_uuid:
         return HttpResponseBadRequest("Missing fields")
 
-    try:
-        session = VotingSession.objects.get(session_uuid=session_uuid)
-    except Exception:
-        session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
-
-    from .models import AnonSession as _Anon
-    anon = _Anon.objects.select_for_update().filter(anon_id=anon_id, session=session).first()
-    now = tz.now()
-    if not anon:
-        return JsonResponse({"ok": False, "error": "invalid_or_spent"}, status=400)
-    if anon.spent_at:
-        return JsonResponse({"ok": False, "error": "already_spent"}, status=400)
-    if anon.expires_at and anon.expires_at < now:
-        return JsonResponse({"ok": False, "error": "expired"}, status=400)
-
-    voter = None
-    if anon.voter_id:
-        voter = Voter.objects.select_for_update().filter(pk=anon.voter_id).first()
-        if voter and voter.has_finished:
-            return JsonResponse({"ok": False, "error": "already_voted"}, status=400)
-
-    anon.spent_at = now
-    anon.save(update_fields=['spent_at'])
-
-    # Flip ops flag by name if present
-    if voter and not voter.has_finished:
-        voter.has_finished = True
-        voter.save(update_fields=['has_finished'])
-
-        # Expire any other unspent anon sessions for this voter
-        _Anon.objects.filter(
-            voter=voter,
-            spent_at__isnull=True,
-        ).exclude(pk=anon.pk).update(expires_at=now)
-
-    log_event(session, "CAST_OK", {"anon": anon_id})
-    return JsonResponse({"ok": True})
+    status, payload = _mark_spent(session_uuid, anon_id)
+    return JsonResponse(payload, status=status)
 
 
 @require_GET

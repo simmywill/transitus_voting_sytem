@@ -306,6 +306,7 @@
 
 <script>
     const session_uuid = "{{ session_uuid }}";
+    const anonId = "{{ anon_id|default:''|escapejs }}";
     const segmentIds = JSON.parse('{{ segment_ids_json|escapejs }}');
 </script>
 
@@ -314,7 +315,8 @@
 
 
 const legacyStorageKey = "selectedVotes";
-const storageKey = `selectedVotes_${session_uuid}`;
+const sessionKeyPrefix = `selectedVotes_${session_uuid}`;
+const storageKey = anonId ? `${sessionKeyPrefix}_${anonId}` : `${sessionKeyPrefix}_anon`;
 const segmentIdStrings = segmentIds.map(id => id.toString());
 let selectedVotes = {};
 let isSubmitting = false;
@@ -377,6 +379,26 @@ function persistSelections() {
     }
 }
 
+function clearStaleSelections() {
+    try {
+        const keysToDrop = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (!key) continue;
+            if (key === legacyStorageKey || key === sessionKeyPrefix) {
+                keysToDrop.push(key);
+                continue;
+            }
+            if (key.startsWith(sessionKeyPrefix) && key !== storageKey) {
+                keysToDrop.push(key);
+            }
+        }
+        keysToDrop.forEach((k) => localStorage.removeItem(k));
+    } catch (e) {
+        // ignore storage access errors
+    }
+}
+
 function loadSelections() {
     let raw = null;
     try {
@@ -429,6 +451,7 @@ function closeConfirmOverlay() {
     }
 }
 
+clearStaleSelections();
 loadSelections();
 
 function selectCandidate(candidateId, segmentId) {

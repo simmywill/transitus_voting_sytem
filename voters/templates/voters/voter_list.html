@@ -224,9 +224,19 @@
                         {% endif %}
                         </div>
                     </td>
-                    <td>
-                        <a href="{% url 'edit_voter' voter.voter_id %}">Edit</a>
-                        <a href="{% url 'delete_voter' voter.voter_id %}" onclick="return confirm('Are you sure?')">Delete</a>
+                    <td class="voter-actions">
+                        {% if not voter.is_verified or not voter.has_finished %}
+                        <button
+                            type="button"
+                            class="delete-voter-btn"
+                            data-voter-id="{{ voter.voter_id }}"
+                            data-voter-name="{{ voter.Fname }} {{ voter.Lname }}"
+                            data-delete-url="{% url 'delete_voter' voter.voter_id %}?{% if session_id %}session_id={{ session_id }}{% else %}session_uuid={{ session_uuid }}{% endif %}"
+                            aria-label="Delete {{ voter.Fname }} {{ voter.Lname }}"
+                        >
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
@@ -235,37 +245,129 @@
         </table>
     </div>
 
+    <div id="delete-confirm-card" class="delete-confirm-card" aria-hidden="true">
+        <div class="delete-confirm-card__content">
+            <p id="delete-card-message"></p>
+            <div class="delete-confirm-card__actions">
+                <button type="button" id="delete-card-confirm" class="delete-card-confirm">Delete</button>
+                <button type="button" id="delete-card-cancel" class="delete-card-cancel">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-
-
         function clearSearch() {
-            const url = new URL(window.location.href); // Get the current URL
-            url.searchParams.delete('search'); // Remove the 'search' query parameter
-            window.location.href = url.toString(); // Reload the page with the updated URL
+            const url = new URL(window.location.href);
+            url.searchParams.delete('search');
+            window.location.href = url.toString();
         };
-        
 
         function toggleDropdown() {
-    const dropdownContent = document.querySelector('.dropdown-content');
-    dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
-}
+            const dropdownContent = document.querySelector('.dropdown-content');
+            dropdownContent.style.display = dropdownContent.style.display === 'block' ? 'none' : 'block';
+        }
 
-// Persist current filter in JS and include it in refresh requests
-let currentFilter = 'all';
+        // Persist current filter in JS and include it in refresh requests
+        let currentFilter = 'all';
 
-function filterVoters(status) {
-    currentFilter = status || 'all';
-    // Immediately refresh from server with the selected filter so the periodic
-    // updates keep the same filter applied.
-    refreshVoterList();
-}
+        function filterVoters(status) {
+            currentFilter = status || 'all';
+            if (typeof window.refreshVoterList === 'function') {
+                window.refreshVoterList();
+            }
+        }
 
-    
         const session_uuid = "{{ session_uuid }}";
         document.addEventListener('DOMContentLoaded', function () {
+            const deleteCard = document.getElementById('delete-confirm-card');
+            const deleteCardMessage = document.getElementById('delete-card-message');
+            const deleteCardConfirm = document.getElementById('delete-card-confirm');
+            const deleteCardCancel = document.getElementById('delete-card-cancel');
+            let pendingDelete = null;
 
+            function hideDeleteCard() {
+                pendingDelete = null;
+                if (deleteCard) {
+                    deleteCard.classList.remove('is-visible');
+                    deleteCard.setAttribute('aria-hidden', 'true');
+                }
+            }
 
-            
+            function showDeleteCard(voterName, deleteUrl, row) {
+                pendingDelete = { deleteUrl, row };
+                if (deleteCardMessage) {
+                    deleteCardMessage.textContent = `Are you sure you want to delete "${voterName}" before committing the deletion?`;
+                }
+                if (deleteCard) {
+                    deleteCard.classList.add('is-visible');
+                    deleteCard.setAttribute('aria-hidden', 'false');
+                }
+            }
+
+            async function confirmDeletion() {
+                if (!pendingDelete || !pendingDelete.deleteUrl) {
+                    hideDeleteCard();
+                    return;
+                }
+
+                try {
+                    const response = await fetch(pendingDelete.deleteUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': window.csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || (data && data.ok === false)) {
+                        const errorMessage = (data && data.error) ? data.error : 'Unable to delete voter.';
+                        throw new Error(errorMessage);
+                    }
+
+                    if (pendingDelete.row) {
+                        pendingDelete.row.remove();
+                    }
+
+                    hideDeleteCard();
+                    refreshVoterList();
+                    updateVoterCounts();
+                } catch (error) {
+                    console.error('Error deleting voter:', error);
+                    alert(error.message || 'Unable to delete voter.');
+                    hideDeleteCard();
+                }
+            }
+
+            function attachDeleteHandlers() {
+                document.querySelectorAll('.delete-voter-btn').forEach(function (btn) {
+                    if (btn.dataset.bound === 'true') {
+                        return;
+                    }
+
+                    btn.dataset.bound = 'true';
+                    btn.addEventListener('click', function () {
+                        const voterName = btn.dataset.voterName || 'this voter';
+                        const deleteUrl = btn.dataset.deleteUrl;
+                        const row = btn.closest('tr');
+                        showDeleteCard(voterName, deleteUrl, row);
+                    });
+                });
+            }
+
+            if (deleteCardConfirm) {
+                deleteCardConfirm.addEventListener('click', confirmDeletion);
+            }
+            if (deleteCardCancel) {
+                deleteCardCancel.addEventListener('click', hideDeleteCard);
+            }
+            if (deleteCard) {
+                deleteCard.addEventListener('click', function (event) {
+                    if (event.target === deleteCard) {
+                        hideDeleteCard();
+                    }
+                });
+            }
+
             // Function to update voter counts in real-time
             function updateVoterCounts() {
                 fetch(`/voter_counts/${session_uuid}/`)
@@ -279,7 +381,7 @@ function filterVoters(status) {
                         // Update navbar voter counts
                         document.querySelector('.voting_session-navbar p:first-of-type').textContent = `Verified Voters: ${data.verified_voters}/${data.total_voters}`;
                         document.querySelector('.voting_session-navbar p:last-of-type').textContent = `Finished Voters: ${data.finished_voters}/${data.total_voters}`;
-    
+
                         // Stop updates if all voters are finished
                         if (data.verified_voters === data.total_voters && data.finished_voters === data.total_voters) {
                             console.log("All voters verified and finished. Stopping voter count updates.");
@@ -288,15 +390,6 @@ function filterVoters(status) {
                     })
                     .catch(error => console.error('Error updating voter counts:', error));
             }
-    
-           // Function to clear the search input and reload all voters
-            //document.getElementById('clear-search-btn').addEventListener('click', function() {
-                //const searchInput = document.getElementById('search-input');
-                //searchInput.value = '';  // Clear the search input field
-                //refreshVoterList();  // Reload the voter list without a search filter
-           // });
-
-           
 
             function refreshVoterList() {
                 let searchQuery = "";
@@ -315,6 +408,7 @@ function filterVoters(status) {
                         const voterList = document.getElementById('voter-list');
                         if (voterList && data.html) {
                             voterList.innerHTML = data.html;
+                            attachDeleteHandlers();
                         }
 
                         // Stop updating if everyone is verified and finished
@@ -327,26 +421,20 @@ function filterVoters(status) {
                         }
                     })
                     .catch(error => console.error("Error refreshing voter list:", error));
-                    
             }
-
-            
 
             // Example usage: Call this function periodically or on specific events
             const voterListInterval = setInterval(refreshVoterList, 5000); // Refresh every 5 seconds (adjust as needed)
 
-
-            
-            
-
-
             // Set intervals for real-time updates
             const voterCountsInterval = setInterval(updateVoterCounts, 5000); // Update voter counts every 5 seconds
-    
+
             // Execute immediately on page load
             updateVoterCounts();
             refreshVoterList();
-            
+            attachDeleteHandlers();
+
+            window.refreshVoterList = refreshVoterList;
         });
     </script>
     <script>
