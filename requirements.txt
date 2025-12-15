@@ -38,3 +38,5 @@ Werkzeug==3.0.2
 whitenoise==6.8.2
 boto3
 openpyxl>=3.1.2
+daphne >=4.1
+uvicorn[standard]==0.30.5
