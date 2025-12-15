@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ session.title }} - Self Registration</title>
+    <link href="{% static 'style.css' %}?v={% now 'U' %}" rel="stylesheet">
+</head>
+<body class="self-register-page">
+    <main class="self-register__layout">
+        <section class="self-register__card">
+            <p class="eyebrow">Early check-in</p>
+            <h1>Register for {{ session.title }}</h1>
+            <p class="lede">Add yourself to the voter list ahead of time. We’ll verify you before the meeting starts.</p>
+
+            {% if closed %}
+                <div class="alert alert--error">Self-registration is currently disabled for this session.</div>
+            {% endif %}
+            {% if already_registered %}
+                <div class="alert alert--info">You’re already registered for this session. No further action required.</div>
+            {% endif %}
+            {% if registered %}
+                <div class="alert alert--success">
+                    Thanks for registering.
+                    {% if registration_status == 'pending' %}
+                        Your status is <strong>pending</strong>. You’ll be marked verified once reviewed.
+                    {% else %}
+                        You’re <strong>approved</strong> and ready for verification on the day.
+                    {% endif %}
+                </div>
+            {% endif %}
+            {% if errors %}
+                <div class="alert alert--error">
+                    <ul>
+                        {% for err in errors %}
+                            <li>{{ err }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
+            {% if not closed %}
+            <form method="POST" class="self-register__form">
+                {% csrf_token %}
+                <div class="field">
+                    <label for="Fname">First name</label>
+                    <input type="text" id="Fname" name="Fname" required placeholder="First name"
+                        value="{{ prefill.Fname|default_if_none:'' }}">
+                </div>
+                <div class="field">
+                    <label for="Lname">Last name</label>
+                    <input type="text" id="Lname" name="Lname" required placeholder="Last name"
+                        value="{{ prefill.Lname|default_if_none:'' }}">
+                </div>
+                <div class="field">
+                    <label for="email">Email (optional)</label>
+                    <input type="email" id="email" name="email" placeholder="name@example.com"
+                        value="{{ prefill.email|default_if_none:'' }}">
+                </div>
+                <div class="field">
+                    <label for="phone">Phone (optional)</label>
+                    <input type="tel" id="phone" name="phone" placeholder="+1 555 123 4567"
+                        value="{{ prefill.phone|default_if_none:'' }}">
+                </div>
+                <button type="submit" class="pill pill--primary self-register__submit">Submit registration</button>
+            </form>
+            {% endif %}
+
+            <div class="self-register__footnote">
+                <p>We’ll only use your contact details to manage this voting session. You can return to this link at any time to confirm your status.</p>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

@@ -2,6 +2,13 @@
     {% for voter in voters %}
     <tr id="voter-{{ voter.voter_id }}" class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
         <td>{{ voter.Fname }} {{ voter.Lname }}</td>
+        <td class="voter-meta-cell">
+            <div class="voter-badges">
+                <span class="badge badge-source badge-source--{{ voter.registration_source|default:'admin' }}">
+                    {% if voter.registration_source == 'import' %}Import{% elif voter.registration_source == 'self' %}Self-Registered{% else %}Admin{% endif %}
+                </span>
+            </div>
+        </td>
         <td class="voter-status-cell">
             <div class="voter-status">
             {% if voter.is_verified %}

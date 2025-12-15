@@ -1,0 +1,141 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Manage Motions</title>
+    <link rel="stylesheet" href="{% static 'motions/motions.css' %}">
+</head>
+<body class="motions-glassy manage-motions">
+    <div class="motion-manage-shell">
+        <div class="flex-between topbar">
+            <h1 class="page-heading">Motions for {{ session.title }}</h1>
+            <a class="btn primary console-pill" href="{% url 'motions:presenter_console' session.session_uuid %}">Presenter Console</a>
+        </div>
+
+        <div class="card glass-panel motion-form-card">
+            <h2 class="section-title">Add motion</h2>
+            <form class="motion-form" method="post" action="">
+                {% csrf_token %}
+                {{ form.display_order.as_hidden }}
+                {{ form.reveal_results.as_hidden }}
+                {{ form.non_field_errors }}
+                <div class="input-row">
+                    <label class="field">
+                        <div class="field-label">Title</div>
+                        {{ form.title }}
+                    </label>
+                    <label class="field auto-close-field">
+                        <div class="field-label">Auto close after seconds (optional)</div>
+                        <div class="number-input">
+                            {{ form.auto_close_seconds }}
+                            <span class="input-suffix">seconds</span>
+                        </div>
+                    </label>
+                </div>
+                <label class="field">
+                    <div class="field-label">Body</div>
+                    {{ form.body }}
+                </label>
+                <div class="options-row">
+                    <div class="toggle-stack">
+                        <label class="toggle glass-toggle">
+                            {{ form.allow_vote_change }}
+                            <span class="switch" aria-hidden="true"></span>
+                            <span class="toggle-label">Allow vote change while open</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-footer">
+                    <button class="btn primary save-motion-btn" type="submit">Save motion</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card glass-panel motions-list-card">
+            <h2 class="section-title">Motions</h2>
+            <table class="table motion-table motion-table--seamless">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Settings</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for motion in motions %}
+                    <tr class="motion-line">
+                        <td class="order-col">{{ motion.display_order }}</td>
+                        <td class="title-col">
+                            <strong>{{ motion.title }}</strong><br>
+                            <small>{{ motion.body|default:"No description" }}</small>
+                        </td>
+                        <td class="status-col"><span class="tag status-{{ motion.status|slugify }}">{{ motion.status|upper }}</span></td>
+                        <td class="settings-col">
+                            <div class="motion-body">Vote change: {{ motion.allow_vote_change|yesno:"Allowed,Locked" }}</div>
+                            {% if motion.auto_close_seconds %}
+                                <div class="motion-body">Auto close: {{ motion.auto_close_seconds }}s</div>
+                            {% else %}
+                                <div class="motion-body">Auto close: Off</div>
+                            {% endif %}
+                        </td>
+                        <td class="actions-col">
+                            <div class="actions">
+                                <form method="post" action="{% url 'motions:api_reorder_motions' session.session_uuid %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="motion_id" value="{{ motion.id }}">
+                                    <input type="hidden" name="direction" value="up">
+                                    <button class="btn ghost icon-circle" type="submit" aria-label="Move {{ motion.title }} up">&uarr;</button>
+                                </form>
+                                <form method="post" action="{% url 'motions:api_reorder_motions' session.session_uuid %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="motion_id" value="{{ motion.id }}">
+                                    <input type="hidden" name="direction" value="down">
+                                    <button class="btn ghost icon-circle" type="submit" aria-label="Move {{ motion.title }} down">&darr;</button>
+                                </form>
+                                <details class="edit-card">
+                                    <summary class="btn ghost" aria-label="Edit motion {{ motion.title }}">Edit</summary>
+                                    <form method="post" action="{% url 'motions:motion_edit' session.session_uuid motion.id %}">
+                                        {% csrf_token %}
+                                        {% if motion.reveal_results %}
+                                            <input type="hidden" name="reveal_results" value="on">
+                                        {% endif %}
+                                        <label class="field">
+                                            <div class="field-label">Title</div>
+                                            <input type="text" name="title" value="{{ motion.title }}" required>
+                                        </label>
+                                        <label class="field">
+                                            <div class="field-label">Body</div>
+                                            <textarea name="body" rows="3">{{ motion.body }}</textarea>
+                                        </label>
+                                        <label class="field">
+                                            <div class="field-label">Order</div>
+                                            <input type="number" name="display_order" value="{{ motion.display_order }}">
+                                        </label>
+                                        <label class="toggle glass-toggle">
+                                            <input type="checkbox" name="allow_vote_change" {% if motion.allow_vote_change %}checked{% endif %}>
+                                            <span class="switch" aria-hidden="true"></span>
+                                            <span class="toggle-label">Allow vote change</span>
+                                        </label>
+                                        <label class="field">
+                                            <div class="field-label">Auto close (seconds)</div>
+                                            <input type="number" name="auto_close_seconds" value="{{ motion.auto_close_seconds|default_if_none:'' }}">
+                                        </label>
+                                        <button class="btn primary" type="submit">Update</button>
+                                    </form>
+                                </details>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="5">No motions created yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

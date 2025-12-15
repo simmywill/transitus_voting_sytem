@@ -44,49 +44,62 @@
                 <div class="session-info">
                     <a href="{% url 'active_voting_session' session.session_id %}" class="session-title">{{ session.title }}</a>
                     <div class="session-links">
-                        {% if session.is_active %}
-                            <span class="session-status session-status--active">Active</span>
-                            <div class="session-uuid-row">
-                                <span class="session-uuid-display" id="uuid-display-{{ session.session_id }}">
-                                    {{ session.unique_url }}
-                                </span>
-                                <button
-                                    type="button"
-                                    class="session-copy-trigger"
-                                    data-copy-target="uuid-display-{{ session.session_id }}"
-                                    aria-label="Copy session UUID"
-                                    onclick="event.stopPropagation();"
-                                >
-                                    <i class="bi bi-clipboard"></i>
-                                    <span class="session-copy-tooltip" role="status" aria-live="polite">Copied</span>
-                                </button>
+                        <div class="session-links__stack">
+                            <div class="session-link-switcher" onclick="event.stopPropagation();">
+                                <div class="session-link-switcher__tabs">
+                                    <button type="button" class="link-tab is-active" data-link-tab="vote" aria-controls="uuid-display-{{ session.session_id }}">Vote link</button>
+                                    <button type="button" class="link-tab" data-link-tab="register" aria-controls="uuid-display-{{ session.session_id }}">Registration link</button>
+                                </div>
+                                <div class="session-link-switcher__body">
+                                    <span
+                                        class="session-uuid-display session-link-value"
+                                        id="uuid-display-{{ session.session_id }}"
+                                        data-vote-url="{{ session.share_url|default:'' }}"
+                                        data-register-url="{{ session.registration_url|default:'' }}"
+                                    >
+                                        {{ session.share_url|default:"Link not ready" }}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        class="session-copy-trigger"
+                                        data-copy-target="uuid-display-{{ session.session_id }}"
+                                        aria-label="Copy session link"
+                                        onclick="event.stopPropagation();"
+                                    >
+                                        <i class="bi bi-clipboard"></i>
+                                        <span class="session-copy-tooltip" role="status" aria-live="polite">Copied</span>
+                                    </button>
+                                </div>
                             </div>
                             <div class="session-actions">
                                 <a
                                     href="{% url 'qr_png' session.session_uuid %}"
-                                    class="qr-link"
+                                    class="action-bubble"
                                     data-qr-modal="{% url 'qr_png' session.session_uuid %}"
                                     data-qr-label="{{ session.title }} QR Code"
                                     onclick="event.stopPropagation();"
                                 >QR Code</a>
                                 <a
                                     href="{% url 'voter_list' session.session_id %}"
-                                    class="manage-voters-link"
+                                    class="action-bubble"
                                     onclick="event.stopPropagation();"
                                 >
                                     Manage Voters
                                 </a>
+                                <a
+                                    href="{% url 'delete_voting_session' session.session_id %}"
+                                    class="delete-link"
+                                    onclick="event.stopPropagation();"
+                                >
+                                    Delete
+                                </a>
                             </div>
-                        {% else %}
-                            <span class="no-qr">Inactive</span>
-                        {% endif %}
-                        <a href="{% url 'delete_voting_session' session.session_id %}" class="delete-link" onclick="event.stopPropagation();">Delete</a>
+                        </div>
                     </div>
                 </div>
             </div>
         {% endfor %}
     </div>
-</div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
@@ -118,6 +131,34 @@
                 }
             });
         });
+
+        const linkSwitchers = document.querySelectorAll('.session-link-switcher');
+        linkSwitchers.forEach((switcher) => {
+            const valueEl = switcher.querySelector('.session-link-value');
+            const tabs = switcher.querySelectorAll('.link-tab');
+            tabs.forEach((tab) => {
+                tab.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    tabs.forEach(t => t.classList.remove('is-active'));
+                    tab.classList.add('is-active');
+                    const target = tab.dataset.linkTab;
+                    const url = valueEl ? valueEl.dataset[`${target}Url`] : '';
+                    if (valueEl) {
+                        valueEl.textContent = url || 'Link not ready';
+                    }
+                });
+            });
+        });
+
+        const getCsrfToken = () => {
+            const meta = document.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (meta && meta.value) {
+                return meta.value;
+            }
+            const match = document.cookie.match(/(?:^|;)\s*csrftoken=([^;]+)/);
+            return match ? decodeURIComponent(match[1]) : '';
+        };
+
     });
 </script>
 <script>

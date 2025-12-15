@@ -1,0 +1,116 @@
+{% load static %}
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Motion Voting</title>
+    <link rel="stylesheet" href="{% static 'motions/motions.css' %}">
+</head>
+<body>
+    <div class="page">
+        <div class="status-bar" aria-live="polite">
+            <span id="connection-status" class="status-pill reconnecting" data-state="reconnecting">Connecting…</span>
+            <span class="tag">Session {{ session.title }}</span>
+            <div class="flex-between" style="gap:0.4rem;">
+                <span class="tag" aria-live="polite">In Motion Session Now: <span id="presence-count">--</span></span>
+                <button id="help-button" class="help-button" aria-haspopup="dialog" aria-controls="help-dialog" aria-expanded="false">?</button>
+            </div>
+        </div>
+
+        <div class="card" id="motion-card">
+            <div id="motion-container" {% if not open_motion and not latest_closed_payload %}hidden{% endif %}>
+                <p class="tag">Current motion</p>
+                <h1 id="motion-title" class="motion-title">
+                    {% if open_motion %}
+                        {{ open_motion.title }}
+                    {% elif latest_closed_payload %}
+                        {{ latest_closed_payload.title }}
+                    {% else %}
+                        Waiting for next motion
+                    {% endif %}
+                </h1>
+                <p id="motion-body" class="motion-body">
+                    {% if open_motion %}
+                        {{ open_motion.body|default:"" }}
+                    {% elif latest_closed_payload %}
+                        {{ latest_closed_payload.body|default:"" }}
+                    {% else %}
+                        Please wait, the next motion will appear shortly.
+                    {% endif %}
+                </p>
+                <div class="timer-banner" id="timer-banner" aria-live="polite">
+                    <span class="timer-label">Time Remaining</span>
+                    <span id="timer" class="timer-value">--</span>
+                </div>
+
+                <div class="vote-layout">
+                    <div class="choice-grid" id="choice-grid" aria-label="Vote choices">
+                        <button class="choice-button" data-choice="yes" aria-pressed="false">YES</button>
+                        <button class="choice-button" data-choice="no" aria-pressed="false">NO</button>
+                        <button class="choice-button" data-choice="abstain" aria-pressed="false">ABSTAIN</button>
+                    </div>
+                    <div id="inline-results" class="results-panel" hidden aria-live="polite">
+                        <div class="results-head">
+                            <div>
+                                <p class="tag">Your vote</p>
+                                <div id="your-vote" class="vote-chip" hidden></div>
+                            </div>
+                            <div class="results-meta">
+                                <p class="tag">Overall results</p>
+                                <p class="results-note">Revealed after the motion closes</p>
+                            </div>
+                        </div>
+                        <ul id="results-list" class="results-list"></ul>
+                    </div>
+                </div>
+                <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+                <div id="closed-alert" class="alert-banner" hidden role="status" aria-live="polite">
+                    <div class="alert-title">Voting closed</div>
+                    <p class="alert-body">Please wait for the moderator to open voting for the next motion.</p>
+                </div>
+            </div>
+            <div id="waiting" class="waiting" {% if open_motion or latest_closed_payload %}hidden{% endif %} role="status" aria-live="polite">
+                Please wait, the next motion will appear shortly.
+            </div>
+        </div>
+
+    </div>
+
+    {% if open_payload %}
+        {{ open_payload|json_script:"initial-motion" }}
+    {% endif %}
+    {% if preview_payload %}
+        {{ preview_payload|json_script:"preview-motion" }}
+    {% endif %}
+    {% if latest_closed_payload %}
+        {{ latest_closed_payload|json_script:"latest-closed" }}
+    {% endif %}
+    <div id="motion-config"
+         data-session="{{ session.session_uuid }}"
+         data-ws="{{ websocket_path }}"
+         data-current-url="{{ api_current_url }}"
+         data-presence-url="{{ api_presence_url }}"
+         data-vote-base="{{ vote_base }}"
+         data-selection="{{ selection|default_if_none:'' }}">
+    </div>
+
+    <div class="dialog-backdrop" id="help-backdrop" aria-hidden="true">
+        <div class="dialog" id="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title">
+            <header>
+                <h2 id="help-title" class="motion-title">Welcome to Motion Voting</h2>
+                <button id="help-close" aria-label="Close help">✕</button>
+            </header>
+            <ul>
+                <li>You will see each motion appear when the chair opens voting.</li>
+                <li>Tap YES / NO / ABSTAIN. A confirmation appears once recorded.</li>
+                <li>If voting closes while you are deciding, buttons will disable.</li>
+            </ul>
+            <p class="motion-body">Need assistance? Ask a moderator nearby.</p>
+        </div>
+    </div>
+
+    <script src="{% static 'motions/voter.js' %}"></script>
+</body>
+</html>

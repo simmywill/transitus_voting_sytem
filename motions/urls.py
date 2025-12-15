@@ -1,0 +1,93 @@
+from django.urls import path
+from . import views
+
+app_name = "motions"
+
+urlpatterns = [
+    path("entry/<uuid:session_uuid>/", views.gated_entry, name="gated_entry"),
+    path(
+        "session/<uuid:session_uuid>/voter/",
+        views.voter_portal,
+        name="voter_portal",
+    ),
+    path(
+        "session/<uuid:session_uuid>/moderator/",
+        views.presenter_console,
+        name="presenter_console",
+    ),
+    path(
+        "session/<uuid:session_uuid>/manage/",
+        views.manage_motions,
+        name="manage_motions",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/new/",
+        views.motion_create,
+        name="motion_create",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/<int:motion_id>/edit/",
+        views.motion_edit,
+        name="motion_edit",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/<int:motion_id>/open/",
+        views.open_motion,
+        name="open_motion",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/<int:motion_id>/preview/",
+        views.preview_motion,
+        name="preview_motion",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/<int:motion_id>/close/",
+        views.close_motion,
+        name="close_motion",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/<int:motion_id>/reveal/",
+        views.reveal_motion_results,
+        name="reveal_motion_results",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/<int:motion_id>/hide/",
+        views.hide_motion_results,
+        name="hide_motion_results",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/<int:motion_id>/reset/",
+        views.reset_motion_votes_view,
+        name="reset_motion_votes",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/<int:motion_id>/timer/",
+        views.api_set_timer,
+        name="api_set_timer",
+    ),
+    path(
+        "session/<uuid:session_uuid>/motions/<int:motion_id>/vote/",
+        views.api_cast_vote,
+        name="api_cast_vote",
+    ),
+    path(
+        "session/<uuid:session_uuid>/api/current/",
+        views.api_current_motion,
+        name="api_current_motion",
+    ),
+    path(
+        "session/<uuid:session_uuid>/api/presence/",
+        views.api_presence,
+        name="api_presence",
+    ),
+    path(
+        "session/<uuid:session_uuid>/api/tallies/",
+        views.api_tallies,
+        name="api_tallies",
+    ),
+    path(
+        "session/<uuid:session_uuid>/api/reorder/",
+        views.api_reorder_motions,
+        name="api_reorder_motions",
+    ),
+]

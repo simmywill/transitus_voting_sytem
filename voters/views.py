@@ -16,20 +16,116 @@ from django.http import Http404
 from django.conf import settings
 from django.template.loader import render_to_string
 from django.http import HttpResponse, HttpResponseBadRequest, HttpResponseForbidden
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from django.db import transaction
 from django.db.models import Case, When, IntegerField
 from django.middleware.csrf import get_token
 from django.views.decorators.cache import never_cache
+from django.core.cache import cache
 from io import BytesIO
+import csv
+import io as io_mod
+import re
 import qrcode
 import os
+from openpyxl import load_workbook
 
 
 
 
 
 logger = logging.getLogger(__name__)
+
+
+def _normalize_name(value: str) -> str:
+    value = (value or '').strip()
+    return ' '.join(value.split())
+
+
+def _normalize_email(value: str):
+    email = (value or '').strip()
+    return email.lower() if email else None
+
+
+def _normalize_phone(value: str) -> str:
+    raw = (value or '').strip()
+    if not raw:
+        return ''
+    return re.sub(r'[^\d+]', '', raw)
+
+
+def _dedupe_key(fname: str, lname: str, email: str = '', phone: str = '') -> str:
+    return '|'.join([
+        (fname or '').lower(),
+        (lname or '').lower(),
+        (email or '').lower(),
+        phone or '',
+    ])
+
+
+HEADER_ALIASES = {
+    'fname': 'Fname',
+    'first name': 'Fname',
+    'first_name': 'Fname',
+    'given name': 'Fname',
+    'lname': 'Lname',
+    'last name': 'Lname',
+    'last_name': 'Lname',
+    'surname': 'Lname',
+    'email': 'email',
+    'e-mail': 'email',
+    'mail': 'email',
+    'phone': 'phone_number',
+    'phone number': 'phone_number',
+    'mobile': 'phone_number',
+    'contact': 'phone_number',
+}
+
+
+def _map_headers(row: dict):
+    mapped = {}
+    for key, value in row.items():
+        alias = HEADER_ALIASES.get(str(key).strip().lower())
+        if alias:
+            mapped[alias] = value
+    return mapped
+
+
+def _iter_csv(upload):
+    wrapper = io_mod.TextIOWrapper(upload.file, encoding='utf-8-sig')
+    reader = csv.DictReader(wrapper)
+    if not reader.fieldnames:
+        raise ValueError("CSV is missing a header row.")
+    for idx, row in enumerate(reader, start=2):  # start=2 to account for header row
+        yield idx, row
+
+
+def _iter_xlsx(upload):
+    wb = load_workbook(upload, read_only=True, data_only=True)
+    ws = wb.active
+    rows = ws.iter_rows(values_only=True)
+    try:
+        headers = next(rows)
+    except StopIteration:
+        raise ValueError("Spreadsheet is empty.")
+    header_map = [str(h).strip() if h is not None else '' for h in headers]
+    if not any(header_map):
+        raise ValueError("Spreadsheet is missing a header row.")
+    for idx, row in enumerate(rows, start=2):
+        row_dict = {}
+        for h, cell in zip(header_map, row):
+            if h:
+                row_dict[h] = cell if cell is not None else ''
+        yield idx, row_dict
+
+
+def _iter_rows(upload):
+    ext = (os.path.splitext(upload.name or '')[1] or '').lower()
+    if ext in ('.xlsx', '.xlsm', '.xltx', '.xltm'):
+        return _iter_xlsx(upload)
+    if ext == '.csv':
+        return _iter_csv(upload)
+    raise ValueError("Unsupported file type. Please upload a CSV or XLSX file.")
 
 
 def home_page(request):
@@ -65,6 +161,94 @@ def login_view(request):
             messages.error(request, "Invalid username and/or password")
     
     return render(request, "voters/landing_page.html")  # Render login form if GET request
+
+
+def _client_ip(request):
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '')
+
+
+@require_http_methods(["GET", "POST"])
+@never_cache
+def self_register(request, session_uuid):
+    try:
+        session = VotingSession.objects.get(session_uuid=session_uuid)
+    except Exception:
+        session = get_object_or_404(VotingSession, unique_url__contains=f'{session_uuid}')
+
+    rate_limit = getattr(settings, 'SELF_REG_RATE_LIMIT', 8)
+    rate_window = getattr(settings, 'SELF_REG_RATE_WINDOW_SEC', 600)
+    context = {
+        'session': session,
+        'allow_self_registration': session.allow_self_registration,
+        'registration_url': session.get_registration_url(request),
+        'prefill': {},
+    }
+
+    if not session.allow_self_registration:
+        context['closed'] = True
+        return render(request, 'voters/self_register.html', context, status=403)
+
+    if request.method == "POST":
+        fname = _normalize_name(request.POST.get('Fname') or request.POST.get('first_name'))
+        lname = _normalize_name(request.POST.get('Lname') or request.POST.get('last_name'))
+        email = _normalize_email(request.POST.get('email'))
+        phone = _normalize_phone(request.POST.get('phone') or request.POST.get('phone_number'))
+        errors = []
+
+        if not fname:
+            errors.append("First name is required.")
+        if not lname:
+            errors.append("Last name is required.")
+
+        ip = _client_ip(request)
+        if ip:
+            key = f"selfreg:{session.session_uuid}:{ip}"
+            count = cache.get(key, 0)
+            if count >= rate_limit:
+                errors.append("Too many attempts. Please try again in a few minutes.")
+            else:
+                cache.set(key, count + 1, timeout=rate_window)
+
+        duplicate = None
+        if fname and lname:
+            qs = Voter.objects.filter(session=session, Fname__iexact=fname, Lname__iexact=lname)
+            if email:
+                qs = qs.filter(Q(email__iexact=email) | Q(email__isnull=True) | Q(email=''))
+            duplicate = qs.first()
+
+        if duplicate:
+            context['already_registered'] = True
+            context['errors'] = errors
+            return render(request, 'voters/self_register.html', context, status=200)
+
+        if errors:
+            context['errors'] = errors
+            context['prefill'] = {
+                'Fname': fname,
+                'Lname': lname,
+                'email': email or '',
+                'phone': phone or '',
+            }
+            return render(request, 'voters/self_register.html', context, status=400)
+
+        reg_status = Voter.STATUS_APPROVED if session.auto_approve_self_registration else Voter.STATUS_PENDING
+        Voter.objects.create(
+            session=session,
+            Fname=fname,
+            Lname=lname,
+            email=email,
+            phone_number=phone,
+            registration_source=Voter.SOURCE_SELF,
+            registration_status=reg_status,
+        )
+        context['registered'] = True
+        context['registration_status'] = reg_status
+        return render(request, 'voters/self_register.html', context, status=201)
+
+    return render(request, 'voters/self_register.html', context)
 
 '''
 @login_required
@@ -239,6 +423,11 @@ def list_voting_sessions(request):
             voting_session = form.save(commit=False)
             voting_session.admin = request.user
             voting_session.save()
+            # Generate and persist the shareable URL + QR immediately
+            try:
+                voting_session.generate_qr_code(request)
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.exception("QR generation failed during session create (session_id=%s)", voting_session.session_id)
             return redirect('list_voting_sessions')
     else:
         form = VotingSessionForm()
@@ -256,9 +445,135 @@ def list_voting_sessions(request):
         except Exception:
             # Non-fatal; continue rendering list
             pass
+        try:
+            share_path = reverse('cis_verify_form', args=[s.session_uuid])
+            s.share_url = s.unique_url or request.build_absolute_uri(share_path)
+        except Exception:
+            s.share_url = s.unique_url or ''
+        try:
+            s.registration_url = s.get_registration_url(request)
+        except Exception:
+            s.registration_url = ''
     return render(request, 'voters/list_sessions.html', {
         'sessions': sessions,
         'form': form
+    })
+
+
+@login_required
+@never_cache
+@require_POST
+def import_voters(request, session_id=None, session_uuid=None):
+    if session_uuid:
+        session = get_object_or_404(VotingSession, session_uuid=session_uuid, admin=request.user)
+    elif session_id:
+        session = get_object_or_404(VotingSession, session_id=session_id, admin=request.user)
+    else:
+        raise Http404("Session identifier not provided.")
+
+    upload = request.FILES.get('file')
+    if not upload:
+        return JsonResponse({'ok': False, 'error': 'No file uploaded.'}, status=400)
+
+    errors = []
+    created_rows = []
+    duplicates = 0
+    total_rows = 0
+
+    existing_keys = set()
+    for row in session.voters.values('Fname', 'Lname', 'email', 'phone_number'):
+        existing_keys.add(_dedupe_key(
+            _normalize_name(row.get('Fname')),
+            _normalize_name(row.get('Lname')),
+            (row.get('email') or ''),
+            (row.get('phone_number') or '')
+        ))
+
+    try:
+        rows_iter = _iter_rows(upload)
+        for row_idx, raw_row in rows_iter:
+            total_rows += 1
+            mapped = _map_headers(raw_row)
+            fname = _normalize_name(mapped.get('Fname'))
+            lname = _normalize_name(mapped.get('Lname'))
+            email = _normalize_email(mapped.get('email'))
+            phone = _normalize_phone(mapped.get('phone_number'))
+
+            if not fname or not lname:
+                errors.append({'row': row_idx, 'error': 'First and last name are required.'})
+                continue
+
+            key = _dedupe_key(fname, lname, email or '', phone or '')
+            if key in existing_keys:
+                duplicates += 1
+                continue
+            existing_keys.add(key)
+
+            created_rows.append(Voter(
+                session=session,
+                Fname=fname,
+                Lname=lname,
+                email=email,
+                phone_number=phone,
+                registration_source=Voter.SOURCE_IMPORT,
+                registration_status=Voter.STATUS_APPROVED,
+            ))
+    except ValueError as exc:
+        return JsonResponse({'ok': False, 'error': str(exc)}, status=400)
+    except Exception as exc:  # pragma: no cover - defensive path
+        logger.exception("Import failed for session %s", session.session_id)
+        return JsonResponse({'ok': False, 'error': 'Unable to process the upload.'}, status=500)
+
+    if created_rows:
+        Voter.objects.bulk_create(created_rows, batch_size=500)
+
+    session.total_voters = session.voters.count()
+    session.save(update_fields=['total_voters'])
+
+    return JsonResponse({
+        'ok': True,
+        'imported': len(created_rows),
+        'duplicates': duplicates,
+        'errors': errors[:100],  # cap to avoid huge payloads
+        'error_count': len(errors),
+        'total_rows': total_rows,
+    })
+
+
+@login_required
+def voter_template_download(request):
+    sample_rows = [
+        ['Fname', 'Lname', 'Email', 'Phone'],
+        ['Ada', 'Lovelace', 'ada@example.com', '+11234567890'],
+        ['Grace', 'Hopper', 'grace@example.com', '+11234567891'],
+    ]
+    output = io_mod.StringIO()
+    writer = csv.writer(output)
+    writer.writerows(sample_rows)
+    response = HttpResponse(output.getvalue(), content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="voter_import_template.csv"'
+    return response
+
+
+@login_required
+@require_POST
+def toggle_self_registration(request, session_id):
+    session = get_object_or_404(VotingSession, session_id=session_id, admin=request.user)
+    enabled_val = str(request.POST.get('enabled', '')).lower()
+    auto_val = str(request.POST.get('auto_approve', '')).lower()
+    if enabled_val in ('true', '1', 'yes', 'on'):
+        session.allow_self_registration = True
+    elif enabled_val in ('false', '0', 'no', 'off'):
+        session.allow_self_registration = False
+
+    if auto_val:
+        session.auto_approve_self_registration = auto_val in ('true', '1', 'yes', 'on')
+
+    session.save(update_fields=['allow_self_registration', 'auto_approve_self_registration'])
+    return JsonResponse({
+        'ok': True,
+        'allow_self_registration': session.allow_self_registration,
+        'auto_approve_self_registration': session.auto_approve_self_registration,
     })
 
 
@@ -291,30 +606,38 @@ def qr_png(request, session_uuid):
 @login_required
 @require_POST
 def activate_session(request, session_id):
-    """Activate a voting session and ensure share link + QR are available.
-    Returns JSON consumed by the front-end activation script.
+    """
+    Activate the session when the Hold to Activate button completes.
+    Ensures the session is marked active and a shareable link + QR exist.
     """
     session = get_object_or_404(VotingSession, session_id=session_id, admin=request.user)
 
-    # Set active flag if not already
     if not session.is_active:
         session.is_active = True
         session.save(update_fields=['is_active'])
 
-    # Ensure unique_url/QR exist; regenerate if either is missing
-    if not session.unique_url or not getattr(session, 'qr_code', None):
+    needs_qr = not session.unique_url or not getattr(session, 'qr_code', None)
+    if needs_qr:
         try:
             session.generate_qr_code(request)
-        except Exception as e:
-            return JsonResponse({'success': False, 'error': f'QR generation failed: {e}'}, status=500)
+        except Exception:
+            logger.exception("Failed to generate QR during activation (session_id=%s)", session.session_id)
 
+    fallback_share = request.build_absolute_uri(reverse('cis_verify_form', args=[session.session_uuid]))
+    share_url = session.unique_url or fallback_share
     dynamic_qr_url = request.build_absolute_uri(reverse('qr_png', args=[session.session_uuid]))
+    try:
+        qr_url = session.qr_code.url if getattr(session, 'qr_code', None) else dynamic_qr_url
+    except Exception:
+        qr_url = dynamic_qr_url
+
     payload = {
         'success': True,
         'session_uuid': session.get_uuid(),
-        'unique_url': session.unique_url or '',
-        'qr_code_url': (session.qr_code.url if getattr(session, 'qr_code', None) else dynamic_qr_url),
+        'unique_url': share_url,
+        'qr_code_url': qr_url,
         'session_title': session.title,
+        'is_active': True,
         'results_url': request.build_absolute_uri(reverse('bbs_results', args=[session.session_uuid])),
     }
     return JsonResponse(payload)
@@ -402,6 +725,8 @@ def voter_list(request, session_id=None, session_uuid=None):
     if request.method == "GET":
         search_query = request.GET.get('search', '').strip()  # Get and strip the search query
         filter_state = request.GET.get('filter', 'all')
+        source_filter = request.GET.get('source', 'all')
+        reg_status_filter = request.GET.get('reg_status', 'all')
         
         if search_query:
             search_query = search_query.strip()
@@ -436,6 +761,11 @@ def voter_list(request, session_id=None, session_uuid=None):
             voters = voters.filter(is_verified=True, has_finished=True)
         elif filter_state == 'all':
             pass  # No additional filtering, show all voters
+
+        if source_filter in {Voter.SOURCE_ADMIN, Voter.SOURCE_IMPORT, Voter.SOURCE_SELF}:
+            voters = voters.filter(registration_source=source_filter)
+        if reg_status_filter in {Voter.STATUS_PENDING, Voter.STATUS_APPROVED, Voter.STATUS_REJECTED}:
+            voters = voters.filter(registration_status=reg_status_filter)
         
         # Render the page with the searched voters
         return render(
@@ -452,6 +782,9 @@ def voter_list(request, session_id=None, session_uuid=None):
                 'session_id': session_id,
                 'is_active': is_active,
                 'csrf_token_value': get_token(request),
+                'filter_state': filter_state,
+                'source_filter': source_filter,
+                'reg_status_filter': reg_status_filter,
             },
         )
 
@@ -462,6 +795,8 @@ def voter_list(request, session_id=None, session_uuid=None):
             # Create a new voter
             voter = form.save(commit=False)
             voter.session = voting_session  # Assign the VotingSession instance
+            voter.registration_source = Voter.SOURCE_ADMIN
+            voter.registration_status = Voter.STATUS_APPROVED
             voter.save()
             # Redirect to the voter list page
             if session_uuid:
@@ -1219,6 +1554,8 @@ def get_voter_status(request, session_uuid):
         # Fetch the search query parameter
         search_query = request.GET.get('search', '').strip()
         filter_state = request.GET.get('filter', 'all')
+        source_filter = request.GET.get('source', 'all')
+        reg_status_filter = request.GET.get('reg_status', 'all')
 
 
         # Retrieve the associated Voters
@@ -1245,6 +1582,11 @@ def get_voter_status(request, session_uuid):
         elif filter_state == 'verified_finished':
             voters = voters.filter(is_verified=True, has_finished=True)
         # 'all' -> no additional filtering
+
+        if source_filter in {Voter.SOURCE_ADMIN, Voter.SOURCE_IMPORT, Voter.SOURCE_SELF}:
+            voters = voters.filter(registration_source=source_filter)
+        if reg_status_filter in {Voter.STATUS_PENDING, Voter.STATUS_APPROVED, Voter.STATUS_REJECTED}:
+            voters = voters.filter(registration_status=reg_status_filter)
 
         # Get counts for all voters in the session
         total_voters = Voter.objects.filter(session=session).count()

@@ -6,17 +6,51 @@ import os
 from django.core.files.base import ContentFile
 import uuid
 from django.utils import timezone as tz
+from django.urls import reverse
 
 # Create your models here.
 
 
 class Voter(models.Model):
+    SOURCE_ADMIN = 'admin'
+    SOURCE_IMPORT = 'import'
+    SOURCE_SELF = 'self'
+    SOURCE_CHOICES = [
+        (SOURCE_ADMIN, 'Admin/Manual'),
+        (SOURCE_IMPORT, 'Import'),
+        (SOURCE_SELF, 'Self-Registration'),
+    ]
+
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_APPROVED, 'Approved'),
+        (STATUS_REJECTED, 'Rejected'),
+    ]
+
     voter_id = models.AutoField(primary_key=True)
     session = models.ForeignKey('VotingSession', on_delete=models.CASCADE , related_name='voters')  # Use a string reference
     Fname = models.CharField(max_length=100)
     Lname = models.CharField(max_length=100)
     is_verified = models.BooleanField(default=False)
     has_finished = models.BooleanField(default=False)
+    email = models.EmailField(blank=True, null=True)
+    phone_number = models.CharField(max_length=32, blank=True)
+    registration_source = models.CharField(
+        max_length=32,
+        choices=SOURCE_CHOICES,
+        default=SOURCE_ADMIN,
+        db_index=True,
+    )
+    registration_status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_APPROVED,
+        db_index=True,
+    )
+    registered_at = models.DateTimeField(default=tz.now)
 
     
 
@@ -46,6 +80,13 @@ class VotingSession(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     total_voters = models.IntegerField(default=0)
     current_voters = models.IntegerField(default=0)
+    allow_self_registration = models.BooleanField(default=True)
+    auto_approve_self_registration = models.BooleanField(default=False)
+
+    @property
+    def id(self):
+        # Provide a stable alias so callers can treat session_id like a default pk named "id".
+        return self.session_id
 
  
 
@@ -60,8 +101,8 @@ class VotingSession(models.Model):
         host = request.get_host()
 
         # Stable per-session URL using the canonical UUID for this session
-        # Route to CIS verify form for anonymous handoff flow
-        self.unique_url = f'{protocol}://{host}/verify/{self.session_uuid}'
+        # Route to gated chooser (motions vs election), preserving existing session UUID
+        self.unique_url = f'{protocol}://{host}{reverse("motions:gated_entry", args=[self.session_uuid])}'
         print(f"Generated/updated unique URL: {self.unique_url}")
         self.save(update_fields=['unique_url'])
 
@@ -102,6 +143,31 @@ class VotingSession(models.Model):
         qr_io.seek(0)
         self.qr_code.save(f'qr_code_{self.session_id}.png', ContentFile(qr_io.read()), save=False)
         self.save(update_fields=['qr_code'])
+
+    def get_registration_path(self):
+        """
+        Path-only registration URL (stable, uses canonical UUID).
+        Safe to call without a request object.
+        """
+        try:
+            return reverse('self_register', args=[self.session_uuid])
+        except Exception:
+            return ''
+
+    def build_absolute(self, request, path):
+        protocol = 'https' if request.is_secure() else 'http'
+        host = request.get_host()
+        return f"{protocol}://{host}{path}"
+
+    def get_registration_url(self, request=None):
+        """
+        Build an absolute registration URL for this session.
+        Falls back to path-only if request is missing.
+        """
+        path = self.get_registration_path()
+        if request and path:
+            return self.build_absolute(request, path)
+        return path
 
 
     def __str__(self):

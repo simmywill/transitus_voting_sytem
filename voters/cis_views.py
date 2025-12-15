@@ -34,6 +34,8 @@ def verify_form(request, session_uuid):
         session = VotingSession.objects.get(session_uuid=session_uuid)
     except Exception:
         session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
+    if not session.is_active:
+        return HttpResponseForbidden("Session is not active.")
     return render(request, 'voters/voter_verification.html', {'session': session})
 
 
@@ -53,6 +55,8 @@ def api_verify(request):
         session = VotingSession.objects.get(session_uuid=session_uuid)
     except Exception:
         session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
+    if not session.is_active:
+        return JsonResponse({'ok': False, 'error': 'inactive_session'}, status=403)
 
     voter = Voter.objects.filter(session=session, Fname__iexact=fname, Lname__iexact=lname).first()
     if not voter:
@@ -119,6 +123,8 @@ def api_redeem(request):
         session = VotingSession.objects.get(session_uuid=session_uuid)
     except Exception:
         session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
+    if not session.is_active:
+        return JsonResponse({"ok": False, "error": "inactive_session"}, status=403)
 
     rc = RedirectCode.objects.select_for_update().filter(code=code, session=session).first()
     now = tz.now()
@@ -156,6 +162,8 @@ def _mark_spent(session_uuid, anon_id):
         session = VotingSession.objects.filter(unique_url__contains=f"{session_uuid}").first()
         if not session:
             return 404, {"ok": False, "error": "session_not_found"}
+    if not session.is_active:
+        return 403, {"ok": False, "error": "inactive_session"}
 
     anon = AnonSession.objects.select_for_update().filter(anon_id=anon_id, session=session).first()
     now = tz.now()

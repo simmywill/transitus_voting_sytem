@@ -1,0 +1,146 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Presenter Console</title>
+    <link rel="stylesheet" href="{% static 'motions/motions.css' %}">
+</head>
+<body>
+    <div class="page">
+        <div class="flex-between">
+            <h1 class="motion-title">Presenter Console — {{ session.title }}</h1>
+            <a class="btn ghost" href="{% url 'motions:manage_motions' session.session_uuid %}">Manage motions</a>
+        </div>
+
+        <div class="status-bar">
+            <span class="tag">Live connections: <strong id="presence">{{ presence_count }}</strong></span>
+            <span class="tag">Votes received: <strong id="votes-count">{{ total_votes }}</strong></span>
+        </div>
+
+        <div class="card">
+            <p class="tag">Open motion</p>
+            <h2 id="open-title" class="motion-title">
+                {% if open_motion %}{{ open_motion.title }}{% else %}No motion is open{% endif %}
+            </h2>
+            <p id="open-body" class="motion-body" {% if open_motion and not open_motion.body %}style="display:none;"{% endif %}>
+                {% if open_motion %}
+                    {% if open_motion.body %}{{ open_motion.body }}{% endif %}
+                {% else %}Open a motion to start collecting votes.{% endif %}
+            </p>
+            <p id="open-status" class="motion-body">
+                {% if open_motion %}Status: {{ open_motion.status|upper }}{% endif %}
+            </p>
+            <p id="open-meta" class="motion-body">
+                {% if open_motion %}
+                    {% if open_motion.allow_vote_change %}Vote changes allowed while open{% else %}Vote changes locked after first response{% endif %}
+                {% endif %}
+            </p>
+            <p id="open-timer" class="motion-body" style="font-weight:700;"></p>
+
+            <form id="close-form" method="post" action="{% if open_motion %}{% url 'motions:close_motion' session.session_uuid open_motion.id %}{% else %}#{% endif %}" onsubmit="return confirm('Close voting for this motion?');" style="{% if open_motion and open_motion.status == 'open' %}display:inline-block;{% else %}display:none;{% endif %}">
+                {% csrf_token %}
+                <button class="btn danger" type="submit" {% if not open_motion or open_motion.status != 'open' %}disabled{% endif %}>Close voting</button>
+            </form>
+            <form id="reveal-form" method="post" action="{% if open_motion %}{% url 'motions:reveal_motion_results' session.session_uuid open_motion.id %}{% else %}#{% endif %}" style="display:inline-block;">
+                {% csrf_token %}
+                <button class="btn" type="submit" {% if not open_motion %}disabled{% endif %}>Reveal results</button>
+            </form>
+            <form id="hide-form" method="post" action="{% if open_motion %}{% url 'motions:hide_motion_results' session.session_uuid open_motion.id %}{% else %}#{% endif %}" style="display:inline-block;">
+                {% csrf_token %}
+                <button class="btn ghost" type="submit" {% if not open_motion %}disabled{% endif %}>Hide results</button>
+            </form>
+
+            <div class="tally" aria-live="polite">
+                <div class="pill">YES: <span id="tally-yes">{{ counts.yes|default:0 }}</span></div>
+                <div class="pill">NO: <span id="tally-no">{{ counts.no|default:0 }}</span></div>
+                <div class="pill">ABSTAIN: <span id="tally-abstain">{{ counts.abstain|default:0 }}</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="motion-title">All motions</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Title</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for motion in motions %}
+                    <tr class="motion-row"
+                        data-id="{{ motion.id }}"
+                        data-title="{{ motion.title|escape }}"
+                        data-body="{{ motion.body|default_if_none:''|escape }}"
+                        data-status="{{ motion.status }}"
+                        data-allow="{{ motion.allow_vote_change|yesno:'true,false' }}"
+                        data-reveal="{{ motion.reveal_results|yesno:'true,false' }}"
+                        data-auto-close="{{ motion.auto_close_seconds|default_if_none:'' }}"
+                        data-opened-at="{% if motion.opened_at %}{{ motion.opened_at|date:'c' }}{% endif %}"
+                        data-closed-at="{% if motion.closed_at %}{{ motion.closed_at|date:'c' }}{% endif %}"
+                        data-votes="{{ motion.votes_count|default:0 }}"
+                        data-completed="{% if motion.status == 'closed' and motion.opened_at and motion.closed_at and motion.votes_count %}true{% else %}false{% endif %}">
+                        <td>{{ motion.display_order }}</td>
+                        <td>
+                            <strong>{{ motion.title }}</strong><br>
+                            <small>{{ motion.body|default:"No description" }}</small>
+                        </td>
+                        <td>
+                            <div class="status-stack">
+                                <span class="tag status-tag status-{{ motion.status|slugify }}">{{ motion.status|upper }}</span>
+                                {% with total_votes=motion.votes_count|default:0 %}
+                                    {% if motion.status == "closed" and motion.opened_at and motion.closed_at and total_votes %}
+                                        <span class="tag completed-tag">Completed</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if motion.status == "open" %}
+                                <form method="post" action="{% url 'motions:close_motion' session.session_uuid motion.id %}" style="display:inline-block;" onsubmit="return confirm('Close voting for this motion?');">
+                                    {% csrf_token %}
+                                    <button class="btn danger" type="submit">Close</button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{% url 'motions:open_motion' session.session_uuid motion.id %}" style="display:inline-block;">
+                                    {% csrf_token %}
+                                    <button class="btn" type="submit">Open</button>
+                                </form>
+                            {% endif %}
+                            <button class="btn ghost reset-votes-btn" type="button"
+                                    data-reset-url="{% url 'motions:reset_motion_votes' session.session_uuid motion.id %}"
+                                    data-motion-id="{{ motion.id }}"
+                                    data-motion-title="{{ motion.title|escape }}">
+                                Refresh
+                            </button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4">No motions yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="presenter-config"
+         data-session="{{ session.session_uuid }}"
+         data-ws="{{ websocket_path }}"
+         data-tally-url="{% url 'motions:api_tallies' session.session_uuid %}"
+         data-close-base="/motions/session/{{ session.session_uuid }}/motions/"
+         data-reveal-base="/motions/session/{{ session.session_uuid }}/motions/"
+         data-hide-base="/motions/session/{{ session.session_uuid }}/motions/"
+         data-timer-base="/motions/session/{{ session.session_uuid }}/motions/"
+         data-preview-base="/motions/session/{{ session.session_uuid }}/motions/">
+    </div>
+
+    {% if open_payload %}{{ open_payload|json_script:"presenter-initial-motion" }}{% endif %}
+    {{ counts|json_script:"presenter-initial-counts" }}
+
+    <script src="{% static 'motions/moderator.js' %}"></script>
+</body>
+</html>

@@ -86,7 +86,9 @@ else:
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'voters',
+    'motions',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -127,6 +129,22 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'voting_system.wsgi.application'
+ASGI_APPLICATION = 'voting_system.asgi.application'
+
+REDIS_URL = os.environ.get('REDIS_URL')
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [REDIS_URL]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
+    }
 
 
 

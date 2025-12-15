@@ -151,7 +151,8 @@
                 <form id="add-voter-form" method="POST" 
                     action="{% if session_id %}{% url 'voter_list' session_id %}{% elif session_uuid %}{% url 'voter_list' session_uuid=voting_session.get_uuid %}{% endif %}">
                     {% csrf_token %}
-                    {{ form.as_p }}
+                    <p>{{ form.Fname }}</p>
+                    <p>{{ form.Lname }}</p>
                     <button type="submit" id="add-voter-button">Add Voter</button>
                 </form>
             </div>
@@ -170,6 +171,31 @@
                 </form>
             </div>
 
+            <!-- Import Voters -->
+            <div class="import-column">
+                <div class="import-card">
+                    <div class="import-card__header">
+                        <div>
+                            <p class="import-eyebrow">Bulk upload</p>
+                            <h3>Import voters</h3>
+                        </div>
+                        <button type="button" class="pill pill--ghost" onclick="openImportModal(); event.stopPropagation();">
+                            <i class="bi bi-upload"></i>
+                            Import
+                        </button>
+                    </div>
+                    <p class="import-card__body">
+                        Upload CSV or Excel to register voters at scale. Duplicates are skipped automatically.
+                    </p>
+                    <div class="import-card__actions">
+                        <a class="template-link" href="{% url 'voter_template_download' %}" onclick="event.stopPropagation();">
+                            Download template
+                        </a>
+                        <span class="import-hint">Accepted: .csv, .xlsx</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filter Buttons -->
             <div class="filter-buttons-column">
                 <div class="filter-header">
@@ -186,7 +212,21 @@
                     <button class="filter-btn" data-filter="verified" onclick="filterVoters('verified')">Verified Voters</button>
                     <button class="filter-btn" data-filter="not_verified" onclick="filterVoters('not_verified')">Non-Verified Voters</button>
                     <button class="filter-btn" data-filter="verified_finished" onclick="filterVoters('verified_finished')">Verified and Finished Voters</button>
-
+                    <div class="filter-divider"></div>
+                    <label class="filter-label" for="sourceFilter">Source</label>
+                    <select id="sourceFilter" class="filter-select" onchange="setSourceFilter(this.value)">
+                        <option value="all" {% if source_filter == 'all' %}selected{% endif %}>All sources</option>
+                        <option value="admin" {% if source_filter == 'admin' %}selected{% endif %}>Admin / Manual</option>
+                        <option value="import" {% if source_filter == 'import' %}selected{% endif %}>Import</option>
+                        <option value="self" {% if source_filter == 'self' %}selected{% endif %}>Self-registration</option>
+                    </select>
+                    <label class="filter-label" for="statusFilter">Registration status</label>
+                    <select id="statusFilter" class="filter-select" onchange="setRegStatusFilter(this.value)">
+                        <option value="all" {% if reg_status_filter == 'all' %}selected{% endif %}>All</option>
+                        <option value="approved" {% if reg_status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="pending" {% if reg_status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="rejected" {% if reg_status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -201,6 +241,7 @@
             <thead>
                 <tr>
                     <th>Name</th>
+                    <th>Registration</th>
                     <th>Status</th>
                     <th>Actions</th>
                 </tr>
@@ -209,6 +250,13 @@
                 {% for voter in voters %}
                 <tr id="voter-{{ voter.voter_id }}" class="voter-row" data-status="{% if voter.is_verified %}verified{% else %}not_verified{% endif %}">
                     <td style="font-weight: bold;">{{ voter.Fname }} {{ voter.Lname }}</td>
+                    <td class="voter-meta-cell">
+                        <div class="voter-badges">
+                            <span class="badge badge-source badge-source--{{ voter.registration_source|default:'admin' }}">
+                                {% if voter.registration_source == 'import' %}Import{% elif voter.registration_source == 'self' %}Self-Registered{% else %}Admin{% endif %}
+                            </span>
+                        </div>
+                    </td>
                     <td class="voter-status-cell">
                         <div class="voter-status">
                         {% if voter.is_verified %}
@@ -245,6 +293,42 @@
         </table>
     </div>
 
+    <div class="import-modal" id="importModal" aria-hidden="true">
+        <div class="import-modal__backdrop" onclick="closeImportModal()" aria-label="Close import modal"></div>
+        <div class="import-modal__dialog" role="dialog" aria-modal="true">
+            <div class="import-modal__header">
+                <div>
+                    <p class="import-eyebrow">Bulk upload</p>
+                    <h3>Import voters</h3>
+                </div>
+                <button class="import-modal__close" type="button" onclick="closeImportModal()" aria-label="Close">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <form id="importForm" class="import-form"
+                data-import-url="{% if session_uuid %}{% url 'import_voters_uuid' session_uuid %}{% else %}{% url 'import_voters' session_id %}{% endif %}">
+                {% csrf_token %}
+                <label class="import-file-picker">
+                    <span>Select a CSV or Excel file</span>
+                    <input type="file" name="file" id="importFile" accept=".csv,.xlsx" required>
+                </label>
+                <div class="import-progress" id="importProgress" aria-live="polite">
+                    <div class="import-progress__bar" id="importProgressBar"></div>
+                    <div class="import-progress__label" id="importProgressLabel">Waiting for upload…</div>
+                </div>
+                <div class="import-modal__actions">
+                    <a class="template-link" href="{% url 'voter_template_download' %}" onclick="event.stopPropagation();">Download template</a>
+                    <button type="submit" class="pill pill--primary">
+                        <i class="bi bi-upload"></i>
+                        Start import
+                    </button>
+                </div>
+                <p class="import-footnote">We validate names, skip duplicates, and return a CSV of errors if any rows need review.</p>
+            </form>
+            <div class="import-summary" id="importSummary" hidden></div>
+        </div>
+    </div>
+
     <div id="delete-confirm-card" class="delete-confirm-card" aria-hidden="true">
         <div class="delete-confirm-card__content">
             <p id="delete-card-message"></p>
@@ -268,12 +352,61 @@
         }
 
         // Persist current filter in JS and include it in refresh requests
-        let currentFilter = 'all';
+        let currentFilter = "{{ filter_state|default:'all' }}";
+        let currentSourceFilter = "{{ source_filter|default:'all' }}";
+        let currentRegStatusFilter = "{{ reg_status_filter|default:'all' }}";
 
         function filterVoters(status) {
             currentFilter = status || 'all';
             if (typeof window.refreshVoterList === 'function') {
                 window.refreshVoterList();
+            }
+        }
+
+        function setSourceFilter(value) {
+            currentSourceFilter = value || 'all';
+            if (typeof window.refreshVoterList === 'function') {
+                window.refreshVoterList();
+            }
+        }
+
+        function setRegStatusFilter(value) {
+            currentRegStatusFilter = value || 'all';
+            if (typeof window.refreshVoterList === 'function') {
+                window.refreshVoterList();
+            }
+        }
+
+        function openImportModal() {
+            const modal = document.getElementById('importModal');
+            if (modal) {
+                modal.classList.add('is-open');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+        }
+
+        function closeImportModal() {
+            const modal = document.getElementById('importModal');
+            const summary = document.getElementById('importSummary');
+            const progressBar = document.getElementById('importProgressBar');
+            const progressLabel = document.getElementById('importProgressLabel');
+            if (modal) {
+                modal.classList.remove('is-open');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+            if (summary) {
+                summary.hidden = true;
+                summary.innerHTML = '';
+            }
+            if (progressBar) {
+                progressBar.style.width = '0%';
+            }
+            if (progressLabel) {
+                progressLabel.textContent = 'Waiting for upload…';
+            }
+            const fileInput = document.getElementById('importFile');
+            if (fileInput) {
+                fileInput.value = '';
             }
         }
 
@@ -395,7 +528,7 @@
                 let searchQuery = "";
                 const searchInput = document.querySelector('input[name="search"]');
                 if (searchInput) searchQuery = searchInput.value;
-                const url = `/get_voter_status/${session_uuid}/?search=${encodeURIComponent(searchQuery)}&filter=${encodeURIComponent(currentFilter)}`;
+                const url = `/get_voter_status/${session_uuid}/?search=${encodeURIComponent(searchQuery)}&filter=${encodeURIComponent(currentFilter)}&source=${encodeURIComponent(currentSourceFilter)}&reg_status=${encodeURIComponent(currentRegStatusFilter)}`;
 
                 fetch(url)
                     .then(response => {
@@ -435,6 +568,125 @@
             attachDeleteHandlers();
 
             window.refreshVoterList = refreshVoterList;
+            window.updateVoterCounts = updateVoterCounts;
+
+            const importForm = document.getElementById('importForm');
+            const importSummary = document.getElementById('importSummary');
+            const importProgressBar = document.getElementById('importProgressBar');
+            const importProgressLabel = document.getElementById('importProgressLabel');
+
+            function downloadErrorCsv(errors) {
+                if (!errors || !errors.length) return;
+                const rows = [['row', 'error']];
+                errors.forEach(err => rows.push([err.row, err.error]));
+                const csvContent = rows.map(r => r.map(String).join(',')).join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'import_errors.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            }
+
+            function renderImportSummary(data) {
+                if (!importSummary) return;
+                const errors = data.errors || [];
+                importSummary.innerHTML = `
+                    <div class="import-summary__row"><span>Imported</span><strong>${data.imported || 0}</strong></div>
+                    <div class="import-summary__row"><span>Duplicates skipped</span><strong>${data.duplicates || 0}</strong></div>
+                    <div class="import-summary__row"><span>Total rows</span><strong>${data.total_rows || 0}</strong></div>
+                    <div class="import-summary__row"><span>Errors</span><strong>${data.error_count || 0}</strong></div>
+                `;
+                if (errors.length) {
+                    const preview = errors.slice(0, 3).map(err => `<li>Row ${err.row}: ${err.error}</li>`).join('');
+                    importSummary.innerHTML += `
+                        <div class="import-summary__errors">
+                            <p>${errors.length} row(s) need review.</p>
+                            <ul>${preview}</ul>
+                            <button type="button" class="pill pill--ghost" id="downloadErrorCsv">Download error CSV</button>
+                        </div>
+                    `;
+                }
+                importSummary.hidden = false;
+
+                const downloadBtn = document.getElementById('downloadErrorCsv');
+                if (downloadBtn) {
+                    downloadBtn.addEventListener('click', function () {
+                        downloadErrorCsv(errors);
+                    });
+                }
+            }
+
+            function handleImportSubmit(event) {
+                event.preventDefault();
+                if (!importForm) return;
+                const fileInput = document.getElementById('importFile');
+                const file = fileInput?.files?.[0];
+                if (!file) {
+                    alert('Please choose a CSV or XLSX file to import.');
+                    return;
+                }
+
+                const url = importForm.dataset.importUrl;
+                if (!url) {
+                    alert('Import URL missing.');
+                    return;
+                }
+
+                const fd = new FormData();
+                fd.append('file', file);
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', url, true);
+                xhr.setRequestHeader('X-CSRFToken', window.csrfToken || '');
+                xhr.upload.onprogress = function (e) {
+                    if (e.lengthComputable && importProgressBar && importProgressLabel) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        importProgressBar.style.width = `${percent}%`;
+                        importProgressLabel.textContent = `Uploading… ${percent}%`;
+                    }
+                };
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState !== XMLHttpRequest.DONE) return;
+                    if (importProgressLabel) {
+                        importProgressLabel.textContent = 'Processing…';
+                    }
+                    try {
+                        const data = JSON.parse(xhr.responseText || '{}');
+                        if (!xhr.status || xhr.status >= 400 || data.ok === false) {
+                            throw new Error(data.error || 'Import failed.');
+                        }
+                        if (importProgressBar) {
+                            importProgressBar.style.width = '100%';
+                        }
+                        if (importProgressLabel) {
+                            importProgressLabel.textContent = 'Completed';
+                        }
+                        renderImportSummary(data);
+                        if (typeof window.refreshVoterList === 'function') {
+                            window.refreshVoterList();
+                        }
+                        if (typeof window.updateVoterCounts === 'function') {
+                            window.updateVoterCounts();
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert(err.message || 'Import failed.');
+                    }
+                };
+                xhr.send(fd);
+            }
+
+            if (importForm) {
+                importForm.addEventListener('submit', handleImportSubmit);
+            }
+
+            const modalBackdrop = document.querySelector('#importModal .import-modal__backdrop');
+            if (modalBackdrop) {
+                modalBackdrop.addEventListener('click', closeImportModal);
+            }
         });
     </script>
     <script>

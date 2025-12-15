@@ -75,6 +75,8 @@ def ballot_entry(request, session_uuid):
         session = VotingSession.objects.get(session_uuid=session_uuid)
     except Exception:
         session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
+    if not session.is_active:
+        return HttpResponseForbidden("Session is not active.")
 
     if code:
         status, data = _cis_call(request, "/api/redeem", {"redirect_code": code, "session_uuid": str(session_uuid)})
@@ -147,6 +149,8 @@ def api_cast(request):
         session = VotingSession.objects.filter(unique_url__contains=f"{session_uuid}").first()
         if not session:
             return JsonResponse({"error": "session_not_found"}, status=404)
+    if not session.is_active:
+        return JsonResponse({"error": "inactive_session"}, status=403)
 
     segments_by_id = {seg.id: seg for seg in VotingSegmentHeader.objects.filter(session=session)}
     if not segments_by_id:

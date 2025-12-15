@@ -44,6 +44,12 @@ urlpatterns = [
     path('delete-segment/<int:segment_id>/', voters_views.delete_segment, name = 'delete_segment'),
     path('update-segment-order/', voters_views.update_segment_order, name='update_segment_order'),
     path('activate_session/<int:session_id>/', voters_views.activate_session, name = 'activate_session'),
+    path('motions/', include('motions.urls')),
+    path('voters/import/<uuid:session_uuid>/', voters_views.import_voters, name='import_voters_uuid'),
+    path('voters/import-id/<int:session_id>/', voters_views.import_voters, name='import_voters'),
+    path('voters/template/', voters_views.voter_template_download, name='voter_template_download'),
+    path('sessions/<uuid:session_uuid>/register/', voters_views.self_register, name='self_register'),
+    path('sessions/<int:session_id>/self-registration/', voters_views.toggle_self_registration, name='toggle_self_registration'),
     # Legacy verify path now points to CIS verify form for backward-compatible QR links
     path('voter_session/verify/<uuid:session_uuid>/', cis_views.verify_form, name='voter_verification'),
     path('voter_counts/<uuid:session_uuid>/', voters_views.voter_counts, name = 'voter_counts'),
