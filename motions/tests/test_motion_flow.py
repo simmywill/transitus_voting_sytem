@@ -66,8 +66,17 @@ class MotionFlowTests(TestCase):
 
         resp = client.get(reverse("motions:gated_entry", args=[self.session.session_uuid]))
         self.assertEqual(resp.status_code, 200)
-        self.assertIn("needs_identity", resp.context)
-        self.assertFalse(resp.context["needs_identity"])
+        self.assertEqual(client.session.get("ANON_ID"), "abc")
+        tokens = client.session.get("MOTION_ANON_IDS") or {}
+        self.assertNotIn(str(self.session.session_uuid), tokens)
+
+    def test_gated_entry_auto_provisions_motion_identity(self):
+        client = Client()
+        resp = client.get(reverse("motions:gated_entry", args=[self.session.session_uuid]))
+        self.assertEqual(resp.status_code, 200)
+        tokens = client.session.get("MOTION_ANON_IDS") or {}
+        self.assertIn(str(self.session.session_uuid), tokens)
+        self.assertTrue(tokens.get(str(self.session.session_uuid)))
 
     def test_presence_tracker(self):
         tracker = PresenceTracker()

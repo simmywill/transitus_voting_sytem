@@ -131,14 +131,12 @@ def gated_entry(request, session_uuid):
         request.session.pop("ANON_SESSION_UUID", None)
         request.session.pop("ANON_ID", None)
 
-    identity = get_voter_identity(request)
-    needs_identity = identity is None
+    identity = get_voter_identity(request, session_uuid=session_uuid, create=True)
 
     context = {
         "session": session,
         "motion_url": reverse("motions:voter_portal", args=[session_uuid]),
         "election_url": reverse("cis_verify_form", args=[session_uuid]),
-        "needs_identity": needs_identity,
         "verify_url": reverse("cis_verify_form", args=[session_uuid]),
     }
     return render(request, "motions/gated_entry.html", context)
@@ -149,7 +147,7 @@ def voter_portal(request, session_uuid):
     session = get_event_by_uuid(session_uuid)
     if not session.is_active:
         return HttpResponseForbidden("Session is not active.")
-    identity = get_voter_identity(request)
+    identity = get_voter_identity(request, session_uuid=session_uuid, create=True)
     if not identity:
         return redirect(reverse("motions:gated_entry", args=[session_uuid]))
 
@@ -463,7 +461,7 @@ def api_cast_vote(request, session_uuid, motion_id):
     if not session.is_active:
         return JsonResponse({"ok": False, "error": "inactive_session"}, status=403)
     motion = get_object_or_404(Motion, pk=motion_id, event=session)
-    identity = get_voter_identity(request)
+    identity = get_voter_identity(request, session_uuid=session_uuid, create=True)
     if not identity:
         return JsonResponse({"ok": False, "error": "unauthorized"}, status=403)
     choice = (request.POST.get("choice") or "").lower()
@@ -483,7 +481,7 @@ def api_current_motion(request, session_uuid):
     session = get_event_by_uuid(session_uuid)
     if not session.is_active:
         return JsonResponse({"ok": False, "error": "inactive_session"}, status=403)
-    identity = get_voter_identity(request)
+    identity = get_voter_identity(request, session_uuid=session_uuid, create=True)
     open_motion = (
         Motion.objects.filter(event=session, status=Motion.STATUS_OPEN)
         .order_by("display_order", "id")

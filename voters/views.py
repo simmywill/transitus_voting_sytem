@@ -446,10 +446,20 @@ def list_voting_sessions(request):
             # Non-fatal; continue rendering list
             pass
         try:
-            share_path = reverse('cis_verify_form', args=[s.session_uuid])
-            s.share_url = s.unique_url or request.build_absolute_uri(share_path)
+            share_path = reverse('motions:gated_entry', args=[s.session_uuid])
         except Exception:
-            s.share_url = s.unique_url or ''
+            share_path = ''
+        try:
+            default_share = request.build_absolute_uri(share_path) if share_path else ''
+        except Exception:
+            default_share = ''
+        if share_path and (not s.unique_url or share_path not in s.unique_url):
+            try:
+                s.unique_url = default_share
+                s.save(update_fields=['unique_url'])
+            except Exception:
+                s.unique_url = default_share
+        s.share_url = s.unique_url or default_share
         try:
             s.registration_url = s.get_registration_url(request)
         except Exception:
@@ -587,11 +597,12 @@ def qr_png(request, session_uuid):
     except Exception:
         session = get_object_or_404(VotingSession, unique_url__contains=f"{session_uuid}")
 
-    if not session.unique_url:
-        protocol = 'https' if request.is_secure() else 'http'
-        host = request.get_host()
-        # Point verification to the CIS verify_form route
-        session.unique_url = f'{protocol}://{host}/verify/{session.session_uuid}'
+    protocol = 'https' if request.is_secure() else 'http'
+    host = request.get_host()
+    expected_path = reverse('motions:gated_entry', args=[session.session_uuid])
+    desired_url = f'{protocol}://{host}{expected_path}'
+    if not session.unique_url or expected_path not in session.unique_url:
+        session.unique_url = desired_url
         session.save(update_fields=['unique_url'])
 
     img = qrcode.make(session.unique_url)
@@ -616,15 +627,20 @@ def activate_session(request, session_id):
         session.is_active = True
         session.save(update_fields=['is_active'])
 
-    needs_qr = not session.unique_url or not getattr(session, 'qr_code', None)
+    gate_path = reverse('motions:gated_entry', args=[session.session_uuid])
+    gate_url = request.build_absolute_uri(gate_path)
+    needs_qr = (
+        not session.unique_url
+        or gate_path not in session.unique_url
+        or not getattr(session, 'qr_code', None)
+    )
     if needs_qr:
         try:
             session.generate_qr_code(request)
         except Exception:
             logger.exception("Failed to generate QR during activation (session_id=%s)", session.session_id)
 
-    fallback_share = request.build_absolute_uri(reverse('cis_verify_form', args=[session.session_uuid]))
-    share_url = session.unique_url or fallback_share
+    share_url = session.unique_url or gate_url
     dynamic_qr_url = request.build_absolute_uri(reverse('qr_png', args=[session.session_uuid]))
     try:
         qr_url = session.qr_code.url if getattr(session, 'qr_code', None) else dynamic_qr_url
@@ -1606,4 +1622,3 @@ def get_voter_status(request, session_uuid):
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-

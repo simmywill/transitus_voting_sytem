@@ -26,7 +26,7 @@ class MotionVoterConsumer(AsyncJsonWebsocketConsumer):
             await self.close(code=4404)
             return
 
-        identity = get_voter_identity_from_scope(self.scope)
+        identity = get_voter_identity_from_scope(self.scope, self.session_uuid)
         if not identity:
             await self.close(code=4401)
             return

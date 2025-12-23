@@ -16,16 +16,6 @@
                 <p class="gate-copy">Choose Motion Voting for live motions, or AGM Committee Election for candidate ballots.</p>
             </div>
 
-            {% if needs_identity %}
-            <div class="identity-alert" role="alert">
-                <div>
-                    <strong>Verification needed.</strong>
-                    <p>Your session link is missing a token. Please verify first.</p>
-                </div>
-                <a class="btn ghost" href="{{ verify_url }}">Go to verification</a>
-            </div>
-            {% endif %}
-
             <div class="gate-options" role="list">
                 <a role="button" class="option-card motion-card" href="{{ motion_url }}">
                     <div class="option-hero">
