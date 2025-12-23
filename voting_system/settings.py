@@ -146,6 +146,21 @@ else:
         }
     }
 
+# Log which channel layer backend is active at startup to verify Redis usage.
+import logging
+from channels.layers import get_channel_layer
+
+logger = logging.getLogger("django")
+try:
+    layer = get_channel_layer()
+    logger.warning(
+        "Channels layer: backend=%s hosts=%s REDIS_URL=%s",
+        layer.__class__.__name__,
+        getattr(layer, "hosts", None),
+        os.getenv("REDIS_URL"),
+    )
+except Exception as exc:  # pragma: no cover - diagnostic only
+    logger.warning("Channels layer init failed: %s", exc)
 
 
 # Database settings are already configured above via dj_database_url.
