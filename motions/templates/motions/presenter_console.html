@@ -9,9 +9,20 @@
 </head>
 <body>
     <div class="page">
-        <div class="flex-between">
-            <h1 class="motion-title">Presenter Console — {{ session.title }}</h1>
-            <a class="btn ghost" href="{% url 'motions:manage_motions' session.session_uuid %}">Manage motions</a>
+        <div class="flex-between topbar motion-topbar">
+            <h1 class="motion-title">Presenter Console - {{ session.title }}</h1>
+            <div class="motion-topbar-actions">
+                <a
+                    class="btn primary icon-circle motion-home-btn"
+                    href="{% url 'list_voting_sessions' %}"
+                    aria-label="Back to sessions"
+                >
+                    <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" focusable="false">
+                        <path d="M3 11.25 12 4l9 7.25V20a1 1 0 0 1-1 1h-5.5v-5.5h-5V21H4a1 1 0 0 1-1-1v-8.75Z" fill="currentColor"/>
+                    </svg>
+                </a>
+                <a class="btn ghost" href="{% url 'motions:manage_motions' session.session_uuid %}">Manage motions</a>
+            </div>
         </div>
 
         <div class="status-bar">

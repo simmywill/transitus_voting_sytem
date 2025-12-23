@@ -49,6 +49,15 @@
                                 <div class="session-link-switcher__tabs">
                                     <button type="button" class="link-tab is-active" data-link-tab="vote" aria-controls="uuid-display-{{ session.session_id }}">Vote link</button>
                                     <button type="button" class="link-tab" data-link-tab="register" aria-controls="uuid-display-{{ session.session_id }}">Registration link</button>
+                                    <a
+                                        href="{% url 'qr_png' session.session_uuid %}"
+                                        class="link-tab"
+                                        data-qr-modal="{% url 'qr_png' session.session_uuid %}"
+                                        data-qr-label="{{ session.title }} QR Code"
+                                        onclick="event.stopPropagation();"
+                                    >
+                                        QR Code
+                                    </a>
                                 </div>
                                 <div class="session-link-switcher__body">
                                     <span
@@ -73,12 +82,10 @@
                             </div>
                             <div class="session-actions">
                                 <a
-                                    href="{% url 'qr_png' session.session_uuid %}"
+                                    href="{% url 'motions:manage_motions' session.session_uuid %}"
                                     class="action-bubble"
-                                    data-qr-modal="{% url 'qr_png' session.session_uuid %}"
-                                    data-qr-label="{{ session.title }} QR Code"
                                     onclick="event.stopPropagation();"
-                                >QR Code</a>
+                                >Manage Motions</a>
                                 <a
                                     href="{% url 'voter_list' session.session_id %}"
                                     class="action-bubble"
@@ -139,6 +146,17 @@
             tabs.forEach((tab) => {
                 tab.addEventListener('click', (event) => {
                     event.stopPropagation();
+                    const qrUrl = tab.getAttribute('data-qr-modal');
+                    if (qrUrl) {
+                        event.preventDefault();
+                        const qrLabel = tab.getAttribute('data-qr-label') || 'QR Code';
+                        if (window.openQrModal) {
+                            window.openQrModal(qrUrl, qrLabel);
+                        } else {
+                            window.location.href = qrUrl;
+                        }
+                        return;
+                    }
                     tabs.forEach(t => t.classList.remove('is-active'));
                     tab.classList.add('is-active');
                     const target = tab.dataset.linkTab;
