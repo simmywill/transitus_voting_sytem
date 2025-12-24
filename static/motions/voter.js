@@ -64,6 +64,8 @@
   let heartbeatTimer = null;
   let reconnectAttempts = 0;
   let pollTimer = null;
+  let staleCheckTimer = null;
+  let lastMessageAt = Date.now();
   let currentMotion = initialMotion || previewMotion || latestClosed;
   let selection = null;
   if (initialMotion) {
@@ -82,6 +84,10 @@
     statusEl.dataset.state = state;
     statusEl.textContent = message;
     statusEl.className = `status-pill ${state}`;
+  }
+
+  function markActivity() {
+    lastMessageAt = Date.now();
   }
 
   function getCsrfToken() {
@@ -252,20 +258,27 @@
       setStatus("connected", "Connected");
       reconnectAttempts = 0;
       startHeartbeat();
+      startStaleCheck();
       stopPolling();
+      fetchState();
     };
     socket.onclose = () => {
-      setStatus("reconnecting", "Reconnecting…");
+      setStatus("reconnecting", "Reconnecting.");
       stopHeartbeat();
+      stopStaleCheck();
+      startPolling();
       scheduleReconnect();
     };
     socket.onerror = () => {
-      setStatus("reconnecting", "Reconnecting…");
+      setStatus("reconnecting", "Reconnecting.");
+      stopStaleCheck();
+      startPolling();
       socket.close();
     };
     socket.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        markActivity();
         handleEvent(data.event, data.payload || {});
       } catch (err) {
         console.error("Bad WS payload", err);
@@ -275,9 +288,12 @@
 
   function scheduleReconnect() {
     reconnectAttempts += 1;
-    const delay = Math.min(15000, 3000 + reconnectAttempts * 1000);
+    const delay = Math.min(3000, 1000 + reconnectAttempts * 500);
     if (reconnectAttempts >= 3) {
       startPolling();
+    }
+    if (reconnectAttempts >= 8) {
+      window.location.reload();
     }
     setTimeout(() => connectSocket(), delay);
   }
@@ -288,7 +304,7 @@
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: "heartbeat" }));
       }
-    }, 15000);
+    }, 10000);
   }
 
   function stopHeartbeat() {
@@ -296,9 +312,25 @@
     heartbeatTimer = null;
   }
 
+  function startStaleCheck() {
+    if (staleCheckTimer) return;
+    staleCheckTimer = setInterval(() => {
+      const idleMs = Date.now() - lastMessageAt;
+      if (idleMs > 12000) {
+        fetchState();
+        markActivity();
+      }
+    }, 5000);
+  }
+
+  function stopStaleCheck() {
+    if (staleCheckTimer) clearInterval(staleCheckTimer);
+    staleCheckTimer = null;
+  }
+
   function startPolling() {
     if (pollTimer) return;
-    pollTimer = setInterval(fetchState, 5000);
+    pollTimer = setInterval(fetchState, 3000);
     fetchState();
   }
 
@@ -312,6 +344,7 @@
       const res = await fetch(currentUrl, { headers: { "Cache-Control": "no-cache" } });
       if (!res.ok) throw new Error("Bad response");
       const data = await res.json();
+      markActivity();
       if (data.open) {
         previewMotion = null;
         currentMotion = data.open;

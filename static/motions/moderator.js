@@ -243,7 +243,7 @@
       if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({ type: "heartbeat" }));
       }
-    }, 15000);
+    }, 10000);
   }
 
   function stopHeartbeat() {
@@ -253,7 +253,11 @@
 
   function scheduleReconnect() {
     reconnectAttempts += 1;
-    const delay = Math.min(15000, 3000 + reconnectAttempts * 1000);
+    const delay = Math.min(3000, 1000 + reconnectAttempts * 500);
+    if (reconnectAttempts >= 8) {
+      window.location.reload();
+      return;
+    }
     setTimeout(connectSocket, delay);
   }
 
@@ -469,7 +473,7 @@
       if (selectedMotionId) {
         fetchTallies(selectedMotionId);
       }
-    }, 5000);
+    }, 3000);
   }
 
   function stopPollingTallies() {
