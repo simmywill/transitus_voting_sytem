@@ -710,17 +710,18 @@
   window.addEventListener("offline", () => setStatus("offline", "Offline"));
 
   if (previewMotion && !initialMotion) {
-    if (previewMotion.preview) {
-      renderPreview(previewMotion);
+    const initialPreview = previewMotion;
+    if (initialPreview.preview) {
+      renderPreview(initialPreview);
     } else {
-      renderMotion(previewMotion, previewMotion.selection || null);
+      renderMotion(initialPreview, initialPreview.selection || null);
       if (
-        previewMotion.status === "closed" &&
-        previewMotion.reveal_results &&
-        previewMotion.counts
+        initialPreview.status === "closed" &&
+        initialPreview.reveal_results &&
+        initialPreview.counts
       ) {
-        renderResults(previewMotion.counts, previewMotion.id, {
-          userChoice: previewMotion.selection || selection,
+        renderResults(initialPreview.counts, initialPreview.id, {
+          userChoice: initialPreview.selection || selection,
         });
       }
     }
