@@ -66,6 +66,8 @@
   let pollTimer = null;
   let staleCheckTimer = null;
   let lastMessageAt = Date.now();
+  let resyncTimer = null;
+  let serverOffsetMs = 0;
   let currentMotion = initialMotion || previewMotion || latestClosed;
   let selection = null;
   if (initialMotion) {
@@ -88,6 +90,30 @@
 
   function markActivity() {
     lastMessageAt = Date.now();
+  }
+
+  function serverNowMs() {
+    return Date.now() + serverOffsetMs;
+  }
+
+  function applyServerTiming(payload) {
+    if (!payload) return;
+    if (payload.server_now) {
+      const serverNow = Date.parse(payload.server_now);
+      if (!Number.isNaN(serverNow)) {
+        serverOffsetMs = serverNow - Date.now();
+      }
+    }
+    if (payload.closes_at) {
+      const closesAt = Date.parse(payload.closes_at);
+      if (!Number.isNaN(closesAt)) {
+        autoCloseAt = closesAt;
+        return;
+      }
+    }
+    if (payload.opened_at && payload.auto_close_seconds) {
+      autoCloseAt = new Date(payload.opened_at).getTime() + payload.auto_close_seconds * 1000;
+    }
   }
 
   function getCsrfToken() {
@@ -175,7 +201,8 @@
       cancelAnimationFrame(timerFrame);
       timerFrame = null;
     }
-    const hasTimer = motion.auto_close_seconds && motion.opened_at;
+    const hasTimer =
+      !!motion.closes_at || (!!motion.auto_close_seconds && !!motion.opened_at);
     if (isPreview) {
       setClosedAlert(true, "Waiting for the moderator to open voting for this motion.");
       updateTimerDisplay("Waiting");
@@ -188,9 +215,11 @@
       setClosedAlert(false);
       updateTimerDisplay(hasTimer ? "Syncing" : "Not set");
     }
-    if (motion.auto_close_seconds && motion.opened_at) {
-      autoCloseAt = new Date(motion.opened_at).getTime() + motion.auto_close_seconds * 1000;
-      startTimer();
+    if (hasTimer) {
+      applyServerTiming(motion);
+      if (autoCloseAt) {
+        startTimer();
+      }
     }
   }
 
@@ -259,6 +288,7 @@
       reconnectAttempts = 0;
       startHeartbeat();
       startStaleCheck();
+      startResync();
       stopPolling();
       fetchState();
     };
@@ -266,12 +296,14 @@
       setStatus("reconnecting", "Reconnecting…");
       stopHeartbeat();
       stopStaleCheck();
+      stopResync();
       startPolling();
       scheduleReconnect();
     };
     socket.onerror = () => {
       setStatus("reconnecting", "Reconnecting…");
       stopStaleCheck();
+      stopResync();
       startPolling();
       socket.close();
     };
@@ -330,6 +362,7 @@
 
   function startPolling() {
     if (pollTimer) return;
+    stopResync();
     pollTimer = setInterval(fetchState, 3000);
     fetchState();
   }
@@ -337,6 +370,16 @@
   function stopPolling() {
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = null;
+  }
+
+  function startResync() {
+    if (resyncTimer) return;
+    resyncTimer = setInterval(fetchState, 10000);
+  }
+
+  function stopResync() {
+    if (resyncTimer) clearInterval(resyncTimer);
+    resyncTimer = null;
   }
 
   async function fetchState() {
@@ -349,6 +392,7 @@
         previewMotion = null;
         currentMotion = data.open;
         selection = data.open.selection || null;
+        applyServerTiming(currentMotion);
         renderMotion(currentMotion, selection);
         clearResults();
       } else if (data.preview) {
@@ -492,6 +536,7 @@
         currentMotion = payload;
         selection = null;
         clearResults();
+        applyServerTiming(payload);
         renderMotion(payload, null);
         break;
       case "motion_previewed":
@@ -552,10 +597,10 @@
         if (currentMotion && payload.id === currentMotion.id) {
           currentMotion.auto_close_seconds = payload.auto_close_seconds;
           currentMotion.opened_at = payload.opened_at;
-          autoCloseAt = null;
-          if (currentMotion.auto_close_seconds && currentMotion.opened_at) {
-            autoCloseAt =
-              new Date(currentMotion.opened_at).getTime() + currentMotion.auto_close_seconds * 1000;
+          currentMotion.server_now = payload.server_now;
+          currentMotion.closes_at = payload.closes_at;
+          applyServerTiming(currentMotion);
+          if (autoCloseAt) {
             startTimer();
           }
         }
@@ -609,7 +654,7 @@
         timerFrame = null;
         return;
       }
-      const remaining = Math.max(0, autoCloseAt - Date.now());
+      const remaining = Math.max(0, autoCloseAt - serverNowMs());
       if (remaining <= 0) {
         updateTimerDisplay("Closing", "urgent");
         disableVoting(true);

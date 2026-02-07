@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from typing import Dict, Optional
 
 from django.conf import settings
@@ -14,7 +15,7 @@ from django.core.cache import cache
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone as tz
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
 
 from voters import bbs_views
@@ -56,6 +57,15 @@ def _motion_payload(motion: Motion) -> Dict:
         "opened_at": motion.opened_at.isoformat() if motion.opened_at else None,
         "closed_at": motion.closed_at.isoformat() if motion.closed_at else None,
     }
+
+
+def _attach_timer_payload(motion: Motion, payload: Dict) -> Dict:
+    payload["server_now"] = tz.now().isoformat()
+    closes_at = None
+    if motion and motion.opened_at and motion.auto_close_seconds:
+        closes_at = motion.opened_at + timedelta(seconds=motion.auto_close_seconds)
+    payload["closes_at"] = closes_at.isoformat() if closes_at else None
+    return payload
 
 
 def _ensure_staff(request):
@@ -143,6 +153,7 @@ def gated_entry(request, session_uuid):
 
 
 @require_GET
+@ensure_csrf_cookie
 def voter_portal(request, session_uuid):
     session = get_event_by_uuid(session_uuid)
     if not session.is_active:
@@ -188,6 +199,8 @@ def voter_portal(request, session_uuid):
     open_payload = _motion_payload(open_motion) if open_motion else None
     if open_payload and selection:
         open_payload["selection"] = selection
+    if open_payload and open_motion and open_motion.status == Motion.STATUS_OPEN:
+        _attach_timer_payload(open_motion, open_payload)
 
     ws_path = f"/ws/motions/{session_uuid}/voter/"
     context = {
@@ -348,6 +361,7 @@ def open_motion(request, session_uuid, motion_id):
     motion = get_object_or_404(Motion, pk=motion_id, event=session)
     motion = svc_open_motion(motion)
     payload = _motion_payload(motion)
+    _attach_timer_payload(motion, payload)
     _clear_preview(session.pk)
     broadcast_to_voters(session.pk, "motion_opened", payload)
     broadcast_to_admins(session.pk, "motion_opened", payload)
@@ -502,6 +516,7 @@ def api_current_motion(request, session_uuid):
                 .first()
             )
             payload["open"]["selection"] = vote
+        _attach_timer_payload(open_motion, payload["open"])
         _clear_preview(session.pk)
     else:
         payload["preview"] = _preview_payload_for_session(session)
@@ -594,6 +609,7 @@ def api_set_timer(request, session_uuid, motion_id):
     Motion.objects.filter(pk=motion.pk).update(opened_at=now, auto_close_seconds=target_seconds)
     motion.refresh_from_db(fields=["opened_at", "auto_close_seconds"])
     payload = _motion_payload(motion)
+    _attach_timer_payload(motion, payload)
     broadcast_to_admins(session.pk, "timer_updated", payload)
     broadcast_to_voters(session.pk, "timer_updated", payload)
     return JsonResponse({"ok": True, "motion": payload})
